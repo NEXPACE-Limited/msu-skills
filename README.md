@@ -12,7 +12,7 @@ and the `maple-lookup` MCP tools available in the agent environment.
 
 ## Installation
 
-Requires [Node.js](https://nodejs.org) 18+ and `git` access to this GitLab
+Requires [Node.js](https://nodejs.org) 18+ and `git` access to this GitHub
 repository.
 
 ```bash
