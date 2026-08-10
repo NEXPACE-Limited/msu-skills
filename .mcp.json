@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "maple-lookup": {
+      "type": "http",
+      "url": "https://openapi.msu.io/v1rc1/resource/mcp",
+      "headers": {
+        "x-nxopen-api-key": "${user_config.openapi_key}"
+      }
+    }
+  }
+}
