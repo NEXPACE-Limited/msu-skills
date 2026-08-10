@@ -111,7 +111,7 @@ Use the `maple-lookup` MCP server tools to search game data and fetch sprite inf
 2. `maple-lookup_get_sprite_data("head", "12000", ["stand1"])` → head with socket data
 3. `maple-lookup_search("{equipment}", "{category}")` → get equipment IDs
 4. `maple-lookup_get_sprite_data("{category}", "{id}", ["stand1"])` → equipment frames with socket data
-5. Assemble parts using socket points (navel, neck, brow, hand) — see `maple-rendering`and `maple-character-rendering` skills
+5. Assemble parts using socket points (navel, neck, brow, hand) — see `maple-core-rendering.md` and `maple-character-rendering.md`
 
 **NPC Workflow:**
 1. `maple-lookup_search("{npc name}", "npc")` → get NPC ID
@@ -119,11 +119,11 @@ Use the `maple-lookup` MCP server tools to search game data and fetch sprite inf
 
 **Map Workflow:**
 1. `maple-lookup_search("{map name}", "map")` → get map ID
-2. `maple-lookup_get_sprite_data("map", "{mapID}")` → get map data (tiles, footholds, portals, life) — see `maple-map` skill
+2. `maple-lookup_get_sprite_data("map", "{mapID}")` → get map data (tiles, footholds, portals, life) — see `maple-field-map.md`
 
 **Skill Workflow:**
 1. `maple-lookup_search("{skill name}", "skill")` → get skill ID
-2. `maple-lookup_get_sprite_data("skill", "{skillID}")` → get skill spec + visual effect data — see `maple-skill-effects` skill
+2. `maple-lookup_get_sprite_data("skill", "{skillID}")` → get skill spec + visual effect data — see `maple-character-skill-system.md`
 
 ## Asset Root
 
