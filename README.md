@@ -6,11 +6,38 @@ This repository provides installable MSU Resource Skills for AI agents. The
 skills help agents discover and use MSU game resources through Resource MCP while
 building Synergy Apps.
 
+Within the NEXPACE skills ecosystem, this repository is the `msu` plugin — the
+home of MSU (≒ NEXPACE) common skills and shared modules. Product-specific skill
+sets live in their own repositories and depend on this one. Every one of them is
+catalogued in the
+[NEXPACE Skills Hub](https://github.com/NEXPACE-Limited/nexpace-skills-hub).
+
 The current skill is `maple-make`, which helps AI coding agents build
 MapleStory Universe game prototypes using Maple asset knowledge, rendering rules,
 and the `maple-lookup` MCP tools available in the agent environment.
 
 ## Installation
+
+There are two primary install channels, plus a manual fallback for
+environments without Node.js.
+
+### Claude Code — plugin
+
+The plugin is distributed through the NEXPACE Skills Hub, the marketplace that
+catalogs every NEXPACE skill plugin.
+
+```text
+/plugin marketplace add NEXPACE-Limited/nexpace-skills-hub
+/plugin install msu@nexpace
+```
+
+Installing the `msu` plugin registers the skills and the `maple-lookup` MCP
+server together — the server definition is bundled as [`.mcp.json`](.mcp.json)
+at the plugin root, so Claude Code picks it up automatically. When the plugin
+is enabled, Claude Code prompts for your MSU Builder OpenAPI key and stores it
+securely — no manual MCP setup is needed.
+
+### Other agents — skills CLI
 
 Requires [Node.js](https://nodejs.org) 18+.
 
@@ -18,15 +45,47 @@ Requires [Node.js](https://nodejs.org) 18+.
 npx skills add NEXPACE-Limited/msu-skills
 ```
 
-This installs the skill for your active coding agent, such as Claude Code,
-Cursor, Codex CLI, OpenCode, Windsurf, Continue, Cline, or Claude Desktop.
+This installs the skills for your active coding agent, such as Cursor, Codex
+CLI, OpenCode, Windsurf, Continue, Cline, or Claude Desktop. (Claude Code users
+should prefer the plugin channel above.) The skills do not bundle a CLI helper
+or require shell utilities.
 
-The `maple-make` skill expects the `maple-lookup` MCP tools to be available to
-the agent. It does not bundle a CLI helper or require shell utilities.
+With this channel, configure the `maple-lookup` MCP server manually — see the
+next section.
+
+### Manual installation (fallback)
+
+Skills are self-contained directories, so copying them is a complete install.
+Clone the repository first — the installer never downloads anything itself.
+
+```bash
+git clone https://github.com/NEXPACE-Limited/msu-skills.git
+cd msu-skills
+
+# Option A: installer script — auto-detects ~/.codex, ~/.gemini, ~/.kimi
+./install.sh                    # or: ./install.sh --target <skills-dir>
+
+# Option B: copy a single skill by hand
+cp -R skills/maple-make ~/.codex/skills/
+```
+
+The script copies every directory under `skills/` and helps register the
+`maple-lookup` MCP server where it can: Codex reads `$MSU_OPENAPI_KEY` from the
+environment at runtime, while Gemini and Kimi need the key exported when the
+server is registered. See the next section for fully manual MCP setup.
 
 ## MCP Configuration
 
-Configure the remote `maple-lookup` MCP server before first use.
+The `maple-make` skill expects the `maple-lookup` MCP tools to be available to
+the agent. The server definition lives in [`.mcp.json`](.mcp.json) at the
+repository root — the single source of truth for the server name and URL; the
+values below mirror it for manual setup.
+
+**Claude Code plugin users can skip this section** — the `msu` plugin bundles
+`.mcp.json` and prompts for the OpenAPI key when the plugin is enabled.
+
+For every other channel, configure the remote `maple-lookup` MCP server
+manually before first use.
 
 First issue an MSU Builder OpenAPI Key, then keep it in a local environment
 variable or private agent config. Do not paste the key into chat or commit it to
@@ -43,7 +102,7 @@ MCP server values:
 - Transport: HTTP / streamable HTTP
 - Header: `x-nxopen-api-key: <issued OpenAPI key>`
 
-Claude Code
+Claude Code (installed via skills CLI, without the plugin)
 
 ```bash
 claude mcp add --transport http --header "x-nxopen-api-key: $MSU_OPENAPI_KEY" \
@@ -82,23 +141,41 @@ gemini mcp add --transport http --header "x-nxopen-api-key: $MSU_OPENAPI_KEY" \
   maple-lookup https://openapi.msu.io/v1rc1/resource/mcp
 ```
 
+Kimi CLI
+
+```bash
+kimi mcp add --transport http --header "x-nxopen-api-key: $MSU_OPENAPI_KEY" \
+  maple-lookup https://openapi.msu.io/v1rc1/resource/mcp
+```
+
 Official MCP setup docs:
 [Claude Code](https://code.claude.com/docs/en/mcp),
 [Codex CLI](https://developers.openai.com/codex/mcp),
 [Cursor](https://cursor.com/docs/mcp),
-[Gemini CLI](https://google-gemini.github.io/gemini-cli/docs/tools/mcp-server.html).
+[Gemini CLI](https://google-gemini.github.io/gemini-cli/docs/tools/mcp-server.html),
+[Kimi CLI](https://github.com/MoonshotAI/kimi-cli#mcp-support).
 
 ## Skills
 
 | Skill | Description |
 |---|---|
-| [`maple-make`](skills/msu/maple-make/) | MapleStory Universe game prototyping with Maple asset lookup and sprite rendering guidance |
+| [`maple-make`](skills/maple-make/) | MapleStory Universe game prototyping with Maple asset lookup and sprite rendering guidance |
 
 ## MCP Requirement
 
 The target agent environment must have the `maple-lookup` MCP server configured
-with the URL and OpenAPI key header above. This repository documents the setup
-but does not embed or auto-install MCP server configuration.
+with the URL and OpenAPI key header above. The Claude Code plugin channel
+registers this configuration automatically; every other channel documents the
+setup here for manual configuration.
+
+## Repository Layout
+
+```
+skills/            # the only source of truth (Agent Skills open standard — shared by every CLI)
+.claude-plugin/    # plugin.json — the Claude Code plugin manifest (the catalog lives in the hub)
+.mcp.json          # maple-lookup MCP server definition, bundled with the plugin
+install.sh         # manual installer for Codex / Gemini / Kimi
+```
 
 ## Try It
 
