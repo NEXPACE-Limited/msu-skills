@@ -225,6 +225,29 @@ jobs:
             exit 1
           fi
           echo "skill names unique"
+      - name: Every skill has a README row
+        # The README table is where a browsing user sees what the catalog holds, and
+        # nothing else fails when a row is missing — the skill still validates,
+        # installs, and is discovered on every channel, so a stale table ships quietly.
+        # Anchored on the link path, so a row pointing at the wrong plugin fails too.
+        run: |
+          shopt -s nullglob
+          count=0
+          for dir in plugins/*/skills/*/; do
+            [ -f "$dir/SKILL.md" ] || continue
+            plugin="$(basename "$(dirname "$(dirname "$dir")")")"
+            name="$(basename "$dir")"
+            if ! grep -qF "](plugins/$plugin/skills/$name/)" README.md; then
+              echo "::error file=README.md::no Skills row for '$name' — add one linking to plugins/$plugin/skills/$name/"
+              exit 1
+            fi
+            count=$((count + 1))
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "::error::no SKILL.md under plugins/*/skills/"
+            exit 1
+          fi
+          echo "$count README row(s) present"
 
   version-bump:
     # Merging to main is the release, and the version string is the only update signal:

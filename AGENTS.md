@@ -198,6 +198,12 @@ clones the default branch — though a marketplace source does accept a `ref`, s
   each other on those channels. CI fails on a duplicate.
 - The frontmatter `description` is **the LLM's skill-matching input**, not
   documentation. Write it at final quality even for a stub.
+- **Every skill needs a row in the README `## Skills` table** linking to
+  `plugins/<plugin>/skills/<name>/`; CI fails without it. That table is inventory on
+  purpose — it is where a browsing user sees what the catalog holds, which is why it
+  carries a list where this file must not. Write its description for a human deciding
+  whether to install, not by copying the frontmatter `description`, which is written
+  for matching and runs several times too long.
 - **Do not name CLI-specific tools.** `AskUserQuestion` and friends only exist in
   Claude Code. Describe the behavior ("ask the user") so all four CLIs can follow it.
 - Keep `SKILL.md` thin and push detail into `references/`, loaded on demand. The

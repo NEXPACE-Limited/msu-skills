@@ -10,7 +10,7 @@ Within the NEXPACE skills ecosystem, this repository is the `msu-skills` catalog
 — the home of MSU (≒ NEXPACE) common skills and shared modules. Product-specific
 skill sets live in their own repositories and depend on these.
 
-It carries two plugins, installed independently:
+Its plugins install independently:
 
 | Plugin | For | Needs an MSU Builder OpenAPI key |
 |---|---|---|
