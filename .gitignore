@@ -1,3 +1,6 @@
 .DS_Store
 .memsearch/
 .scratch/
+
+# Written by the skills-discovery check; also appears when running it by hand
+discovery.log

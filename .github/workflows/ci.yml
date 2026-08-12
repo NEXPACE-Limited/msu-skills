@@ -1,0 +1,276 @@
+# Every check is self-contained. This repository is its own catalog, so nothing here
+# depends on a second repository being in agreement.
+#
+# One plugin lives at plugins/<name>/ with its own .claude-plugin/plugin.json. Every
+# check below discovers plugins from the filesystem, so adding one needs no edit here.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  plugin-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Validate marketplace catalog
+        # Pointed at the repo root the validator reads marketplace.json, and for every
+        # local-path entry it also reads that plugin's plugin.json.
+        run: claude plugin validate .
+      - name: Validate every plugin
+        # Only the plugin-directory form checks the skill, command, and hook files.
+        # --strict is deliberately not used; warnings do not fail validation.
+        run: |
+          count=0
+          for dir in plugins/*/; do
+            [ -f "$dir/.claude-plugin/plugin.json" ] || continue
+            echo "── ${dir%/}"
+            claude plugin validate "$dir"
+            count=$((count + 1))
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "::error::no plugin found under plugins/"
+            exit 1
+          fi
+          echo "$count plugin(s) validated"
+
+  install-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run installer into a probe directory
+        run: bash install.sh --target "$RUNNER_TEMP/probe"
+      - name: Every skill reached the probe
+        # Skills install flat, by skill name, whatever plugin they came from.
+        run: |
+          count=0
+          for dir in plugins/*/skills/*/; do
+            [ -f "$dir/SKILL.md" ] || continue
+            name="$(basename "$dir")"
+            if [ ! -f "$RUNNER_TEMP/probe/$name/SKILL.md" ]; then
+              echo "::error::$name missing from install target"
+              exit 1
+            fi
+            count=$((count + 1))
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "::error::no SKILL.md under plugins/*/skills/"
+            exit 1
+          fi
+          echo "$count skill(s) installed and verified"
+      - name: A single plugin installs on its own
+        # --plugin is what a consumer of one plugin uses; a break here is silent.
+        run: |
+          for dir in plugins/*/; do
+            plugin="$(basename "$dir")"
+            probe="$RUNNER_TEMP/one-$plugin"
+            bash install.sh --plugin "$plugin" --target "$probe"
+            for skill in "$dir"skills/*/; do
+              [ -f "$skill/SKILL.md" ] || continue
+              name="$(basename "$skill")"
+              if [ ! -f "$probe/$name/SKILL.md" ]; then
+                echo "::error::--plugin $plugin did not install $name"
+                exit 1
+              fi
+            done
+            echo "$plugin: ok"
+          done
+
+  skills-discovery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: List skills the skills CLI discovers
+        run: npx --yes skills add . -l | tee discovery.log
+      - name: Every skill was discovered
+        # The skills CLI globs SKILL.md recursively, so it sees every plugin's skills
+        # from the repository root. That is the documented behaviour of that channel.
+        run: |
+          count=0
+          for dir in plugins/*/skills/*/; do
+            [ -f "$dir/SKILL.md" ] || continue
+            name="$(basename "$dir")"
+            if ! grep -Fq "$name" discovery.log; then
+              echo "::error::skills CLI did not discover $name"
+              exit 1
+            fi
+            count=$((count + 1))
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "::error::no SKILL.md under plugins/*/skills/"
+            exit 1
+          fi
+          echo "$count skill(s) discovered"
+
+  guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Catalog resolves and declares no plugin version
+        # The repo is its own catalog, so a missing or dangling entry breaks the install
+        # path outright. Claude Code always reads plugin.json's version and ignores one
+        # declared in the catalog entry without warning, so a version here would drift
+        # while looking authoritative.
+        run: |
+          file=.claude-plugin/marketplace.json
+          if [ ! -f "$file" ]; then
+            echo "::error::$file is missing; this repository is its own catalog"
+            exit 1
+          fi
+          declared="$(jq -r '[.plugins[] | select(has("version")) | .name] | join(", ")' "$file")"
+          if [ -n "$declared" ]; then
+            echo "::error file=$file::catalog entry declares a version ($declared); version belongs in plugin.json only"
+            exit 1
+          fi
+          while IFS=$'\t' read -r name source; do
+            if [ ! -f "$source/.claude-plugin/plugin.json" ]; then
+              echo "::error file=$file::entry '$name' points at '$source', which has no .claude-plugin/plugin.json"
+              exit 1
+            fi
+            if [ "$(jq -r '.name' "$source/.claude-plugin/plugin.json")" != "$name" ]; then
+              echo "::error file=$file::entry '$name' resolves to a plugin.json declaring a different name"
+              exit 1
+            fi
+          done < <(jq -r '.plugins[] | select(.source | type == "string") | [.name, .source] | @tsv' "$file")
+          echo "catalog ok: $(jq -r '.name' "$file") ($(jq -r '.plugins | length' "$file") entry/entries)"
+      - name: No literal credential in any .mcp.json
+        # This repository is world-readable. A header or env value with no ${...}
+        # placeholder is a committed secret. Ported from the retired hub's
+        # check-endpoints.sh, which was the only place this ran.
+        run: |
+          shopt -s nullglob
+          for file in plugins/*/.mcp.json; do
+            hits="$(jq -r '
+              (.mcpServers // {})
+              | to_entries[]
+              | .key as $server
+              | ((.value.headers // {}) + (.value.env // {}))
+              | to_entries[]
+              | select((.value | type) == "string")
+              | select(.value | test("\\$\\{") | not)
+              | select(($server | test("key|token|secret"; "i"))
+                       or (.key | test("key|token|secret|auth|password"; "i")))
+              | "\($server).\(.key)"
+            ' "$file")"
+            if [ -n "$hits" ]; then
+              echo "::error file=$file::literal value for: $(echo "$hits" | tr '\n' ' ')— use \${user_config.*} or \${env:*}"
+              exit 1
+            fi
+            echo "$file carries no literal credential"
+          done
+      - name: No forbidden endpoint in tracked files
+        # Credentials in a URL, raw IPv4 hosts, internal-only hosts, plaintext http.
+        # The other half of the retired hub's check-endpoints.sh.
+        run: bash scripts/check-endpoints.sh
+      - name: Frontmatter name equals directory name
+        # The plugin channel namespaces by frontmatter name, the skills CLI and
+        # install.sh by directory name. A mismatch makes the channels disagree.
+        run: |
+          shopt -s nullglob
+          count=0
+          for file in plugins/*/skills/*/SKILL.md; do
+            dir_name="$(basename "$(dirname "$file")")"
+            declared="$(awk 'NR == 1 && $0 != "---" { exit }
+                             NR == 1 { next }
+                             /^---[[:space:]]*$/ { exit }
+                             index($0, "name:") == 1 {
+                               sub(/^[^:]*:[[:space:]]*/, "")
+                               gsub(/^["\047]|["\047]$/, "")
+                               print
+                               exit
+                             }' "$file")"
+            if [ "$declared" != "$dir_name" ]; then
+              echo "::error file=$file::frontmatter name '$declared' != directory name '$dir_name'"
+              exit 1
+            fi
+            count=$((count + 1))
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "::error::no SKILL.md under plugins/*/skills/"
+            exit 1
+          fi
+          echo "$count skill(s) checked"
+      - name: Skill names are unique across plugins
+        # install.sh and the skills CLI both install flat, by skill name. Two plugins
+        # claiming one name would silently overwrite each other on those channels.
+        run: |
+          shopt -s nullglob
+          dupes="$(for file in plugins/*/skills/*/SKILL.md; do
+                     basename "$(dirname "$file")"
+                   done | sort | uniq -d)"
+          if [ -n "$dupes" ]; then
+            echo "::error::skill name(s) claimed by more than one plugin: $(echo "$dupes" | tr '\n' ' ')"
+            exit 1
+          fi
+          echo "skill names unique"
+
+  version-bump:
+    # Merging to main is the release, and the version string is the only update signal:
+    # ship changed skills without bumping it and installed users keep the cached copy.
+    # The hub's catalog-agreement check used to catch this; nothing else does now.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Every changed plugin bumps its own version
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          checked=0
+          for dir in plugins/*/; do
+            plugin="${dir%/}"
+            manifest="$plugin/.claude-plugin/plugin.json"
+            [ -f "$manifest" ] || continue
+
+            changed="$(git diff --name-only "$BASE...$HEAD" -- "$plugin")"
+            if [ -z "$changed" ]; then
+              echo "$plugin: unchanged"
+              continue
+            fi
+
+            # A plugin added by this PR has no manifest on the base. `git show` exits
+            # 128 there, which under `set -e -o pipefail` would kill the step, so test
+            # for the path first and report an empty version instead.
+            read_version() {
+              git cat-file -e "$1:$manifest" 2>/dev/null || return 0
+              git show "$1:$manifest" | jq -r '.version // empty'
+            }
+            head_version="$(read_version "$HEAD")"
+            if [ -z "$head_version" ]; then
+              echo "::error file=$manifest::no version field"
+              exit 1
+            fi
+            base_version="$(read_version "$BASE")"
+            if [ "$base_version" = "$head_version" ]; then
+              echo "::error file=$manifest::$(echo "$changed" | tr '\n' ' ')changed but version is still $head_version — bump it, or installed users keep the cached copy"
+              exit 1
+            fi
+            echo "$plugin: ${base_version:-none} -> $head_version"
+            checked=$((checked + 1))
+          done
+          echo "$checked plugin(s) bumped"

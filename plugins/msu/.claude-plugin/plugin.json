@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "msu",
   "displayName": "MSU Skills",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "MapleStory Universe (NEXPACE) common skills and modules — Maple asset knowledge with the maple-lookup MCP for building Synergy Apps",
   "author": {
     "name": "NEXPACE"
