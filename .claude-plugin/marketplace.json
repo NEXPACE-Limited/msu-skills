@@ -24,7 +24,7 @@
       "name": "game-tools",
       "source": "./plugins/game-tools",
       "displayName": "Game Tools",
-      "description": "Quality gates for game production — balance, determinism, cross-device UI, tutorials, and localization. Works with any engine or platform; published by NEXPACE alongside the MSU builder skills.",
+      "description": "Quality gates and live tooling for game production — balance, determinism, cross-device UI, tutorials, localization, and an in-game debug/tuning panel. Works with any engine or platform; published by NEXPACE alongside the MSU builder skills.",
       "author": {
         "name": "NEXPACE"
       },

@@ -178,6 +178,7 @@ Official MCP setup docs:
 | `msu` | [`maple-make`](plugins/msu/skills/maple-make/) | MapleStory Universe game prototyping with Maple asset lookup and sprite rendering guidance |
 | `game-tools` | [`balance-tuning`](plugins/game-tools/skills/balance-tuning/) | Difficulty and progression curves, session pacing, option trade-offs, reward economies |
 | `game-tools` | [`cross-device-check`](plugins/game-tools/skills/cross-device-check/) | UI and interaction across viewports, aspect ratios, pixel densities, orientations, inputs |
+| `game-tools` | [`debug-visualization`](plugins/game-tools/skills/debug-visualization/) | Live in-game debug/tuning panel shipped with every web game — builders tune values themselves and paste the result back |
 | `game-tools` | [`determinism-audit`](plugins/game-tools/skills/determinism-audit/) | Nondeterministic behaviour and flaky execution — randomness, timing, ordering, numeric drift |
 | `game-tools` | [`game-tutorial`](plugins/game-tools/skills/game-tutorial/) | First-time-player onboarding: what to teach, when, and how to verify it |
 | `game-tools` | [`i18n-setup`](plugins/game-tools/skills/i18n-setup/) | Localization: string extraction, locale catalogs, fallback, plurals, glyphs, safe layouts |
