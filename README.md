@@ -10,9 +10,12 @@ Within the NEXPACE skills ecosystem, this repository is the `msu` plugin — the
 home of MSU (≒ NEXPACE) common skills and shared modules. Product-specific skill
 sets live in their own repositories and depend on this one.
 
-The current skill is `maple-make`, which helps AI coding agents build
-MapleStory Universe game prototypes using Maple asset knowledge, rendering rules,
-and the `maple-lookup` MCP tools available in the agent environment.
+The `maple-make` skill helps AI coding agents build MapleStory Universe game
+prototypes using Maple asset knowledge, rendering rules, and the `maple-lookup`
+MCP tools available in the agent environment. The `debug-visualization` skill
+ships a live in-game debug/tuning panel with every web game so builders adjust
+values themselves instead of burning chat round-trips; it needs no MCP server
+and no credentials.
 
 ## Installation
 
@@ -27,6 +30,7 @@ directly.
 ```text
 /plugin marketplace add NEXPACE-Limited/msu-skills
 /plugin install msu@msu-skills
+/plugin install game@msu-skills
 ```
 
 Later releases arrive with `/plugin marketplace update msu-skills`.
@@ -171,6 +175,7 @@ Official MCP setup docs:
 | Plugin | Skill | Description |
 |---|---|---|
 | `msu` | [`maple-make`](plugins/msu/skills/maple-make/) | MapleStory Universe game prototyping with Maple asset lookup and sprite rendering guidance |
+| `game` | [`debug-visualization`](plugins/game/skills/debug-visualization/) | Live in-game debug/tuning panel shipped with every web game — builders tune values themselves and paste the result back |
 
 ## MCP Requirement
 

@@ -19,6 +19,19 @@
       "repository": "https://github.com/NEXPACE-Limited/msu-skills",
       "category": "knowledge",
       "tags": ["maplestory", "msu", "nexpace", "game-assets", "mcp"]
+    },
+    {
+      "name": "game",
+      "source": "./plugins/game",
+      "displayName": "Game Skills",
+      "description": "Game-building skills for MapleStory Universe (NEXPACE) builders — ships a live in-game debug/tuning panel with every web game; no credentials required",
+      "author": {
+        "name": "NEXPACE"
+      },
+      "homepage": "https://github.com/NEXPACE-Limited/msu-skills",
+      "repository": "https://github.com/NEXPACE-Limited/msu-skills",
+      "category": "development",
+      "tags": ["game", "debugging", "tuning", "web-game"]
     }
   ]
 }
