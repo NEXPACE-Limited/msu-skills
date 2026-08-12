@@ -8,9 +8,7 @@ building Synergy Apps.
 
 Within the NEXPACE skills ecosystem, this repository is the `msu` plugin — the
 home of MSU (≒ NEXPACE) common skills and shared modules. Product-specific skill
-sets live in their own repositories and depend on this one. Every one of them is
-catalogued in the
-[NEXPACE Skills Hub](https://github.com/NEXPACE-Limited/nexpace-skills-hub).
+sets live in their own repositories and depend on this one.
 
 The current skill is `maple-make`, which helps AI coding agents build
 MapleStory Universe game prototypes using Maple asset knowledge, rendering rules,
@@ -23,19 +21,22 @@ environments without Node.js.
 
 ### Claude Code — plugin
 
-The plugin is distributed through the NEXPACE Skills Hub, the marketplace that
-catalogs every NEXPACE skill plugin.
+This repository is its own plugin marketplace, so it is added and installed
+directly.
 
 ```text
-/plugin marketplace add NEXPACE-Limited/nexpace-skills-hub
-/plugin install msu@nexpace
+/plugin marketplace add NEXPACE-Limited/msu-skills
+/plugin install msu@msu-skills
 ```
 
+Later releases arrive with `/plugin marketplace update msu-skills`.
+
 Installing the `msu` plugin registers the skills and the `maple-lookup` MCP
-server together — the server definition is bundled as [`.mcp.json`](.mcp.json)
-at the plugin root, so Claude Code picks it up automatically. When the plugin
-is enabled, Claude Code prompts for your MSU Builder OpenAPI key and stores it
-securely — no manual MCP setup is needed.
+server together — the server definition is bundled as
+[`plugins/msu/.mcp.json`](plugins/msu/.mcp.json) at that plugin's root, so
+Claude Code picks it up automatically. When the plugin is enabled, Claude Code
+prompts for your MSU Builder OpenAPI key and stores it securely — no manual MCP
+setup is needed.
 
 ### Other agents — skills CLI
 
@@ -50,6 +51,13 @@ CLI, OpenCode, Windsurf, Continue, Cline, or Claude Desktop. (Claude Code users
 should prefer the plugin channel above.) The skills do not bundle a CLI helper
 or require shell utilities.
 
+This offers the skills of every plugin in the repository at once. Name the ones
+you want to narrow it:
+
+```bash
+npx skills add NEXPACE-Limited/msu-skills --skill maple-make
+```
+
 With this channel, configure the `maple-lookup` MCP server manually — see the
 next section.
 
@@ -63,23 +71,26 @@ git clone https://github.com/NEXPACE-Limited/msu-skills.git
 cd msu-skills
 
 # Option A: installer script — auto-detects ~/.codex, ~/.gemini, ~/.kimi
-./install.sh                    # or: ./install.sh --target <skills-dir>
+./install.sh                    # every plugin
+./install.sh --plugin msu       # one plugin only
+./install.sh --target <skills-dir>
 
 # Option B: copy a single skill by hand
-cp -R skills/maple-make ~/.codex/skills/
+cp -R plugins/msu/skills/maple-make ~/.codex/skills/
 ```
 
-The script copies every directory under `skills/` and helps register the
-`maple-lookup` MCP server where it can: Codex reads `$MSU_OPENAPI_KEY` from the
-environment at runtime, while Gemini and Kimi need the key exported when the
-server is registered. See the next section for fully manual MCP setup.
+The script copies every skill of the selected plugins — flat, by skill name,
+because that is where these CLIs look — and helps register the MCP servers those
+plugins bundle: Codex reads `$MSU_OPENAPI_KEY` from the environment at runtime,
+while Gemini and Kimi need the key exported when the server is registered. See
+the next section for fully manual MCP setup.
 
 ## MCP Configuration
 
 The `maple-make` skill expects the `maple-lookup` MCP tools to be available to
-the agent. The server definition lives in [`.mcp.json`](.mcp.json) at the
-repository root — the single source of truth for the server name and URL; the
-values below mirror it for manual setup.
+the agent. The server definition lives in
+[`plugins/msu/.mcp.json`](plugins/msu/.mcp.json) — the single source of truth
+for the server name and URL; the values below mirror it for manual setup.
 
 **Claude Code plugin users can skip this section** — the `msu` plugin bundles
 `.mcp.json` and prompts for the OpenAPI key when the plugin is enabled.
@@ -157,9 +168,9 @@ Official MCP setup docs:
 
 ## Skills
 
-| Skill | Description |
-|---|---|
-| [`maple-make`](skills/maple-make/) | MapleStory Universe game prototyping with Maple asset lookup and sprite rendering guidance |
+| Plugin | Skill | Description |
+|---|---|---|
+| `msu` | [`maple-make`](plugins/msu/skills/maple-make/) | MapleStory Universe game prototyping with Maple asset lookup and sprite rendering guidance |
 
 ## MCP Requirement
 
@@ -171,11 +182,17 @@ setup here for manual configuration.
 ## Repository Layout
 
 ```
-skills/            # the only source of truth (Agent Skills open standard — shared by every CLI)
-.claude-plugin/    # plugin.json — the Claude Code plugin manifest (the catalog lives in the hub)
-.mcp.json          # maple-lookup MCP server definition, bundled with the plugin
-install.sh         # manual installer for Codex / Gemini / Kimi
+.claude-plugin/marketplace.json   # the catalog — lists every plugin below
+plugins/msu/                      # the msu plugin
+  .claude-plugin/plugin.json      #   manifest: name, version, OpenAPI key prompt
+  .mcp.json                       #   maple-lookup MCP server definition
+  skills/                         #   the only source of truth (Agent Skills open standard)
+install.sh                        # manual installer for Codex / Gemini / Kimi
 ```
+
+Each plugin owns a directory under `plugins/` so that its skills, MCP servers,
+and credential prompts stay its own. Installing one plugin never brings in
+another's configuration.
 
 ## Try It
 

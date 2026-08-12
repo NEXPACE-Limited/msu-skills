@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "msu-skills",
+  "owner": {
+    "name": "NEXPACE",
+    "url": "https://github.com/NEXPACE-Limited"
+  },
+  "description": "MapleStory Universe (NEXPACE) common skills and shared modules",
+  "plugins": [
+    {
+      "name": "msu",
+      "source": "./plugins/msu",
+      "displayName": "MSU Skills",
+      "description": "MapleStory Universe (NEXPACE) common skills and modules — Maple asset knowledge with the maple-lookup MCP for building Synergy Apps",
+      "author": {
+        "name": "NEXPACE"
+      },
+      "homepage": "https://github.com/NEXPACE-Limited/msu-skills",
+      "repository": "https://github.com/NEXPACE-Limited/msu-skills",
+      "category": "knowledge",
+      "tags": ["maplestory", "msu", "nexpace", "game-assets", "mcp"]
+    }
+  ]
+}
