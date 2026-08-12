@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "game-tools",
+  "displayName": "Game Tools",
+  "version": "0.1.0",
+  "description": "Quality gates for game production — balance, determinism, cross-device UI, tutorials, and localization. Works with any engine or platform; published by NEXPACE alongside the MSU builder skills.",
+  "author": {
+    "name": "NEXPACE"
+  },
+  "homepage": "https://github.com/NEXPACE-Limited/msu-skills",
+  "repository": "https://github.com/NEXPACE-Limited/msu-skills",
+  "keywords": ["game", "gamedev", "qa", "balance", "i18n", "tutorial", "ux", "msu", "nexpace"]
+}

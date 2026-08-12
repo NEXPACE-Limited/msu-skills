@@ -1,9 +1,9 @@
 # msu-skills
 
-The `msu-skills` catalog — MapleStory Universe (NEXPACE) common skills and shared
-modules, packaged as one plugin per coupling boundary. Anything reusable across MSU
-builder work lives here; product-specific skill sets live in their own repositories and
-depend on these.
+The `msu-skills` catalog — the skills NEXPACE publishes for MSU builder work, packaged
+as one plugin per coupling boundary. Anything reusable across that work lives here,
+whether or not it is MapleStory-specific; product-specific skill sets live in their own
+repositories and depend on these.
 
 **This repository is public on GitHub.** Everything committed here is world-readable.
 
@@ -15,17 +15,17 @@ and CI runs all of them.
 
 ```bash
 claude plugin validate .                            # marketplace catalog
-claude plugin validate plugins/msu                  # one plugin, and its skill files
+claude plugin validate plugins/<plugin>             # one plugin, and its skill files
 npx skills add . -l                                 # skills the skills CLI discovers
 bash install.sh --target /tmp/probe                 # smoke-test the manual installer
-bash install.sh --plugin msu --target /tmp/one      # ...and the single-plugin path
+bash install.sh --plugin <plugin> --target /tmp/one # ...and the single-plugin path
 bash scripts/check-endpoints.sh                     # no leaked endpoint or credential
 ```
 
 Pointed at the repo root the validator reads `marketplace.json`, and for every
 local-path entry it also reads that plugin's `plugin.json` — so the first line covers
-the packaging as a whole. The second is still worth running, because only the
-plugin-directory form checks the skill, command, and hook files.
+the packaging as a whole. The second is still worth running once per plugin you touched,
+because only the plugin-directory form checks the skill, command, and hook files.
 
 ## Contributing
 
@@ -100,9 +100,10 @@ AGENTS.md                  # this file. CLAUDE.md and GEMINI.md are one-line @ i
 `AGENTS.md` holds the content. Gemini CLI does not read it by default, so `GEMINI.md`
 is what loads this context there; `CLAUDE.md` is the same pointer for Claude Code.
 
-Catalog name is `msu-skills`; today it carries one plugin, `msu`, installed as
-`msu@msu-skills`. Skill name ≠ plugin name ≠ catalog name — `plugins/msu/skills/maple-make/`
-is invoked as `msu:maple-make`.
+Catalog name is `msu-skills`, and every plugin in it installs as `<plugin>@msu-skills`.
+Which plugins exist is `.claude-plugin/marketplace.json`'s answer, not this file's — read
+the catalog, and do not expect a roster here. Skill name ≠ plugin name ≠ catalog name:
+`plugins/msu/skills/maple-make/` is invoked as `msu:maple-make`.
 
 ## The repository is its own catalog
 
@@ -197,6 +198,12 @@ clones the default branch — though a marketplace source does accept a `ref`, s
   each other on those channels. CI fails on a duplicate.
 - The frontmatter `description` is **the LLM's skill-matching input**, not
   documentation. Write it at final quality even for a stub.
+- **Every skill needs a row in the README `## Skills` table** linking to
+  `plugins/<plugin>/skills/<name>/`; CI fails without it. That table is inventory on
+  purpose — it is where a browsing user sees what the catalog holds, which is why it
+  carries a list where this file must not. Write its description for a human deciding
+  whether to install, not by copying the frontmatter `description`, which is written
+  for matching and runs several times too long.
 - **Do not name CLI-specific tools.** `AskUserQuestion` and friends only exist in
   Claude Code. Describe the behavior ("ask the user") so all four CLIs can follow it.
 - Keep `SKILL.md` thin and push detail into `references/`, loaded on demand. The
@@ -206,6 +213,13 @@ Adding a plugin is four files: `plugins/<name>/.claude-plugin/plugin.json`, at l
 `plugins/<name>/skills/<skill>/SKILL.md`, an entry in the catalog pointing at
 `./plugins/<name>`, and a README row. Every CI check discovers plugins from the
 filesystem, so none of them needs editing.
+
+**This file is not the fifth.** It states rules, not inventory: no sentence here should
+count the plugins, name the full set, or describe one as the only. Naming a plugin is
+fine where it is the subject — `msu` owns `maple-lookup`, and that stays true as the
+catalog grows — but write anything else against `<plugin>`. If adding a plugin forces an
+edit here, the sentence it forced was keeping a roster, and the fix is to rewrite that
+sentence rather than update the count.
 
 ## Public-repository rules
 
