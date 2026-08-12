@@ -9,8 +9,9 @@ depend on these.
 
 ## Commands
 
-There is no build, no package manifest, and no test suite. Editing a skill means
-editing `plugins/<plugin>/skills/<name>/SKILL.md` — that is the whole change.
+There is no build and no package manifest. A skill is edited in place at
+`plugins/<plugin>/skills/<name>/SKILL.md`. The commands below stand in for a test suite,
+and CI runs all of them.
 
 ```bash
 claude plugin validate .                            # marketplace catalog
@@ -26,9 +27,30 @@ local-path entry it also reads that plugin's `plugin.json` — so the first line
 the packaging as a whole. The second is still worth running, because only the
 plugin-directory form checks the skill, command, and hook files.
 
-`AGENTS.md` holds the content; `CLAUDE.md` and `GEMINI.md` are one-line `@` imports of
-it. Gemini CLI does not read `AGENTS.md` by default, so the pointer file is what loads
-this context there.
+## Contributing
+
+Branch from `main` and open the pull request against `main`. `main` is protected:
+direct pushes are rejected for everyone, admins included, so every change lands through
+a PR. **Merging is the release** — no staging branch, no separate publish step, so a
+merged mistake is live.
+
+Write access is limited. If pushing a branch to this repository is denied, fork it and
+open the PR from the fork.
+
+Before opening the PR:
+
+- Run the commands above. CI runs the same ones and adds guards on top.
+- **Bump `version` in `plugins/<plugin>/.claude-plugin/plugin.json` for every plugin you
+  touched.** CI's `version-bump` job fails the PR otherwise, and that string is the only
+  signal that tells installed users to update. See *Versioning and release*.
+- Fill in the checklist GitHub applies from `.github/PULL_REQUEST_TEMPLATE.md`.
+
+Commit subjects read `<type>: <summary>` — `feat`, `fix`, `refactor`, `docs`, `chore`,
+`ci`. Nothing enforces it.
+
+CI runs on every push to `main` and on every pull request: `plugin-validate`,
+`install-smoke`, `skills-discovery`, `guards`, and — on pull requests only —
+`version-bump`.
 
 ## Core principle — one source, three channels
 
@@ -37,11 +59,14 @@ Gemini CLI, and Kimi CLI. So there is **no conversion and no build step**: the
 `SKILL.md` files under `plugins/*/skills/` are the only source, shipped verbatim
 everywhere.
 
-| Channel | Skills | `maple-lookup` MCP |
-|---|---|---|
-| Claude Code plugin (`msu@msu-skills`) | automatic | automatic — bundled `.mcp.json`, key via `userConfig` prompt |
-| `npx skills add NEXPACE-Limited/msu-skills` | automatic | **manual** — README "MCP Configuration" |
-| `./install.sh` (Codex / Gemini / Kimi) | automatic | best effort — prints the Codex TOML snippet, runs `mcp add` for Gemini/Kimi when `$MSU_OPENAPI_KEY` is set |
+Skills install automatically on all three; they differ only in what happens to the
+`maple-lookup` MCP server.
+
+| Channel | `maple-lookup` MCP |
+|---|---|
+| Claude Code plugin (`msu@msu-skills`) | automatic — bundled `.mcp.json`, key via `userConfig` prompt |
+| `npx skills add NEXPACE-Limited/msu-skills` | **manual** — README "MCP Configuration" |
+| `./install.sh` (Codex / Gemini / Kimi) | best effort — prints the Codex TOML snippet, runs `mcp add` for Gemini/Kimi when `$MSU_OPENAPI_KEY` is set |
 
 **Do not break this shape.** Per-platform copies or build artifacts fork the source.
 
@@ -69,11 +94,15 @@ plugins/<plugin>/skills/<name>/references/  # files the skill loads on demand
 install.sh                 # manual installer for non-Claude CLIs; --plugin selects one
 scripts/check-endpoints.sh # public-repo scan, inherited from the retired hub
 .github/workflows/ci.yml   # the commands above, plus guards, on every PR and push
-AGENTS.md                  # maintainer context; CLAUDE.md and GEMINI.md @-import it
+AGENTS.md                  # this file. CLAUDE.md and GEMINI.md are one-line @ imports
 ```
 
+`AGENTS.md` holds the content. Gemini CLI does not read it by default, so `GEMINI.md`
+is what loads this context there; `CLAUDE.md` is the same pointer for Claude Code.
+
 Catalog name is `msu-skills`; today it carries one plugin, `msu`, installed as
-`msu@msu-skills`. Skill name ≠ plugin name ≠ catalog name.
+`msu@msu-skills`. Skill name ≠ plugin name ≠ catalog name — `plugins/msu/skills/maple-make/`
+is invoked as `msu:maple-make`.
 
 ## The repository is its own catalog
 
@@ -88,15 +117,11 @@ silently ignored — so every plugin in the repository would inherit the MSU Ope
 prompt and the `maple-lookup` server. A plugin that needs no credential must not acquire
 one, which forces separate roots.
 
-That replaced a hub-and-spoke arrangement where a separate `nexpace-skills-hub` repo
-held the only catalog and pinned this one to a release tag. Two costs retired it:
+This replaced a separate `nexpace-skills-hub` repository that held the only catalog: a
+release needed two repositories in agreement, and that private catalog was the only way
+to reach a public plugin.
 
-- **A release took two repositories.** Tag here, then bump the pin there. Until the hub
-  bumped, `msu@nexpace` kept installing the previous tag.
-- **A private catalog gated a public plugin.** The hub repo is private, so adding the
-  marketplace demanded access this repository does not.
-
-**Exactly one catalog may name this plugin.** Two give it two install identities, and a
+**Exactly one catalog may name a plugin.** Two give it two install identities, and a
 user who added both ends up with two copies of every skill. The hub still lists `msu`
 pinned at `msu--v0.2.0`, so `msu@nexpace` and `msu@msu-skills` both resolve today —
 dropping that entry is the follow-up that makes this rule true again.
@@ -156,10 +181,9 @@ copy. CI's `version-bump` job fails a PR that changes a plugin without bumping *
 plugin, because nothing else catches it now that the hub's catalog-agreement check is
 gone.
 
-Tags are optional now. Nothing in the install path reads them, since
-`/plugin marketplace add` clones the default branch, but a marketplace source does
-accept a `ref`. `claude plugin tag --push` still creates `msu--v{version}` if a pinnable
-ref is wanted; `msu--v0.2.0` predates this change and describes the hub era.
+Tags are optional. Nothing in the install path reads them — `/plugin marketplace add`
+clones the default branch — though a marketplace source does accept a `ref`, so
+`claude plugin tag --push` is still there if a pinnable ref is ever wanted.
 
 ## Writing skills
 
@@ -177,8 +201,6 @@ ref is wanted; `msu--v0.2.0` predates this change and describes the hub era.
   Claude Code. Describe the behavior ("ask the user") so all four CLIs can follow it.
 - Keep `SKILL.md` thin and push detail into `references/`, loaded on demand. The
   always-on cost of a skill is its frontmatter; the body is paid on every invocation.
-- Skill name ≠ plugin name. `plugins/msu/skills/maple-make/` is namespaced as
-  `msu:maple-make`.
 
 Adding a plugin is four files: `plugins/<name>/.claude-plugin/plugin.json`, at least one
 `plugins/<name>/skills/<skill>/SKILL.md`, an entry in the catalog pointing at
