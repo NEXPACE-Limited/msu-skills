@@ -6,16 +6,16 @@ This repository provides installable MSU Resource Skills for AI agents. The
 skills help agents discover and use MSU game resources through Resource MCP while
 building Synergy Apps.
 
-Within the NEXPACE skills ecosystem, this repository is the `msu` plugin — the
-home of MSU (≒ NEXPACE) common skills and shared modules. Product-specific skill
-sets live in their own repositories and depend on this one.
+Within the NEXPACE skills ecosystem, this repository is the `msu-skills` catalog
+— the home of MSU (≒ NEXPACE) common skills and shared modules. Product-specific
+skill sets live in their own repositories and depend on these.
 
-The `maple-make` skill helps AI coding agents build MapleStory Universe game
-prototypes using Maple asset knowledge, rendering rules, and the `maple-lookup`
-MCP tools available in the agent environment. The `debug-visualization` skill
-ships a live in-game debug/tuning panel with every web game so builders adjust
-values themselves instead of burning chat round-trips; it needs no MCP server
-and no credentials.
+Its plugins install independently:
+
+| Plugin | For | Needs an MSU Builder OpenAPI key |
+|---|---|---|
+| `msu` | Building on MapleStory Universe resources | yes — bundles the `maple-lookup` MCP server |
+| `game-tools` | Game production quality, on any engine or platform | no |
 
 ## Installation
 
@@ -29,11 +29,12 @@ directly.
 
 ```text
 /plugin marketplace add NEXPACE-Limited/msu-skills
-/plugin install msu@msu-skills
-/plugin install game@msu-skills
+/plugin install msu@msu-skills          # Maple assets + maple-lookup MCP
+/plugin install game-tools@msu-skills   # game quality gates, no credential
 ```
 
-Later releases arrive with `/plugin marketplace update msu-skills`.
+Install either or both. Later releases arrive with
+`/plugin marketplace update msu-skills`.
 
 Installing the `msu` plugin registers the skills and the `maple-lookup` MCP
 server together — the server definition is bundled as
@@ -75,8 +76,8 @@ git clone https://github.com/NEXPACE-Limited/msu-skills.git
 cd msu-skills
 
 # Option A: installer script — auto-detects ~/.codex, ~/.gemini, ~/.kimi
-./install.sh                    # every plugin
-./install.sh --plugin msu       # one plugin only
+./install.sh                          # every plugin
+./install.sh --plugin game-tools      # one plugin only
 ./install.sh --target <skills-dir>
 
 # Option B: copy a single skill by hand
@@ -175,7 +176,12 @@ Official MCP setup docs:
 | Plugin | Skill | Description |
 |---|---|---|
 | `msu` | [`maple-make`](plugins/msu/skills/maple-make/) | MapleStory Universe game prototyping with Maple asset lookup and sprite rendering guidance |
-| `game` | [`debug-visualization`](plugins/game/skills/debug-visualization/) | Live in-game debug/tuning panel shipped with every web game — builders tune values themselves and paste the result back |
+| `game-tools` | [`balance-tuning`](plugins/game-tools/skills/balance-tuning/) | Difficulty and progression curves, session pacing, option trade-offs, reward economies |
+| `game-tools` | [`cross-device-check`](plugins/game-tools/skills/cross-device-check/) | UI and interaction across viewports, aspect ratios, pixel densities, orientations, inputs |
+| `game-tools` | [`debug-visualization`](plugins/game-tools/skills/debug-visualization/) | Live in-game debug/tuning panel shipped with every web game — builders tune values themselves and paste the result back |
+| `game-tools` | [`determinism-audit`](plugins/game-tools/skills/determinism-audit/) | Nondeterministic behaviour and flaky execution — randomness, timing, ordering, numeric drift |
+| `game-tools` | [`game-tutorial`](plugins/game-tools/skills/game-tutorial/) | First-time-player onboarding: what to teach, when, and how to verify it |
+| `game-tools` | [`i18n-setup`](plugins/game-tools/skills/i18n-setup/) | Localization: string extraction, locale catalogs, fallback, plurals, glyphs, safe layouts |
 
 ## MCP Requirement
 
@@ -192,6 +198,9 @@ plugins/msu/                      # the msu plugin
   .claude-plugin/plugin.json      #   manifest: name, version, OpenAPI key prompt
   .mcp.json                       #   maple-lookup MCP server definition
   skills/                         #   the only source of truth (Agent Skills open standard)
+plugins/game-tools/               # the game-tools plugin — no manifest key, no MCP server
+  .claude-plugin/plugin.json
+  skills/
 install.sh                        # manual installer for Codex / Gemini / Kimi
 ```
 

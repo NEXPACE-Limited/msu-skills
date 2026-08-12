@@ -21,17 +21,17 @@
       "tags": ["maplestory", "msu", "nexpace", "game-assets", "mcp"]
     },
     {
-      "name": "game",
-      "source": "./plugins/game",
-      "displayName": "Game Skills",
-      "description": "Game-building skills for MapleStory Universe (NEXPACE) builders — ships a live in-game debug/tuning panel with every web game; no credentials required",
+      "name": "game-tools",
+      "source": "./plugins/game-tools",
+      "displayName": "Game Tools",
+      "description": "Quality gates and live tooling for game production — balance, determinism, cross-device UI, tutorials, localization, and an in-game debug/tuning panel. Works with any engine or platform; published by NEXPACE alongside the MSU builder skills.",
       "author": {
         "name": "NEXPACE"
       },
       "homepage": "https://github.com/NEXPACE-Limited/msu-skills",
       "repository": "https://github.com/NEXPACE-Limited/msu-skills",
       "category": "development",
-      "tags": ["game", "debugging", "tuning", "web-game"]
+      "tags": ["game", "gamedev", "qa", "balance", "i18n", "tutorial", "ux", "msu", "nexpace"]
     }
   ]
 }
