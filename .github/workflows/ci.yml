@@ -124,6 +124,47 @@ jobs:
           fi
           echo "$count skill(s) discovered"
 
+  site-build:
+    # The landing page is generated from the catalog and every SKILL.md frontmatter. A
+    # manifest or frontmatter change that breaks the generator fails here, on the PR,
+    # rather than in the Pages deploy that runs after the merge.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: The pages render
+        run: node scripts/build-site.mjs "$RUNNER_TEMP/site"
+      - name: Every plugin has a page, and every skill is on one
+        # The catalog page links to <plugin>/, so a plugin with no page is a dead link.
+        run: |
+          site="$RUNNER_TEMP/site"
+          for dir in plugins/*/; do
+            manifest="$dir/.claude-plugin/plugin.json"
+            [ -f "$manifest" ] || continue
+            name="$(jq -r '.name' "$manifest")"
+            if [ ! -f "$site/$name/index.html" ]; then
+              echo "::error::plugin '$name' has no page at $name/index.html"
+              exit 1
+            fi
+          done
+          count=0
+          for dir in plugins/*/skills/*/; do
+            [ -f "$dir/SKILL.md" ] || continue
+            skill="$(basename "$dir")"
+            if ! grep -rFq ">$skill<" "$site"; then
+              echo "::error::$skill is missing from the rendered pages"
+              exit 1
+            fi
+            count=$((count + 1))
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "::error::no SKILL.md under plugins/*/skills/"
+            exit 1
+          fi
+          echo "$count skill(s) on the pages"
+
   guards:
     runs-on: ubuntu-latest
     steps:

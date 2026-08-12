@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+{{>head}}</head>
+<body>
+
+{{>topbar}}
+
+<main id="main">
+
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <h1>Use MapleStory Universe resources with&nbsp;AI&nbsp;agents.</h1>
+        <p class="lede">
+          {{CATALOG_NAME}} is NEXPACE's catalog of Agent Skills for game builders — MapleStory
+          Universe asset knowledge with the <code>maple-lookup</code> MCP, and engine-agnostic
+          quality gates for game production. Each plugin installs on its own.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#install">Install it</a>
+          <a class="btn" href="#plugins">Browse the catalog</a>
+        </div>
+      </div>
+
+      <figure class="fan" aria-label="One SKILL.md source, three install channels">
+        <figcaption class="fan-cap">
+          <span>One source, three channels</span>
+          <span>MCP setup</span>
+        </figcaption>
+        <div class="fan-grid">
+          <div class="fan-source"><span class="chip">SKILL.md</span></div>
+          <ul class="fan-list">
+            <li class="fan-row ch1">
+              <span class="fan-to">Claude Code</span>
+              <span class="fan-note">automatic</span>
+            </li>
+            <li class="fan-row ch2">
+              <span class="fan-to">skills CLI</span>
+              <span class="fan-note">manual</span>
+            </li>
+            <li class="fan-row ch3">
+              <span class="fan-to">install.sh</span>
+              <span class="fan-note">best effort</span>
+            </li>
+          </ul>
+        </div>
+        <p class="fan-foot">
+          No conversion, no build output. Every channel ships the same files.
+        </p>
+      </figure>
+    </div>
+  </section>
+
+  <section class="band" id="install">
+    <div class="band-inner">
+      <div class="section-intro">
+        <div class="section-title">
+          <h2>Install</h2>
+        </div>
+        <div class="section-copy">
+          <p class="section-lede">
+            Pick the channel that matches your agent. All three ship the same files and differ
+            only in how much of the <code>maple-lookup</code> setup is done for you.
+          </p>
+        </div>
+      </div>
+
+      <div class="install-picker" data-install-picker>
+        <div class="install-tabs" data-install-tabs hidden>
+          <button class="install-tab ch1" type="button" data-install-tab="claude">
+            <span class="install-tab-name">Claude Code</span>
+            <span class="install-tab-sub">Automatic setup</span>
+          </button>
+          <button class="install-tab ch2" type="button" data-install-tab="agents">
+            <span class="install-tab-name">Most agents</span>
+            <span class="install-tab-sub">skills CLI · Node.js 18+</span>
+          </button>
+          <button class="install-tab ch3" type="button" data-install-tab="manual">
+            <span class="install-tab-name">No Node.js</span>
+            <span class="install-tab-sub">Clone and copy</span>
+          </button>
+        </div>
+
+        <div class="channels">
+
+        <article class="channel ch1" id="install-panel-claude" data-install-panel="claude">
+          <header class="channel-head">
+            <h3>Claude Code</h3>
+            <p class="channel-sub">Plugin</p>
+          </header>
+          <div class="channel-side">
+            <div class="cmd cmd-contextual">
+              <div class="cmd-context cmd-context-prompt">
+                <span class="cmd-context-icon" aria-hidden="true">›_</span>
+                <span>Prompt</span>
+              </div>
+              <pre><code>/plugin marketplace add {{REPO_SLUG}}
+{{PLUGIN_INSTALL_LINES}}</code></pre>
+              <button class="copy" type="button">Copy</button>
+            </div>
+          </div>
+          <div class="channel-main">
+            <p class="channel-body">
+              Skills and any MCP server the plugin owns install together. For
+              <code>{{MCP_PLUGIN}}</code>, Claude Code prompts for your MSU Builder OpenAPI key
+              and stores it securely. A plugin that owns no server asks for nothing.
+            </p>
+            <p class="channel-foot">
+              Later releases arrive with
+              <code>/plugin marketplace update {{CATALOG_NAME}}</code>
+            </p>
+          </div>
+        </article>
+
+        <article class="channel ch2" id="install-panel-agents" data-install-panel="agents">
+          <header class="channel-head">
+            <h3>Most coding agents</h3>
+            <p class="channel-sub">skills CLI · needs Node.js 18+</p>
+          </header>
+          <div class="channel-side">
+            <div class="cmd cmd-contextual">
+              <div class="cmd-context cmd-context-shell">
+                <span class="cmd-context-icon" aria-hidden="true">$</span>
+                <span>Terminal</span>
+              </div>
+              <pre><code>npx skills add {{REPO_SLUG}}</code></pre>
+              <button class="copy" type="button">Copy</button>
+            </div>
+          </div>
+          <div class="channel-main">
+            <p class="channel-body">
+              Installs the skills for whichever coding agent you have active. Configure the MCP
+              server yourself afterwards.
+            </p>
+            <p class="channel-agents">
+              Cursor · Codex CLI · OpenCode · Windsurf · Continue · Cline · Claude Desktop
+            </p>
+            <p class="channel-foot">
+              Every skill in the catalog is offered at once. Add
+              <code>--skill &lt;name&gt;</code> to narrow it.
+            </p>
+          </div>
+        </article>
+
+        <article class="channel ch3" id="install-panel-manual" data-install-panel="manual">
+          <header class="channel-head">
+            <h3>No Node.js</h3>
+            <p class="channel-sub">Clone and copy</p>
+          </header>
+          <div class="channel-side">
+            <div class="cmd cmd-contextual">
+              <div class="cmd-context cmd-context-shell">
+                <span class="cmd-context-icon" aria-hidden="true">$</span>
+                <span>Terminal</span>
+              </div>
+              <pre><code>git clone {{REPO_URL}}.git
+cd {{REPO_NAME}}
+./install.sh</code></pre>
+              <button class="copy" type="button">Copy</button>
+            </div>
+          </div>
+          <div class="channel-main">
+            <p class="channel-body">
+              Skills are self-contained directories, so copying them is a complete install. The
+              script detects <code>~/.codex</code>, <code>~/.gemini</code>, and
+              <code>~/.kimi</code>, and downloads nothing itself.
+            </p>
+            <p class="channel-foot">
+              <code>./install.sh --plugin &lt;name&gt;</code> installs one plugin;
+              <code>--target &lt;dir&gt;</code> picks the destination.
+            </p>
+          </div>
+        </article>
+
+        </div>
+      </div>
+
+      <p class="section-source">
+        <a href="{{REPO_URL}}#installation">View the installation source in README.md<span aria-hidden="true"> ↗</span></a>
+      </p>
+    </div>
+  </section>
+
+  <section class="band band-alt" id="plugins">
+    <div class="band-inner">
+      <div class="section-intro">
+        <div class="section-title">
+          <h2>Plugins</h2>
+          <p class="section-count">{{PLUGIN_COUNT_PHRASE}} · {{SKILL_COUNT_PHRASE}}</p>
+        </div>
+        <div class="section-copy">
+          <p class="section-lede">
+            Every plugin owns its skills, its version, and its credentials. Install one and you
+            never acquire another's configuration.
+          </p>
+        </div>
+      </div>
+
+      <div class="plugin-grid">
+{{PLUGIN_CARDS}}
+      </div>
+
+      <p class="section-source">
+        <a href="{{REPO_URL}}/tree/main/plugins">Browse the plugin sources<span aria-hidden="true"> ↗</span></a>
+      </p>
+    </div>
+  </section>
+
+  <section class="band" id="mcp">
+    <div class="band-inner">
+      <div class="section-intro">
+        <div class="section-title">
+          <h2>MCP configuration</h2>
+        </div>
+        <div class="section-copy">
+          <p class="section-lede">
+            The <code>{{MCP_PLUGIN}}</code> plugin's skills expect the <code>{{MCP_SERVER}}</code>
+            tools to be available to the agent. Every channel but one needs the server set up
+            once, before first use. Plugins that own no server need none of this.
+          </p>
+          <p class="section-note">
+            <strong>Claude Code plugin users can skip this section.</strong>
+            The plugin registers the server and prompts for the key when it is enabled.
+          </p>
+        </div>
+      </div>
+
+      <p class="callout">
+        Issue an MSU Builder OpenAPI key, then keep it in an environment variable or a private
+        agent config. Do not paste it into chat or commit it.
+      </p>
+
+      <div class="cmd cmd-wide">
+        <pre><code>export MSU_OPENAPI_KEY="&lt;issued OpenAPI key&gt;"</code></pre>
+        <button class="copy" type="button">Copy</button>
+      </div>
+
+      <dl class="values">
+        <div><dt>Name</dt><dd><code>maple-lookup</code></dd></div>
+        <div><dt>URL</dt><dd><code>https://openapi.msu.io/v1rc1/resource/mcp</code></dd></div>
+        <div><dt>Transport</dt><dd>HTTP / streamable HTTP</dd></div>
+        <div><dt>Header</dt><dd><code>x-nxopen-api-key: &lt;issued OpenAPI key&gt;</code></dd></div>
+      </dl>
+
+      <div class="snippets">
+        <details>
+          <summary>Claude Code, installed via the skills CLI</summary>
+          <div class="cmd cmd-wide">
+            <pre><code>claude mcp add --transport http --header "x-nxopen-api-key: $MSU_OPENAPI_KEY" \
+  maple-lookup https://openapi.msu.io/v1rc1/resource/mcp</code></pre>
+            <button class="copy" type="button">Copy</button>
+          </div>
+        </details>
+
+        <details>
+          <summary>Codex CLI — <code>.codex/config.toml</code></summary>
+          <div class="cmd cmd-wide">
+            <pre><code>[mcp_servers.maple-lookup]
+url = "https://openapi.msu.io/v1rc1/resource/mcp"
+env_http_headers = { "x-nxopen-api-key" = "MSU_OPENAPI_KEY" }</code></pre>
+            <button class="copy" type="button">Copy</button>
+          </div>
+        </details>
+
+        <details>
+          <summary>Cursor — <code>.cursor/mcp.json</code></summary>
+          <div class="cmd cmd-wide">
+            <pre><code>{
+  "mcpServers": {
+    "maple-lookup": {
+      "url": "https://openapi.msu.io/v1rc1/resource/mcp",
+      "headers": {
+        "x-nxopen-api-key": "${env:MSU_OPENAPI_KEY}"
+      }
+    }
+  }
+}</code></pre>
+            <button class="copy" type="button">Copy</button>
+          </div>
+        </details>
+
+        <details>
+          <summary>Gemini CLI</summary>
+          <div class="cmd cmd-wide">
+            <pre><code>gemini mcp add --transport http --header "x-nxopen-api-key: $MSU_OPENAPI_KEY" \
+  maple-lookup https://openapi.msu.io/v1rc1/resource/mcp</code></pre>
+            <button class="copy" type="button">Copy</button>
+          </div>
+        </details>
+
+        <details>
+          <summary>Kimi CLI</summary>
+          <div class="cmd cmd-wide">
+            <pre><code>kimi mcp add --transport http --header "x-nxopen-api-key: $MSU_OPENAPI_KEY" \
+  maple-lookup https://openapi.msu.io/v1rc1/resource/mcp</code></pre>
+            <button class="copy" type="button">Copy</button>
+          </div>
+        </details>
+      </div>
+
+      <p class="links-row">
+        Official MCP docs:
+        <a href="https://code.claude.com/docs/en/mcp">Claude Code</a>,
+        <a href="https://developers.openai.com/codex/mcp">Codex CLI</a>,
+        <a href="https://cursor.com/docs/mcp">Cursor</a>,
+        <a href="https://google-gemini.github.io/gemini-cli/docs/tools/mcp-server.html">Gemini CLI</a>,
+        <a href="https://github.com/MoonshotAI/kimi-cli#mcp-support">Kimi CLI</a>.
+      </p>
+      <p class="section-source">
+        <a href="{{REPO_URL}}/blob/main/{{MCP_SOURCE}}/.mcp.json">View the bundled MCP configuration<span aria-hidden="true"> ↗</span></a>
+      </p>
+    </div>
+  </section>
+
+  <section class="band band-alt" id="try">
+    <div class="band-inner band-narrow">
+      <h2>Try it</h2>
+      <p class="section-lede">
+        With <code>{{MCP_PLUGIN}}</code> installed and the MCP server connected, ask your agent
+        to build something that needs Maple resources. It loads the reference files it needs and
+        nothing more.
+      </p>
+      <div class="cmd cmd-wide cmd-prompt">
+        <pre><code>Please build a web view featuring three moving Orange Mushrooms.</code></pre>
+        <button class="copy" type="button">Copy</button>
+      </div>
+      <p class="section-source">
+        <a href="{{REPO_URL}}#try-it">View this example in README.md<span aria-hidden="true"> ↗</span></a>
+      </p>
+    </div>
+  </section>
+
+  <section class="band" id="notices">
+    <div class="band-inner band-narrow">
+      <h2>Important notes</h2>
+      <ul class="notices">
+        <li>
+          MSU Resource Skills are reference instructions for using MSU game resources supplied
+          through the MSU Open API. They do not provide the resources, operate your AI agent, or
+          generate outputs themselves.
+        </li>
+        <li>
+          Use of MSU Resource Skills, Resource MCP, and the MSU Open API is subject to the MSU API
+          Terms, Builder Terms, EULA, applicable policies, and applicable laws.
+        </li>
+        <li>
+          AI-generated outputs may be inaccurate, incomplete, non-compliant, or infringing. Review,
+          test, and validate generated code, resource selections, API calls, and final app behavior
+          before use.
+        </li>
+        <li>
+          Keep MSU Builder OpenAPI keys, MCP connections, wallet or account access, and user data
+          secure. Do not expose credentials in prompts, logs, repositories, or untrusted tools.
+        </li>
+        <li>
+          Do not redistribute, resell, sublicense, reverse engineer, extract, scrape, or use
+          Resource Skills or accessed MSU resources to train, fine-tune, develop, improve, or
+          benchmark AI or machine-learning models or competing services, except as expressly
+          permitted.
+        </li>
+      </ul>
+      <p class="section-source">
+        <a href="{{REPO_URL}}#important-notes">Read the notices in README.md<span aria-hidden="true"> ↗</span></a>
+      </p>
+    </div>
+  </section>
+
+</main>
+
+{{>footer}}
+
+</body>
+</html>

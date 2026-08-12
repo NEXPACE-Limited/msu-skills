@@ -4,3 +4,6 @@
 
 # Written by the skills-discovery check; also appears when running it by hand
 discovery.log
+
+# Rendered by scripts/build-site.mjs. The page is built on deploy, never committed
+_site/

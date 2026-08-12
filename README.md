@@ -2,6 +2,9 @@
 
 Use MapleStory Universe resources with AI agents.
 
+**[nexpace-limited.github.io/msu-skills](https://nexpace-limited.github.io/msu-skills/)** —
+the same install steps and skill list as a web page.
+
 This repository provides installable MSU Resource Skills for AI agents. The
 skills help agents discover and use MSU game resources through Resource MCP while
 building Synergy Apps.
@@ -202,6 +205,7 @@ plugins/game-tools/               # the game-tools plugin — no manifest key, n
   .claude-plugin/plugin.json
   skills/
 install.sh                        # manual installer for Codex / Gemini / Kimi
+site/, scripts/build-site.mjs     # the landing page, generated from the files above
 ```
 
 Each plugin owns a directory under `plugins/` so that its skills, MCP servers,
