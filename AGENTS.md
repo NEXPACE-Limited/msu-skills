@@ -9,9 +9,10 @@ repositories and depend on these.
 
 ## Commands
 
-There is no build and no package manifest. A skill is edited in place at
-`plugins/<plugin>/skills/<name>/SKILL.md`. The commands below stand in for a test suite,
-and CI runs all of them.
+Skills have no build and no package manifest: one is edited in place at
+`plugins/<plugin>/skills/<name>/SKILL.md` and shipped verbatim. The landing page is the
+only generated artifact, and it is generated *from* those files — see *The landing page*.
+The commands below stand in for a test suite, and CI runs all of them.
 
 ```bash
 claude plugin validate .                            # marketplace catalog
@@ -20,12 +21,18 @@ npx skills add . -l                                 # skills the skills CLI disc
 bash install.sh --target /tmp/probe                 # smoke-test the manual installer
 bash install.sh --plugin <plugin> --target /tmp/one # ...and the single-plugin path
 bash scripts/check-endpoints.sh                     # no leaked endpoint or credential
+node scripts/build-site.mjs                         # render the landing page into _site/
 ```
 
 Pointed at the repo root the validator reads `marketplace.json`, and for every
 local-path entry it also reads that plugin's `plugin.json` — so the first line covers
 the packaging as a whole. The second is still worth running once per plugin you touched,
 because only the plugin-directory form checks the skill, command, and hook files.
+
+`make check` runs that list in one pass, and `make serve` renders the page and serves it
+at `http://localhost:8731` (`make help` lists the rest). The Makefile is a convenience
+wrapper only — CI runs these commands directly, so `ci.yml` stays the authority and a
+new check belongs there first.
 
 ## Contributing
 
@@ -49,8 +56,9 @@ Commit subjects read `<type>: <summary>` — `feat`, `fix`, `refactor`, `docs`, 
 `ci`. Nothing enforces it.
 
 CI runs on every push to `main` and on every pull request: `plugin-validate`,
-`install-smoke`, `skills-discovery`, `guards`, and — on pull requests only —
-`version-bump`.
+`install-smoke`, `skills-discovery`, `site-build`, `guards`, and — on pull requests
+only — `version-bump`. A push to `main` also runs `pages.yml`, which republishes the
+landing page.
 
 ## Core principle — one source, three channels
 
@@ -92,8 +100,15 @@ plugins/<plugin>/.mcp.json               # MCP servers this plugin owns, if any
 plugins/<plugin>/skills/<name>/SKILL.md  # the only source. name = dir name = kebab-case
 plugins/<plugin>/skills/<name>/references/  # files the skill loads on demand
 install.sh                 # manual installer for non-Claude CLIs; --plugin selects one
+Makefile                   # wrappers: make check, make serve, make site. See Commands
+site/template.html         # the catalog page. {{TOKEN}}s are filled at build
+site/plugin.html           # one page per plugin, rendered to <plugin>/index.html
+site/partials/*.html       # head, topbar, footer — included with {{>name}}
+site/style.css, main.js, favicon.svg  # copied to the output as they are
+scripts/build-site.mjs     # renders site/ + the catalog + every SKILL.md into _site/
 scripts/check-endpoints.sh # public-repo scan, inherited from the retired hub
 .github/workflows/ci.yml   # the commands above, plus guards, on every PR and push
+.github/workflows/pages.yml # renders and publishes the page on every push to main
 AGENTS.md                  # this file. CLAUDE.md and GEMINI.md are one-line @ imports
 ```
 
@@ -165,6 +180,65 @@ source stays single. Three obligations follow:
   Renaming this catalog breaks every one of them.
 
 Consumers pin `~0.<minor>` because in 0.x a minor bump is the breaking bump.
+
+## The landing page
+
+`https://nexpace-limited.github.io/msu-skills/` is generated, not written. It is a
+catalog page plus one page per plugin:
+
+```
+index.html          hero, install channels, the plugin list, MCP setup, the notices
+<plugin>/index.html that plugin's identity, its own install commands, and its skills
+```
+
+`scripts/build-site.mjs` reads `.claude-plugin/marketplace.json`, every plugin's
+`plugin.json` and `.mcp.json`, and every `SKILL.md` frontmatter, then fills the
+`{{TOKEN}}`s in `site/template.html` and `site/plugin.html`. Chrome shared by both —
+head, topbar, footer — lives in `site/partials/` and is included with `{{>name}}`.
+A plugin card, and a skill card's name, description, bundled-file count, `plugin:skill`
+invocation, and MCP requirement, all come from those files. A card links to
+`references/` only when the skill has one — not every skill does.
+
+**Never retype a plugin's or a skill's own fields into a template.** Templates carry page
+structure and the prose that has no other source — the install narrative, the README's
+notices. Anything a manifest or a frontmatter already declares is a token. The MCP
+server's name, URL, header, and raw transport come from `.mcp.json` through
+`{{MCP_SERVER}}`, `{{MCP_URL}}`, `{{MCP_HEADER}}`, and `{{MCP_TRANSPORT}}`; the per-CLI
+snippets use those tokens too. `{{MCP_TRANSPORT_LABEL}}` is its human-readable display,
+and `{{MCP_CREDENTIAL_TITLE}}` resolves the referenced `userConfig` title. Adding a
+plugin or a skill updates the pages with no edit here, the same property every CI check
+has.
+
+README repeats those MCP values as prose, for the channels that configure the server by
+hand. It is the one copy the generator cannot keep honest, so `guards` fails when README
+stops mentioning a name, URL, header, or `--transport <type>` the server declares.
+
+- Relative paths differ by depth, so every rendered asset and in-site link uses the
+  page's root value (`./` on the catalog page, `../` on a plugin page). A hard-coded
+  `./style.css` would break every plugin page. Metadata is the exception: Open Graph
+  images require an absolute `{{SITE_URL}}`.
+- Preview with `make serve` — the copy buttons need a secure context, so `localhost`
+  shows them working and a `file://` open does not. `_site/` is gitignored: the pages are
+  built on deploy and never committed.
+- The build writes `.msu-skills-site-build` into its output. A rebuild or `make clean`
+  empties only an empty directory or one carrying that exact ownership marker, so a
+  deleted plugin or skill leaves no stale page without treating somebody else's
+  `index.html` as proof of ownership. The repository and every directory above it are
+  always refused.
+- `site-build` renders on every pull request. It looks for each skill's card on *its own
+  plugin's page*, anchored on the card heading — searching the whole site would prove
+  nothing, because the catalog page's plugin card already lists every skill name.
+  `pages.yml` publishes on push to `main` — the merge that releases a plugin also
+  republishes the site.
+- This repository's Pages source is GitHub Actions. A new fork enables it once under
+  Settings → Pages before its first deployment.
+- The catalog page repeats the README's legal notices verbatim. Keep the two in step, and
+  do not soften them here either.
+- Two font families load from `fonts.googleapis.com`. That is the site's only third-party
+  request; keep it that way.
+- `site/og.png` is the link-preview card, the one asset that is drawn rather than
+  generated. It carries no counts and no plugin names, so only a change to the headline
+  or the wordmark makes it stale.
 
 ## Versioning and release
 

@@ -124,6 +124,112 @@ jobs:
           fi
           echo "$count skill(s) discovered"
 
+  site-build:
+    # The landing page is generated from the catalog and every SKILL.md frontmatter. A
+    # manifest or frontmatter change that breaks the generator fails here, on the PR,
+    # rather than in the Pages deploy that runs after the merge.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: The pages render
+        run: node scripts/build-site.mjs "$RUNNER_TEMP/site"
+      - name: Output cleanup is ownership-checked
+        # index.html alone is not proof that a directory belongs to this generator. A
+        # dedicated marker permits stale-output cleanup; an unmarked site must survive.
+        run: |
+          site="$RUNNER_TEMP/site"
+          marker="$site/.msu-skills-site-build"
+          if [ ! -f "$marker" ]; then
+            echo "::error::the generated site has no ownership marker"
+            exit 1
+          fi
+
+          touch "$site/stale-page.html"
+          node scripts/build-site.mjs "$site"
+          if [ -e "$site/stale-page.html" ]; then
+            echo "::error::a marked rebuild left stale output behind"
+            exit 1
+          fi
+
+          unowned="$RUNNER_TEMP/not-a-build"
+          mkdir "$unowned"
+          touch "$unowned/index.html" "$unowned/user-data.txt"
+          if node scripts/build-site.mjs "$unowned"; then
+            echo "::error::the generator emptied an unmarked directory"
+            exit 1
+          fi
+          if [ ! -f "$unowned/user-data.txt" ]; then
+            echo "::error::the generator deleted a file from an unmarked directory"
+            exit 1
+          fi
+
+          printf 'not this generator\n' > "$unowned/.msu-skills-site-build"
+          if node scripts/build-site.mjs "$unowned"; then
+            echo "::error::the generator trusted an invalid ownership marker"
+            exit 1
+          fi
+          if [ ! -f "$unowned/user-data.txt" ]; then
+            echo "::error::the generator deleted a file beside an invalid marker"
+            exit 1
+          fi
+          if make clean OUT="$unowned"; then
+            echo "::error::make clean emptied an unmarked directory"
+            exit 1
+          fi
+          if [ ! -f "$unowned/user-data.txt" ]; then
+            echo "::error::make clean deleted a file from an unmarked directory"
+            exit 1
+          fi
+
+          clean_probe="$RUNNER_TEMP/clean-probe"
+          node scripts/build-site.mjs "$clean_probe"
+          make clean OUT="$clean_probe"
+          if [ -e "$clean_probe" ]; then
+            echo "::error::make clean did not remove a marked build"
+            exit 1
+          fi
+      - name: Every plugin has a linked page, and every skill has a card on it
+        # Searching the whole site would prove nothing: the catalog page's plugin card
+        # already lists every skill name, so a plugin page could lose all of its cards and
+        # still match. Each skill is looked for on its own plugin's page, anchored on the
+        # card heading so a name in a chip cannot satisfy it.
+        run: |
+          site="$RUNNER_TEMP/site"
+          count=0
+          for dir in plugins/*/; do
+            manifest="$dir/.claude-plugin/plugin.json"
+            [ -f "$manifest" ] || continue
+            plugin="$(jq -r '.name' "$manifest")"
+            page="$site/$plugin/index.html"
+
+            if [ ! -f "$page" ]; then
+              echo "::error::plugin '$plugin' has no page at $plugin/index.html"
+              exit 1
+            fi
+            if ! grep -Fq "href=\"./$plugin/\"" "$site/index.html"; then
+              echo "::error::the catalog page does not link to $plugin/"
+              exit 1
+            fi
+
+            for skill in "$dir"skills/*/; do
+              [ -f "$skill/SKILL.md" ] || continue
+              name="$(basename "$skill")"
+              if ! grep -Fq "class=\"skill-name\">$name<" "$page"; then
+                echo "::error::$name has no card on $plugin/index.html"
+                exit 1
+              fi
+              count=$((count + 1))
+            done
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "::error::no SKILL.md under plugins/*/skills/"
+            exit 1
+          fi
+          echo "$count skill(s) carded on their own plugin's page"
+
   guards:
     runs-on: ubuntu-latest
     steps:
@@ -184,6 +290,34 @@ jobs:
         # Credentials in a URL, raw IPv4 hosts, internal-only hosts, plaintext http.
         # The other half of the retired hub's check-endpoints.sh.
         run: bash scripts/check-endpoints.sh
+      - name: README states the MCP values the server declares
+        # The site renders these from .mcp.json, so it cannot drift. README repeats them as
+        # prose for the channels that configure the server by hand, and nothing else
+        # noticed when the two disagreed.
+        run: |
+          shopt -s nullglob
+          for file in plugins/*/.mcp.json; do
+            while IFS=$'\t' read -r server url header transport; do
+              for value in "$server" "$url" "$header"; do
+                [ -n "$value" ] || continue
+                if ! grep -Fq "$value" README.md; then
+                  echo "::error file=$file::README.md never mentions '$value'"
+                  exit 1
+                fi
+              done
+              if [ -n "$transport" ] && ! grep -Fq -- "--transport $transport" README.md; then
+                echo "::error file=$file::README.md never configures transport '$transport'"
+                exit 1
+              fi
+            done < <(jq -r '
+              (.mcpServers // {})
+              | to_entries[]
+              | [.key, (.value.url // ""), ((.value.headers // {}) | keys | first // ""), (.value.type // "")]
+              | @tsv
+            ' "$file")
+            echo "$file: README states every declared value"
+          done
+
       - name: Frontmatter name equals directory name
         # The plugin channel namespaces by frontmatter name, the skills CLI and
         # install.sh by directory name. A mismatch makes the channels disagree.
