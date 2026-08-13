@@ -98,6 +98,33 @@ jobs:
         # Uses a local archive behind a fake curl adapter: PRs test the remote-install
         # interface without depending on GitHub availability or the state of main.
         run: bash scripts/test-remote-installer.sh
+      - name: The MCP registration branch parses every shipped server definition
+        # Every other invocation here passes --target, which exits before the MCP
+        # section — leaving the one path external CLI users rely on untested. This
+        # runs it against a fake HOME (the codex branch prints its snippet without
+        # any CLI binary or key) and pins the sed-parsed server name to jq's read
+        # of the same file, so reformatting an .mcp.json the line parser cannot
+        # follow fails this PR instead of silently registering a wrong name.
+        run: |
+          fake="$RUNNER_TEMP/mcp-probe-home"
+          mkdir -p "$fake/.codex"
+          count=0
+          for mcp_file in plugins/*/.mcp.json; do
+            [ -f "$mcp_file" ] || continue
+            plugin="$(basename "$(dirname "$mcp_file")")"
+            expected="$(jq -r '.mcpServers | keys[0]' "$mcp_file")"
+            out="$(HOME="$fake" bash install.sh --plugin "$plugin")"
+            if ! printf '%s\n' "$out" | grep -F "[mcp_servers.$expected]" >/dev/null; then
+              echo "::error::install.sh derived a wrong MCP server name for $plugin (expected '$expected')"
+              printf '%s\n' "$out"
+              exit 1
+            fi
+            count=$((count + 1))
+            echo "$plugin: MCP name '$expected' ok"
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "no plugin ships an .mcp.json — nothing to check"
+          fi
 
   skills-discovery:
     runs-on: ubuntu-latest
