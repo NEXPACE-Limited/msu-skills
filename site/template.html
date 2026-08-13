@@ -103,7 +103,7 @@
           <div class="channel-main">
             <p class="channel-body">
               Skills and any MCP server the plugin owns install together. For
-              <code>{{MCP_PLUGIN}}</code>, Claude Code prompts for your MSU Builder OpenAPI key
+              <code>{{MCP_PLUGIN}}</code>, Claude Code prompts for your {{MCP_CREDENTIAL_TITLE}}
               and stores it securely. A plugin that owns no server asks for nothing.
             </p>
             <p class="channel-foot">
@@ -227,7 +227,7 @@ cd {{REPO_NAME}}
       </div>
 
       <p class="callout">
-        Issue an MSU Builder OpenAPI key, then keep it in an environment variable or a private
+        Obtain {{MCP_CREDENTIAL_TITLE}}, then keep it in an environment variable or a private
         agent config. Do not paste it into chat or commit it.
       </p>
 
@@ -239,7 +239,7 @@ cd {{REPO_NAME}}
       <dl class="values">
         <div><dt>Name</dt><dd><code>{{MCP_SERVER}}</code></dd></div>
         <div><dt>URL</dt><dd><code>{{MCP_URL}}</code></dd></div>
-        <div><dt>Transport</dt><dd>{{MCP_TRANSPORT}}</dd></div>
+        <div><dt>Transport</dt><dd>{{MCP_TRANSPORT_LABEL}}</dd></div>
         <div><dt>Header</dt><dd><code>{{MCP_HEADER}}: &lt;issued OpenAPI key&gt;</code></dd></div>
       </dl>
 
@@ -247,7 +247,7 @@ cd {{REPO_NAME}}
         <details>
           <summary>Claude Code, installed via the skills CLI</summary>
           <div class="cmd cmd-wide">
-            <pre><code>claude mcp add --transport http --header "{{MCP_HEADER}}: $MSU_OPENAPI_KEY" \
+            <pre><code>claude mcp add --transport {{MCP_TRANSPORT}} --header "{{MCP_HEADER}}: $MSU_OPENAPI_KEY" \
   {{MCP_SERVER}} {{MCP_URL}}</code></pre>
             <button class="copy" type="button">Copy</button>
           </div>
@@ -283,7 +283,7 @@ env_http_headers = { "{{MCP_HEADER}}" = "MSU_OPENAPI_KEY" }</code></pre>
         <details>
           <summary>Gemini CLI</summary>
           <div class="cmd cmd-wide">
-            <pre><code>gemini mcp add --transport http --header "{{MCP_HEADER}}: $MSU_OPENAPI_KEY" \
+            <pre><code>gemini mcp add --transport {{MCP_TRANSPORT}} --header "{{MCP_HEADER}}: $MSU_OPENAPI_KEY" \
   {{MCP_SERVER}} {{MCP_URL}}</code></pre>
             <button class="copy" type="button">Copy</button>
           </div>
@@ -292,7 +292,7 @@ env_http_headers = { "{{MCP_HEADER}}" = "MSU_OPENAPI_KEY" }</code></pre>
         <details>
           <summary>Kimi CLI</summary>
           <div class="cmd cmd-wide">
-            <pre><code>kimi mcp add --transport http --header "{{MCP_HEADER}}: $MSU_OPENAPI_KEY" \
+            <pre><code>kimi mcp add --transport {{MCP_TRANSPORT}} --header "{{MCP_HEADER}}: $MSU_OPENAPI_KEY" \
   {{MCP_SERVER}} {{MCP_URL}}</code></pre>
             <button class="copy" type="button">Copy</button>
           </div>

@@ -17,18 +17,18 @@ help: ## List the targets
 	@echo '  OUT=$(OUT)  PORT=$(PORT)   — override either: make serve PORT=3000'
 
 site: ## Render the landing page
-	node scripts/build-site.mjs $(OUT)
+	node scripts/build-site.mjs "$(OUT)"
 
 serve: site ## Render it, then serve it over http
 	@echo "→ http://localhost:$(PORT)   (Ctrl+C to stop)"
-	python3 -m http.server $(PORT) -d $(OUT)
+	python3 -m http.server "$(PORT)" -d "$(OUT)"
 
 open: site ## Render it, then open it in a browser
 	@test -n "$(BROWSER)" || { echo "no open/xdg-open on PATH; use make serve" >&2; exit 1; }
-	$(BROWSER) $(OUT)/index.html
+	$(BROWSER) "$(OUT)/index.html"
 
 clean: ## Delete the rendered page
-	rm -rf $(OUT)
+	node scripts/build-site.mjs --clean "$(OUT)"
 
 check: ## Run what CI runs, in one pass
 	claude plugin validate .

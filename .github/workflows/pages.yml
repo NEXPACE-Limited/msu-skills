@@ -2,8 +2,8 @@
 # catalog and every SKILL.md frontmatter, so the published page follows the repository
 # with no file to keep in sync by hand.
 #
-# Pages is enabled once, by hand: Settings → Pages → Source: GitHub Actions. Until that is
-# done the deploy job fails; nothing else in CI depends on it.
+# This repository already uses GitHub Actions as its Pages source. A new fork enables it
+# once under Settings → Pages; until then only the deploy job fails.
 
 name: Pages
 

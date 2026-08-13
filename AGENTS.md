@@ -201,31 +201,37 @@ invocation, and MCP requirement, all come from those files. A card links to
 
 **Never retype a plugin's or a skill's own fields into a template.** Templates carry page
 structure and the prose that has no other source — the install narrative, the README's
-notices. Anything a manifest or a frontmatter already declares is a token, including the
-MCP server's name, URL, header, and transport: those come from `.mcp.json` through
-`{{MCP_SERVER}}`, `{{MCP_URL}}`, `{{MCP_HEADER}}`, and `{{MCP_TRANSPORT}}`, which the
-per-CLI snippets use too. Adding a plugin or a skill updates the pages with no edit here,
-the same property every CI check has.
+notices. Anything a manifest or a frontmatter already declares is a token. The MCP
+server's name, URL, header, and raw transport come from `.mcp.json` through
+`{{MCP_SERVER}}`, `{{MCP_URL}}`, `{{MCP_HEADER}}`, and `{{MCP_TRANSPORT}}`; the per-CLI
+snippets use those tokens too. `{{MCP_TRANSPORT_LABEL}}` is its human-readable display,
+and `{{MCP_CREDENTIAL_TITLE}}` resolves the referenced `userConfig` title. Adding a
+plugin or a skill updates the pages with no edit here, the same property every CI check
+has.
 
 README repeats those MCP values as prose, for the channels that configure the server by
 hand. It is the one copy the generator cannot keep honest, so `guards` fails when README
-stops mentioning a value the server declares.
+stops mentioning a name, URL, header, or `--transport <type>` the server declares.
 
-- Relative paths differ by depth, so every asset and in-site link goes through `{{ROOT}}`
-  (`./` on the catalog page, `../` on a plugin page). A hard-coded `./style.css` would
-  break every plugin page.
+- Relative paths differ by depth, so every rendered asset and in-site link uses the
+  page's root value (`./` on the catalog page, `../` on a plugin page). A hard-coded
+  `./style.css` would break every plugin page. Metadata is the exception: Open Graph
+  images require an absolute `{{SITE_URL}}`.
 - Preview with `make serve` — the copy buttons need a secure context, so `localhost`
   shows them working and a `file://` open does not. `_site/` is gitignored: the pages are
   built on deploy and never committed.
-- The build empties its output directory first, so deleting a plugin or a skill leaves no
-  stale page behind on a local rebuild. It refuses to empty the repository, or any
-  directory that holds something other than a previous build.
+- The build writes `.msu-skills-site-build` into its output. A rebuild or `make clean`
+  empties only an empty directory or one carrying that exact ownership marker, so a
+  deleted plugin or skill leaves no stale page without treating somebody else's
+  `index.html` as proof of ownership. The repository and every directory above it are
+  always refused.
 - `site-build` renders on every pull request. It looks for each skill's card on *its own
   plugin's page*, anchored on the card heading — searching the whole site would prove
   nothing, because the catalog page's plugin card already lists every skill name.
   `pages.yml` publishes on push to `main` — the merge that releases a plugin also
   republishes the site.
-- Enabling Pages is a one-time manual step: Settings → Pages → Source: GitHub Actions.
+- This repository's Pages source is GitHub Actions. A new fork enables it once under
+  Settings → Pages before its first deployment.
 - The catalog page repeats the README's legal notices verbatim. Keep the two in step, and
   do not soften them here either.
 - Two font families load from `fonts.googleapis.com`. That is the site's only third-party
