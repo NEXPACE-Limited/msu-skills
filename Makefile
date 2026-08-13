@@ -45,5 +45,6 @@ check: ## Run what CI runs, in one pass
 		bash install.sh --plugin "$$plugin" --target "$$probe" || exit 1; \
 		rm -rf "$$probe"; \
 	done
+	bash scripts/test-remote-installer.sh
 	bash scripts/check-endpoints.sh
 	@probe=$$(mktemp -d) && node scripts/build-site.mjs "$$probe" && rm -rf "$$probe"

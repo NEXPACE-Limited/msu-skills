@@ -94,6 +94,10 @@ jobs:
             done
             echo "$plugin: ok"
           done
+      - name: The piped installer bootstraps without a checkout
+        # Uses a local archive behind a fake curl adapter: PRs test the remote-install
+        # interface without depending on GitHub availability or the state of main.
+        run: bash scripts/test-remote-installer.sh
 
   skills-discovery:
     runs-on: ubuntu-latest

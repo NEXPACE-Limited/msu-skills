@@ -11,44 +11,52 @@
   <section class="hero">
     <div class="hero-inner">
       <div class="hero-copy">
-        <h1>Use MapleStory Universe resources with&nbsp;AI&nbsp;agents.</h1>
+        <p class="hero-kicker"><span aria-hidden="true"></span> Open skills for game builders</p>
+        <h1>MapleStory Universe resources, ready for your&nbsp;AI&nbsp;agent.</h1>
         <p class="lede">
-          {{CATALOG_NAME}} is NEXPACE's catalog of Agent Skills for game builders. Each plugin
-          installs on its own and brings its skills — and any MCP server it owns — into your
-          coding agent.
+          Add the context your agent needs without changing how you work. Each plugin installs
+          independently, carries only its own configuration, and ships the same source everywhere.
         </p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#install">Install it</a>
-          <a class="btn" href="#plugins">Browse the catalog</a>
+          <a class="btn btn-primary" href="#install">Choose an install path <span aria-hidden="true">→</span></a>
+          <a class="btn btn-quiet" href="#plugins">Explore plugins</a>
         </div>
       </div>
 
-      <figure class="fan" aria-label="One SKILL.md source, three install channels">
+      <figure class="fan" aria-label="One SKILL.md source travels through three install channels">
         <figcaption class="fan-cap">
-          <span>One source, three channels</span>
-          <span>MCP setup</span>
+          <span>What travels with you</span>
+          <span class="fan-live"><i aria-hidden="true"></i> Same source</span>
         </figcaption>
         <div class="fan-grid">
-          <div class="fan-source"><span class="chip">SKILL.md</span></div>
+          <div class="fan-source">
+            <span class="fan-file-icon" aria-hidden="true"></span>
+            <span><strong>SKILL.md</strong><small>Source of truth</small></span>
+          </div>
           <ul class="fan-list">
             <li class="fan-row ch1">
-              <span class="fan-to">Claude Code</span>
-              <span class="fan-note">automatic</span>
+              <span><strong class="fan-to">Claude Code</strong><small>Plugin</small></span>
+              <span class="fan-note fan-note-ready">MCP included</span>
             </li>
             <li class="fan-row ch2">
-              <span class="fan-to">skills CLI</span>
-              <span class="fan-note">manual</span>
+              <span><strong class="fan-to">Most agents</strong><small>skills CLI</small></span>
+              <span class="fan-note">Manual MCP</span>
             </li>
             <li class="fan-row ch3">
-              <span class="fan-to">install.sh</span>
-              <span class="fan-note">best effort</span>
+              <span><strong class="fan-to">No Node.js</strong><small>install.sh</small></span>
+              <span class="fan-note">Guided setup</span>
             </li>
           </ul>
         </div>
         <p class="fan-foot">
-          No conversion, no build output. Every channel ships the same files.
+          No conversion. No platform-specific copies. Just one open skill format.
         </p>
       </figure>
+    </div>
+    <div class="hero-proof" aria-label="Catalog principles">
+      <p><strong>Open standard</strong><span>Agent Skills format</span></p>
+      <p><strong>Isolated by design</strong><span>One plugin, one config surface</span></p>
+      <p><strong>Always current</strong><span>No generated skill copies</span></p>
     </div>
   </section>
 
@@ -60,8 +68,8 @@
         </div>
         <div class="section-copy">
           <p class="section-lede">
-            Pick the channel that matches your agent. All three ship the same files and differ
-            only in how much of the <code>{{MCP_SERVER}}</code> setup is done for you.
+            Pick the path that matches your setup. The skill files are identical; only the
+            amount of <code>{{MCP_SERVER}}</code> configuration changes.
           </p>
         </div>
       </div>
@@ -77,8 +85,8 @@
             <span class="install-tab-sub">skills CLI · Node.js 18+</span>
           </button>
           <button class="install-tab ch3" type="button" data-install-tab="manual">
-            <span class="install-tab-name">No Node.js</span>
-            <span class="install-tab-sub">Clone and copy</span>
+            <span class="install-tab-name">Codex, Gemini, Kimi</span>
+            <span class="install-tab-sub">Installer · no Node.js</span>
           </button>
         </div>
 
@@ -145,8 +153,8 @@
 
         <article class="channel ch3" id="install-panel-manual" data-install-panel="manual">
           <header class="channel-head">
-            <h3>No Node.js</h3>
-            <p class="channel-sub">Clone and copy</p>
+            <h3>Codex, Gemini, Kimi</h3>
+            <p class="channel-sub">Remote installer · no Node.js</p>
           </header>
           <div class="channel-side">
             <div class="cmd cmd-contextual">
@@ -154,21 +162,20 @@
                 <span class="cmd-context-icon" aria-hidden="true">$</span>
                 <span>Terminal</span>
               </div>
-              <pre><code>git clone {{REPO_URL}}.git
-cd {{REPO_NAME}}
-./install.sh</code></pre>
+              <pre><code>curl -fsSL {{INSTALL_URL}} \
+  | bash</code></pre>
               <button class="copy" type="button">Copy</button>
             </div>
           </div>
           <div class="channel-main">
             <p class="channel-body">
-              Skills are self-contained directories, so copying them is a complete install. The
-              script detects <code>~/.codex</code>, <code>~/.gemini</code>, and
-              <code>~/.kimi</code>, and downloads nothing itself.
+              The installer downloads a temporary source snapshot, copies the skills, and removes
+              the snapshot. It detects <code>~/.codex</code>, <code>~/.gemini</code>, and
+              <code>~/.kimi</code> and helps configure bundled MCP servers.
             </p>
             <p class="channel-foot">
-              <code>./install.sh --plugin &lt;name&gt;</code> installs one plugin;
-              <code>--target &lt;dir&gt;</code> picks the destination.
+              Add <code>-s -- --plugin &lt;name&gt;</code> after <code>bash</code> for one plugin.
+              <a href="{{REPO_URL}}/blob/main/install.sh">Review install.sh first</a>.
             </p>
           </div>
         </article>
@@ -186,13 +193,13 @@ cd {{REPO_NAME}}
     <div class="band-inner">
       <div class="section-intro">
         <div class="section-title">
-          <h2>Plugins</h2>
+          <h2>Pick only what you need</h2>
           <p class="section-count">{{PLUGIN_COUNT_PHRASE}} · {{SKILL_COUNT_PHRASE}}</p>
         </div>
         <div class="section-copy">
           <p class="section-lede">
-            Every plugin owns its skills, its version, and its credentials. Install one and you
-            never acquire another's configuration.
+            Each plugin owns its skills, version, and credentials. Installing one never pulls in
+            another plugin's configuration.
           </p>
         </div>
       </div>
@@ -211,13 +218,12 @@ cd {{REPO_NAME}}
     <div class="band-inner">
       <div class="section-intro">
         <div class="section-title">
-          <h2>MCP configuration</h2>
+          <h2>Connect the resource tools</h2>
         </div>
         <div class="section-copy">
           <p class="section-lede">
-            The <code>{{MCP_PLUGIN}}</code> plugin's skills expect the <code>{{MCP_SERVER}}</code>
-            tools to be available to the agent. Every channel but one needs the server set up
-            once, before first use. Plugins that own no server need none of this.
+            The <code>{{MCP_PLUGIN}}</code> plugin uses <code>{{MCP_SERVER}}</code> to reach MSU
+            resources. Set it up once before first use. Plugins without an MCP server skip this.
           </p>
           <p class="section-note">
             <strong>Claude Code plugin users can skip this section.</strong>
@@ -226,24 +232,42 @@ cd {{REPO_NAME}}
         </div>
       </div>
 
-      <p class="callout">
-        Obtain {{MCP_CREDENTIAL_TITLE}}, then keep it in an environment variable or a private
-        agent config. Do not paste it into chat or commit it.
-      </p>
+      <div class="setup-grid">
+        <article class="setup-step">
+          <header class="setup-step-head">
+            <span aria-hidden="true">1</span>
+            <div><p>Protect the credential</p><h3>Store your API key</h3></div>
+          </header>
+          <p class="callout">
+            Obtain {{MCP_CREDENTIAL_TITLE}}, then keep it in an environment variable or a private
+            agent config. Never paste it into chat or commit it.
+          </p>
+          <div class="cmd cmd-wide">
+            <pre><code>export MSU_OPENAPI_KEY="&lt;issued OpenAPI key&gt;"</code></pre>
+            <button class="copy" type="button">Copy</button>
+          </div>
+        </article>
 
-      <div class="cmd cmd-wide">
-        <pre><code>export MSU_OPENAPI_KEY="&lt;issued OpenAPI key&gt;"</code></pre>
-        <button class="copy" type="button">Copy</button>
+        <article class="setup-step">
+          <header class="setup-step-head">
+            <span aria-hidden="true">2</span>
+            <div><p>Verify the connection</p><h3>Use these server values</h3></div>
+          </header>
+          <dl class="values">
+            <div><dt>Name</dt><dd><code>{{MCP_SERVER}}</code></dd></div>
+            <div><dt>URL</dt><dd><code>{{MCP_URL}}</code></dd></div>
+            <div><dt>Transport</dt><dd>{{MCP_TRANSPORT_LABEL}}</dd></div>
+            <div><dt>Header</dt><dd><code>{{MCP_HEADER}}: &lt;issued OpenAPI key&gt;</code></dd></div>
+          </dl>
+        </article>
       </div>
 
-      <dl class="values">
-        <div><dt>Name</dt><dd><code>{{MCP_SERVER}}</code></dd></div>
-        <div><dt>URL</dt><dd><code>{{MCP_URL}}</code></dd></div>
-        <div><dt>Transport</dt><dd>{{MCP_TRANSPORT_LABEL}}</dd></div>
-        <div><dt>Header</dt><dd><code>{{MCP_HEADER}}: &lt;issued OpenAPI key&gt;</code></dd></div>
-      </dl>
-
-      <div class="snippets">
+      <article class="setup-step setup-step-wide">
+        <header class="setup-step-head">
+          <span aria-hidden="true">3</span>
+          <div><p>Finish once</p><h3>Connect your agent</h3></div>
+        </header>
+        <div class="snippets">
         <details>
           <summary>Claude Code, installed via the skills CLI</summary>
           <div class="cmd cmd-wide">
@@ -297,7 +321,8 @@ env_http_headers = { "{{MCP_HEADER}}" = "MSU_OPENAPI_KEY" }</code></pre>
             <button class="copy" type="button">Copy</button>
           </div>
         </details>
-      </div>
+        </div>
+      </article>
 
       <p class="links-row">
         Official MCP docs:
@@ -313,9 +338,10 @@ env_http_headers = { "{{MCP_HEADER}}" = "MSU_OPENAPI_KEY" }</code></pre>
     </div>
   </section>
 
-  <section class="band band-alt" id="try">
+  <section class="band band-action" id="try">
     <div class="band-inner band-narrow">
-      <h2>Try it</h2>
+      <p class="action-kicker">Your first prompt</p>
+      <h2>Start with an outcome, not an API call.</h2>
       <p class="section-lede">
         With <code>{{MCP_PLUGIN}}</code> installed and the MCP server connected, ask your agent
         to build something that needs Maple resources. It loads the reference files it needs and

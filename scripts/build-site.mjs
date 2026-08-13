@@ -331,6 +331,7 @@ const build = async () => {
     REPO_URL: repoUrl,
     REPO_SLUG: `${owner}/${repo}`,
     REPO_NAME: repo,
+    INSTALL_URL: `https://raw.githubusercontent.com/${owner}/${repo}/main/install.sh`,
     PLUGIN_VERSIONS: plugins
       .map(plugin => `${escape(plugin.name)} v${escape(plugin.version)}`)
       .join(' · ')
