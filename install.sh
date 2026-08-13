@@ -196,6 +196,25 @@ if [ ${#TARGETS[@]} -eq 0 ]; then
   exit 1
 fi
 
+# Parse every bundled MCP definition up front, so a definition this script cannot
+# read fails the run before any skill is copied — not after "✅ Installed" printed.
+MCP_PLUGINS=()
+MCP_NAMES=()
+MCP_URLS=()
+if [ ${#CLIS[@]} -gt 0 ]; then
+  for plugin in "${PLUGINS[@]}"; do
+    mcp_file="$SRC_DIR/plugins/$plugin/.mcp.json"
+    [ -f "$mcp_file" ] || continue
+    mcp_name="$(read_mcp_name "$mcp_file")"
+    mcp_url="$(read_mcp_url "$mcp_file")"
+    [ -n "$mcp_name" ] || { echo "Could not read the MCP server name from $mcp_file." >&2; exit 1; }
+    [ -n "$mcp_url" ] || { echo "Could not read the MCP url from $mcp_file." >&2; exit 1; }
+    MCP_PLUGINS+=("$plugin")
+    MCP_NAMES+=("$mcp_name")
+    MCP_URLS+=("$mcp_url")
+  done
+fi
+
 # Resolve and validate every destination before copying any skill. A destination
 # equal to, inside, or containing its source could make replacement delete source
 # data. Preflight all targets so one unsafe target cannot cause a partial install.
@@ -234,14 +253,10 @@ fi
 # reads the key from the environment at runtime (config references the variable name),
 # gemini/kimi need the key value at add time. User configs are never edited directly —
 # each CLI's own `mcp add` does it.
-for plugin in "${PLUGINS[@]}"; do
-  mcp_file="$SRC_DIR/plugins/$plugin/.mcp.json"
-  [ -f "$mcp_file" ] || continue
-
-  MCP_NAME="$(read_mcp_name "$mcp_file")"
-  MCP_URL="$(read_mcp_url "$mcp_file")"
-  [ -n "$MCP_NAME" ] || { echo "Could not read the MCP server name from $mcp_file." >&2; exit 1; }
-  [ -n "$MCP_URL" ] || { echo "Could not read the MCP url from $mcp_file." >&2; exit 1; }
+# The sentinel expansion keeps Bash 3.2 with `set -u` happy on an empty array.
+for mcp_idx in ${MCP_PLUGINS[@]+"${!MCP_PLUGINS[@]}"}; do
+  MCP_NAME="${MCP_NAMES[$mcp_idx]}"
+  MCP_URL="${MCP_URLS[$mcp_idx]}"
 
   for cli in "${CLIS[@]}"; do
     case "$cli" in
@@ -266,11 +281,19 @@ for plugin in "${PLUGINS[@]}"; do
       continue
     fi
 
-    # Key values are never echoed; failure messages show the env-var form only.
-    if command -v "$cli" >/dev/null 2>&1 && "$cli" "${args[@]}" >/dev/null 2>&1; then
+    # Key values are never echoed; failure messages show the env-var form only,
+    # and the CLI's own stderr is relayed with any key occurrence redacted.
+    if ! command -v "$cli" >/dev/null 2>&1; then
+      echo "⚠️  $cli: not found on PATH — run manually once it is installed: $shown"
+      continue
+    fi
+    if cli_err="$("$cli" "${args[@]}" 2>&1 >/dev/null)"; then
       echo "✅ MCP $MCP_NAME registered → $cli"
     else
       echo "⚠️  $cli: automatic MCP registration failed — run manually: $shown"
+      if [ -n "$cli_err" ]; then
+        printf '%s\n' "${cli_err//$MSU_OPENAPI_KEY/\$MSU_OPENAPI_KEY}" | sed 's/^/    /'
+      fi
     fi
   done
 done
