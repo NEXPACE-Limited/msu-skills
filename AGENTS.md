@@ -195,8 +195,9 @@ index.html          hero, install channels, the plugin list, MCP setup, the noti
 `plugin.json` and `.mcp.json`, and every `SKILL.md` frontmatter, then fills the
 `{{TOKEN}}`s in `site/template.html` and `site/plugin.html`. Chrome shared by both —
 head, topbar, footer — lives in `site/partials/` and is included with `{{>name}}`.
-A plugin card, and a skill card's name, description, reference count, `plugin:skill`
-invocation, and MCP requirement, all come from those files.
+A plugin card, and a skill card's name, description, bundled-file count, `plugin:skill`
+invocation, and MCP requirement, all come from those files. A card links to
+`references/` only when the skill has one — not every skill does.
 
 **Never retype a plugin's or a skill's own fields into a template.** Templates carry page
 structure and the prose that has no other source — install steps, MCP snippets, the

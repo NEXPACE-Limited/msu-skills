@@ -62,6 +62,20 @@ const parseFrontmatter = (text, path) => {
   }, {})
 }
 
+/** Everything the skill ships besides SKILL.md, at any depth: references/*.md for most,
+ *  a library file at the skill root for others. */
+const countBundled = async dir => {
+  const entries = await readdir(dir, { withFileTypes: true })
+  const counts = await Promise.all(
+    entries.map(entry => {
+      const path = join(dir, entry.name)
+      if (entry.isDirectory()) return countBundled(path)
+      return Promise.resolve(entry.name === 'SKILL.md' ? 0 : 1)
+    })
+  )
+  return counts.reduce((total, count) => total + count, 0)
+}
+
 const readSkill = async (pluginDir, name) => {
   const dir = join(pluginDir, 'skills', name)
   const path = join(dir, 'SKILL.md')
@@ -74,12 +88,13 @@ const readSkill = async (pluginDir, name) => {
     throw new Error(`${path}: frontmatter has no description`)
   }
 
-  const referenceDir = join(dir, 'references')
-  const references = existsSync(referenceDir)
-    ? (await readdir(referenceDir)).filter(file => file.endsWith('.md')).length
-    : 0
-
-  return { name, description: fields.description, references }
+  return {
+    name,
+    description: fields.description,
+    bundled: await countBundled(dir),
+    // Not every skill has one, and a card must not link to a directory that is not there.
+    hasReferences: existsSync(join(dir, 'references'))
+  }
 }
 
 const readPlugin = async entry => {
@@ -140,6 +155,12 @@ ${plugin.skills.map(skill => `              <li>${escape(skill.name)}</li>`).joi
 
 const skillCard = (skill, plugin, repoUrl) => {
   const path = `${plugin.source}/skills/${escape(skill.name)}`
+  const browse = skill.hasReferences
+    ? `<a href="${repoUrl}/tree/main/${path}/references">Browse references →</a>`
+    : skill.bundled > 0
+      ? `<a href="${repoUrl}/tree/main/${path}">Browse the folder →</a>`
+      : ''
+
   return `
         <article class="skill">
           <header class="skill-head">
@@ -147,16 +168,17 @@ const skillCard = (skill, plugin, repoUrl) => {
             <span class="skill-plugin">${escape(plugin.name)}:${escape(skill.name)}</span>
           </header>
           <div class="fm">
+            <span class="fm-rule">---</span>
             <span class="fm-row"><span class="fm-key">name:</span> <span class="fm-val">${escape(skill.name)}</span></span>
             <span class="fm-row"><span class="fm-key">description:</span> <span class="fm-val">${escape(skill.description)}</span></span>
+            <span class="fm-rule">---</span>
           </div>
           <dl class="skill-meta">
-            <div><dt>Reference files</dt><dd>${skill.references}</dd></div>
-            <div><dt>Requires</dt><dd>${plugin.servers.length === 0 ? 'No credential' : `${serverList(plugin.servers)} MCP`}</dd></div>
+${skill.bundled > 0 ? `            <div><dt>Bundled files</dt><dd>${skill.bundled}</dd></div>\n` : ''}            <div><dt>Requires</dt><dd>${plugin.servers.length === 0 ? 'No credential' : `${serverList(plugin.servers)} MCP`}</dd></div>
           </dl>
           <p class="skill-links">
             <a href="${repoUrl}/blob/main/${path}/SKILL.md">Read SKILL.md →</a>
-            <a href="${repoUrl}/tree/main/${path}/references">Browse references →</a>
+            ${browse}
           </p>
         </article>`
 }
