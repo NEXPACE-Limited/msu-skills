@@ -1,7 +1,7 @@
 ---
 name: maple-core-id-reference
 description: |
-  Complete lookup tables for the ID system: all 36 weapon type codes (WT_*),
+  Complete lookup tables for the ID system: all 29 weapon type codes (WT_*),
   all body part slot codes (BP_*), full job advancement tree, skill grade system,
   and V-skill roots. Use when you need specific weapon type codes or job IDs.
 user-invocable: true
@@ -10,7 +10,7 @@ disable-model-invocation: false
 
 # ID System — Full Reference
 
-## Complete Weapon Types (36)
+## Complete Weapon Types (29)
 
 | Code | Type | Note |
 |------|------|------|

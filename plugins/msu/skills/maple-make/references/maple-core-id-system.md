@@ -49,7 +49,7 @@ Middle digits of equip ID determine slot:
 | 38 | Staff | 46 | Crossbow |
 | 48 | Knuckle | 49 | Gun |
 
-For all 36 weapon types → see `maple-core-id-reference.md`.
+For all 29 weapon types → see `maple-core-id-reference.md`.
 
 ## Skill ID → Job & File
 
