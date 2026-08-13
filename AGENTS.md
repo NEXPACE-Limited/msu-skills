@@ -200,10 +200,16 @@ invocation, and MCP requirement, all come from those files. A card links to
 `references/` only when the skill has one — not every skill does.
 
 **Never retype a plugin's or a skill's own fields into a template.** Templates carry page
-structure and the prose that has no other source — install steps, MCP snippets, the
-README's notices. Anything a manifest or a frontmatter already declares is a token.
-Adding a plugin or a skill updates the pages with no edit here, the same property every
-CI check has.
+structure and the prose that has no other source — the install narrative, the README's
+notices. Anything a manifest or a frontmatter already declares is a token, including the
+MCP server's name, URL, header, and transport: those come from `.mcp.json` through
+`{{MCP_SERVER}}`, `{{MCP_URL}}`, `{{MCP_HEADER}}`, and `{{MCP_TRANSPORT}}`, which the
+per-CLI snippets use too. Adding a plugin or a skill updates the pages with no edit here,
+the same property every CI check has.
+
+README repeats those MCP values as prose, for the channels that configure the server by
+hand. It is the one copy the generator cannot keep honest, so `guards` fails when README
+stops mentioning a value the server declares.
 
 - Relative paths differ by depth, so every asset and in-site link goes through `{{ROOT}}`
   (`./` on the catalog page, `../` on a plugin page). A hard-coded `./style.css` would
@@ -214,14 +220,19 @@ CI check has.
 - The build empties its output directory first, so deleting a plugin or a skill leaves no
   stale page behind on a local rebuild. It refuses to empty the repository, or any
   directory that holds something other than a previous build.
-- `site-build` renders on every pull request and fails if a plugin has no page or a skill
-  reaches none. `pages.yml` publishes on push to `main` — the merge that releases a
-  plugin also republishes the site.
+- `site-build` renders on every pull request. It looks for each skill's card on *its own
+  plugin's page*, anchored on the card heading — searching the whole site would prove
+  nothing, because the catalog page's plugin card already lists every skill name.
+  `pages.yml` publishes on push to `main` — the merge that releases a plugin also
+  republishes the site.
 - Enabling Pages is a one-time manual step: Settings → Pages → Source: GitHub Actions.
 - The catalog page repeats the README's legal notices verbatim. Keep the two in step, and
   do not soften them here either.
 - Two font families load from `fonts.googleapis.com`. That is the site's only third-party
   request; keep it that way.
+- `site/og.png` is the link-preview card, the one asset that is drawn rather than
+  generated. It carries no counts and no plugin names, so only a change to the headline
+  or the wordmark makes it stale.
 
 ## Versioning and release
 

@@ -13,9 +13,9 @@
       <div class="hero-copy">
         <h1>Use MapleStory Universe resources with&nbsp;AI&nbsp;agents.</h1>
         <p class="lede">
-          {{CATALOG_NAME}} is NEXPACE's catalog of Agent Skills for game builders — MapleStory
-          Universe asset knowledge with the <code>maple-lookup</code> MCP, and engine-agnostic
-          quality gates for game production. Each plugin installs on its own.
+          {{CATALOG_NAME}} is NEXPACE's catalog of Agent Skills for game builders. Each plugin
+          installs on its own and brings its skills — and any MCP server it owns — into your
+          coding agent.
         </p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="#install">Install it</a>
@@ -61,7 +61,7 @@
         <div class="section-copy">
           <p class="section-lede">
             Pick the channel that matches your agent. All three ship the same files and differ
-            only in how much of the <code>maple-lookup</code> setup is done for you.
+            only in how much of the <code>{{MCP_SERVER}}</code> setup is done for you.
           </p>
         </div>
       </div>
@@ -237,18 +237,18 @@ cd {{REPO_NAME}}
       </div>
 
       <dl class="values">
-        <div><dt>Name</dt><dd><code>maple-lookup</code></dd></div>
-        <div><dt>URL</dt><dd><code>https://openapi.msu.io/v1rc1/resource/mcp</code></dd></div>
-        <div><dt>Transport</dt><dd>HTTP / streamable HTTP</dd></div>
-        <div><dt>Header</dt><dd><code>x-nxopen-api-key: &lt;issued OpenAPI key&gt;</code></dd></div>
+        <div><dt>Name</dt><dd><code>{{MCP_SERVER}}</code></dd></div>
+        <div><dt>URL</dt><dd><code>{{MCP_URL}}</code></dd></div>
+        <div><dt>Transport</dt><dd>{{MCP_TRANSPORT}}</dd></div>
+        <div><dt>Header</dt><dd><code>{{MCP_HEADER}}: &lt;issued OpenAPI key&gt;</code></dd></div>
       </dl>
 
       <div class="snippets">
         <details>
           <summary>Claude Code, installed via the skills CLI</summary>
           <div class="cmd cmd-wide">
-            <pre><code>claude mcp add --transport http --header "x-nxopen-api-key: $MSU_OPENAPI_KEY" \
-  maple-lookup https://openapi.msu.io/v1rc1/resource/mcp</code></pre>
+            <pre><code>claude mcp add --transport http --header "{{MCP_HEADER}}: $MSU_OPENAPI_KEY" \
+  {{MCP_SERVER}} {{MCP_URL}}</code></pre>
             <button class="copy" type="button">Copy</button>
           </div>
         </details>
@@ -256,9 +256,9 @@ cd {{REPO_NAME}}
         <details>
           <summary>Codex CLI — <code>.codex/config.toml</code></summary>
           <div class="cmd cmd-wide">
-            <pre><code>[mcp_servers.maple-lookup]
-url = "https://openapi.msu.io/v1rc1/resource/mcp"
-env_http_headers = { "x-nxopen-api-key" = "MSU_OPENAPI_KEY" }</code></pre>
+            <pre><code>[mcp_servers.{{MCP_SERVER}}]
+url = "{{MCP_URL}}"
+env_http_headers = { "{{MCP_HEADER}}" = "MSU_OPENAPI_KEY" }</code></pre>
             <button class="copy" type="button">Copy</button>
           </div>
         </details>
@@ -268,10 +268,10 @@ env_http_headers = { "x-nxopen-api-key" = "MSU_OPENAPI_KEY" }</code></pre>
           <div class="cmd cmd-wide">
             <pre><code>{
   "mcpServers": {
-    "maple-lookup": {
-      "url": "https://openapi.msu.io/v1rc1/resource/mcp",
+    "{{MCP_SERVER}}": {
+      "url": "{{MCP_URL}}",
       "headers": {
-        "x-nxopen-api-key": "${env:MSU_OPENAPI_KEY}"
+        "{{MCP_HEADER}}": "${env:MSU_OPENAPI_KEY}"
       }
     }
   }
@@ -283,8 +283,8 @@ env_http_headers = { "x-nxopen-api-key" = "MSU_OPENAPI_KEY" }</code></pre>
         <details>
           <summary>Gemini CLI</summary>
           <div class="cmd cmd-wide">
-            <pre><code>gemini mcp add --transport http --header "x-nxopen-api-key: $MSU_OPENAPI_KEY" \
-  maple-lookup https://openapi.msu.io/v1rc1/resource/mcp</code></pre>
+            <pre><code>gemini mcp add --transport http --header "{{MCP_HEADER}}: $MSU_OPENAPI_KEY" \
+  {{MCP_SERVER}} {{MCP_URL}}</code></pre>
             <button class="copy" type="button">Copy</button>
           </div>
         </details>
@@ -292,8 +292,8 @@ env_http_headers = { "x-nxopen-api-key" = "MSU_OPENAPI_KEY" }</code></pre>
         <details>
           <summary>Kimi CLI</summary>
           <div class="cmd cmd-wide">
-            <pre><code>kimi mcp add --transport http --header "x-nxopen-api-key: $MSU_OPENAPI_KEY" \
-  maple-lookup https://openapi.msu.io/v1rc1/resource/mcp</code></pre>
+            <pre><code>kimi mcp add --transport http --header "{{MCP_HEADER}}: $MSU_OPENAPI_KEY" \
+  {{MCP_SERVER}} {{MCP_URL}}</code></pre>
             <button class="copy" type="button">Copy</button>
           </div>
         </details>

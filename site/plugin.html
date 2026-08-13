@@ -35,7 +35,10 @@
         </div>
         <p class="plugin-install-label">Codex, Gemini, Kimi</p>
         <div class="cmd">
-          <pre><code>./install.sh --plugin {{PLUGIN_NAME}}</code></pre>
+          <pre><code>git clone \
+  {{REPO_URL}}.git
+cd {{REPO_NAME}}
+./install.sh --plugin {{PLUGIN_NAME}}</code></pre>
           <button class="copy" type="button">Copy</button>
         </div>
         <p class="fan-foot">

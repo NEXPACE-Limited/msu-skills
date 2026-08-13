@@ -54,7 +54,11 @@ const parseFrontmatter = (text, path) => {
     const match = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/)
     if (match) {
       const [, key, raw] = match
-      return { ...fields, [key]: raw.replace(/^["']|["']$/g, '').trim(), _last: key }
+      // `description: >` and `description: |` carry the text on the lines below, so the
+      // indicator itself is not the value. Both fold to one line here — a card shows the
+      // description as a single paragraph either way.
+      const value = /^[|>][+-]?\d*$/.test(raw.trim()) ? '' : raw.replace(/^["']|["']$/g, '').trim()
+      return { ...fields, [key]: value, _last: key }
     }
     const continued = line.trim()
     if (!continued || !fields._last) return fields
@@ -103,9 +107,8 @@ const readPlugin = async entry => {
   const manifest = await readJson(join(dir, '.claude-plugin', 'plugin.json'))
 
   const mcpPath = join(dir, '.mcp.json')
-  const servers = existsSync(mcpPath)
-    ? Object.keys((await readJson(mcpPath)).mcpServers ?? {})
-    : []
+  const declared = existsSync(mcpPath) ? (await readJson(mcpPath)).mcpServers ?? {} : {}
+  const servers = Object.entries(declared).map(([name, config]) => ({ name, ...config }))
 
   const skillsDir = join(dir, 'skills')
   const names = existsSync(skillsDir) ? await listDirs(skillsDir) : []
@@ -122,7 +125,9 @@ const readPlugin = async entry => {
   }
 }
 
-const serverList = servers => servers.map(name => `<code>${escape(name)}</code>`).join(', ')
+const serverList = servers => servers.map(({ name }) => `<code>${escape(name)}</code>`).join(', ')
+
+const TRANSPORTS = { http: 'HTTP / streamable HTTP', sse: 'Server-sent events', stdio: 'stdio' }
 
 const mcpSummary = servers =>
   servers.length === 0
@@ -147,7 +152,7 @@ ${plugin.skills.map(skill => `              <li>${escape(skill.name)}</li>`).joi
             </ul>
             <p class="plugin-card-foot">
               <span>${plural(plugin.skills.length, 'skill')}</span>
-              <span>${plugin.servers.length === 0 ? 'no credential' : `${escape(plugin.servers.join(', '))} MCP`}</span>
+              <span>${plugin.servers.length === 0 ? 'no credential' : `${escape(plugin.servers.map(server => server.name).join(', '))} MCP`}</span>
               <span class="plugin-card-go">Open<span aria-hidden="true"> →</span></span>
             </p>
           </div>
@@ -201,8 +206,10 @@ const render = (template, partials, tokens, label) => {
     return partials[name]
   })
 
+  // A function replacement, because a string one would read $&, $', $` and $$ inside the
+  // value as substitution patterns — and escape() puts a & in front of every quote.
   const html = Object.entries(tokens).reduce(
-    (page, [token, value]) => page.replaceAll(`{{${token}}}`, value),
+    (page, [token, value]) => page.replaceAll(`{{${token}}}`, () => value),
     withPartials
   )
 
@@ -224,7 +231,7 @@ const writePage = async (relativePath, html) => {
  *  The path comes from argv, so it is only emptied when it is safe to: never the repo or a
  *  directory above it, and never a directory holding anything but a previous build. */
 const resetOutputDir = async () => {
-  if (OUT === ROOT || ROOT === OUT || ROOT.startsWith(OUT + sep)) {
+  if (OUT === ROOT || ROOT.startsWith(OUT + sep)) {
     throw new Error(`refusing to empty ${OUT}: it contains the repository`)
   }
 
@@ -266,6 +273,7 @@ const build = async () => {
   // Whichever plugin owns an MCP server is the one the MCP section documents. A plugin
   // that owns none needs no setup, so it is never the subject there.
   const mcpOwner = plugins.find(plugin => plugin.servers.length > 0) ?? plugins[0]
+  const mcpServer = mcpOwner.servers[0]
 
   const repoUrl = (entries[0].repository ?? `${catalog.owner.url}/${catalog.name}`).replace(/\.git$/, '')
   const [owner, repo] = repoUrl.split('/').slice(-2)
@@ -275,6 +283,7 @@ const build = async () => {
   // Tokens every page shares. Page-specific ones are merged in below.
   const common = {
     CATALOG_NAME: escape(catalog.name),
+    SITE_URL: siteUrl,
     CATALOG_DESCRIPTION: escape(catalog.description),
     REPO_URL: repoUrl,
     REPO_SLUG: `${owner}/${repo}`,
@@ -305,7 +314,10 @@ const build = async () => {
         .join('\n'),
       MCP_PLUGIN: escape(mcpOwner.name),
       MCP_SOURCE: escape(mcpOwner.source),
-      MCP_SERVER: escape(mcpOwner.servers[0] ?? ''),
+      MCP_SERVER: escape(mcpServer?.name ?? ''),
+      MCP_URL: escape(mcpServer?.url ?? ''),
+      MCP_HEADER: escape(Object.keys(mcpServer?.headers ?? {})[0] ?? ''),
+      MCP_TRANSPORT: escape(TRANSPORTS[mcpServer?.type] ?? mcpServer?.type ?? ''),
       PLUGIN_CARDS: plugins.map(pluginCard).join('\n')
     },
     'site/template.html'

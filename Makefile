@@ -39,6 +39,11 @@ check: ## Run what CI runs, in one pass
 	done
 	npx --yes skills add . -l
 	@probe=$$(mktemp -d) && bash install.sh --target "$$probe" && rm -rf "$$probe"
-	@probe=$$(mktemp -d) && bash install.sh --plugin msu --target "$$probe" && rm -rf "$$probe"
+	@for dir in plugins/*/; do \
+		plugin="$$(basename "$$dir")"; \
+		probe=$$(mktemp -d); \
+		bash install.sh --plugin "$$plugin" --target "$$probe" || exit 1; \
+		rm -rf "$$probe"; \
+	done
 	bash scripts/check-endpoints.sh
 	@probe=$$(mktemp -d) && node scripts/build-site.mjs "$$probe" && rm -rf "$$probe"
