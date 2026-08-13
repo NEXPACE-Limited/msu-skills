@@ -130,7 +130,8 @@ Use the `maple-lookup` MCP server tools to search game data and fetch sprite inf
 **Data CDN**: `https://resource-static.msu.io/data/`
 
 All `_path` values in JSON are relative to this CDN base URL.
-PNG files live in folders named after their parent JSON file:
+PNG files live in folders named after their parent JSON file, without the `.json` extension:
 ```
-{file}.json/{action}/{frame}/{part}.png
+{file}/{action}/{frame}/{part}.png
 ```
+Example: sprites of `Character/00002001.json` live under `Character/00002001/stand1/0/body.png`.
