@@ -33,17 +33,16 @@
 /plugin install {{PLUGIN_REF}}</code></pre>
           <button class="copy" type="button">Copy</button>
         </div>
-        <p class="plugin-install-label">Codex, Gemini, Kimi</p>
+        <p class="plugin-install-label">Codex, Gemini, Kimi · no Node.js</p>
         <div class="cmd">
-          <pre><code>git clone \
-  {{REPO_URL}}.git
-cd {{REPO_NAME}}
-./install.sh --plugin {{PLUGIN_NAME}}</code></pre>
+          <pre><code>curl -fsSL {{INSTALL_URL}} \
+  | bash -s -- --plugin {{PLUGIN_NAME}}</code></pre>
           <button class="copy" type="button">Copy</button>
         </div>
         <p class="fan-foot">
-          Full instructions, including the skills CLI, are on the
-          <a href="{{ROOT}}#install">catalog page</a>.
+          The installer downloads a temporary source snapshot, installs only this plugin, then
+          removes the snapshot. <a href="{{REPO_URL}}/blob/main/install.sh">Review the script</a>
+          or see <a href="{{ROOT}}#install">other agents</a>.
         </p>
       </div>
     </div>

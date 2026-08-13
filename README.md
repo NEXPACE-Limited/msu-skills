@@ -22,8 +22,8 @@ Its plugins install independently:
 
 ## Installation
 
-There are two primary install channels, plus a manual fallback for
-environments without Node.js.
+Choose the channel that matches your agent. All of them install the same
+`SKILL.md` sources; they differ in plugin selection and MCP setup.
 
 ### Claude Code — plugin
 
@@ -69,22 +69,27 @@ npx skills add NEXPACE-Limited/msu-skills --skill maple-make
 With this channel, configure the `maple-lookup` MCP server manually — see the
 next section.
 
-### Manual installation (fallback)
+### Codex, Gemini, Kimi — installer
 
-Skills are self-contained directories, so copying them is a complete install.
-Clone the repository first — the installer never downloads anything itself.
+No Node.js or Git checkout is required. The installer downloads a temporary
+source snapshot, copies the selected skills, and removes the snapshot.
 
 ```bash
-git clone https://github.com/NEXPACE-Limited/msu-skills.git
-cd msu-skills
+curl -fsSL https://raw.githubusercontent.com/NEXPACE-Limited/msu-skills/main/install.sh | bash
 
-# Option A: installer script — auto-detects ~/.codex, ~/.gemini, ~/.kimi
+# Install one plugin only
+curl -fsSL https://raw.githubusercontent.com/NEXPACE-Limited/msu-skills/main/install.sh \
+  | bash -s -- --plugin game-tools
+```
+
+The script auto-detects `~/.codex`, `~/.gemini`, and `~/.kimi`. Download and
+review [`install.sh`](install.sh) first if you prefer not to pipe a remote script
+into Bash. A cloned checkout uses the same interface without network access:
+
+```bash
 ./install.sh                          # every plugin
 ./install.sh --plugin game-tools      # one plugin only
 ./install.sh --target <skills-dir>
-
-# Option B: copy a single skill by hand
-cp -R plugins/msu/skills/maple-make ~/.codex/skills/
 ```
 
 The script copies every skill of the selected plugins — flat, by skill name,
@@ -92,6 +97,10 @@ because that is where these CLIs look — and helps register the MCP servers tho
 plugins bundle: Codex reads `$MSU_OPENAPI_KEY` from the environment at runtime,
 while Gemini and Kimi need the key exported when the server is registered. See
 the next section for fully manual MCP setup.
+
+The remote command tracks protected `main`, which is the release in this
+repository. Pin or inspect the source before running it when reproducibility or
+a stricter supply-chain policy is required.
 
 ## MCP Configuration
 

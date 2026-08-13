@@ -4,6 +4,7 @@ const RESET_MS = 1600
 
 const label = (button, text, state) => {
   button.textContent = text
+  button.setAttribute('aria-label', text === 'Copy' ? 'Copy command to clipboard' : text)
   if (state) {
     button.dataset.state = state
   } else {
@@ -12,7 +13,7 @@ const label = (button, text, state) => {
 }
 
 const copy = async button => {
-  const block = button.closest('.cmd')?.querySelector('code')
+  const block = button.closest('.cmd')?.querySelector('pre code')
   if (!block) return
 
   try {
@@ -27,7 +28,7 @@ const copy = async button => {
 }
 
 for (const button of document.querySelectorAll('.copy')) {
-  button.setAttribute('aria-label', 'Copy command to clipboard')
+  label(button, 'Copy')
   button.addEventListener('click', () => copy(button))
 }
 

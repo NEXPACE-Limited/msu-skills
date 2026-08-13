@@ -20,6 +20,7 @@ claude plugin validate plugins/<plugin>             # one plugin, and its skill 
 npx skills add . -l                                 # skills the skills CLI discovers
 bash install.sh --target /tmp/probe                 # smoke-test the manual installer
 bash install.sh --plugin <plugin> --target /tmp/one # ...and the single-plugin path
+bash scripts/test-remote-installer.sh               # piped installer, local archive adapter
 bash scripts/check-endpoints.sh                     # no leaked endpoint or credential
 node scripts/build-site.mjs                         # render the landing page into _site/
 ```
@@ -74,7 +75,7 @@ Skills install automatically on all three; they differ only in what happens to t
 |---|---|
 | Claude Code plugin (`msu@msu-skills`) | automatic — bundled `.mcp.json`, key via `userConfig` prompt |
 | `npx skills add NEXPACE-Limited/msu-skills` | **manual** — README "MCP Configuration" |
-| `./install.sh` (Codex / Gemini / Kimi) | best effort — prints the Codex TOML snippet, runs `mcp add` for Gemini/Kimi when `$MSU_OPENAPI_KEY` is set |
+| `install.sh` via curl or checkout (Codex / Gemini / Kimi) | best effort — prints the Codex TOML snippet, runs `mcp add` for Gemini/Kimi when `$MSU_OPENAPI_KEY` is set |
 
 **Do not break this shape.** Per-platform copies or build artifacts fork the source.
 
@@ -99,7 +100,7 @@ plugins/<plugin>/.claude-plugin/         # plugin.json — name, version, userCo
 plugins/<plugin>/.mcp.json               # MCP servers this plugin owns, if any
 plugins/<plugin>/skills/<name>/SKILL.md  # the only source. name = dir name = kebab-case
 plugins/<plugin>/skills/<name>/references/  # files the skill loads on demand
-install.sh                 # manual installer for non-Claude CLIs; --plugin selects one
+install.sh                 # local or curl installer for non-Claude CLIs; --plugin selects one
 Makefile                   # wrappers: make check, make serve, make site. See Commands
 site/template.html         # the catalog page. {{TOKEN}}s are filled at build
 site/plugin.html           # one page per plugin, rendered to <plugin>/index.html
@@ -142,10 +143,10 @@ user who added both ends up with two copies of every skill. The hub still lists 
 pinned at `msu--v0.2.0`, so `msu@nexpace` and `msu@msu-skills` both resolve today —
 dropping that entry is the follow-up that makes this rule true again.
 
-The other two channels read this repository directly rather than through a marketplace,
-but neither is indifferent to the catalog: `install.sh` walks `plugins/` on disk, and
-the skills CLI scans the plugins `marketplace.json` lists. A catalog entry is what makes
-a plugin real on every channel.
+The other two channels read this repository rather than through a marketplace, but
+neither is indifferent to the catalog: `install.sh` walks `plugins/` in a checkout or a
+temporary GitHub source snapshot, and the skills CLI scans the plugins
+`marketplace.json` lists. A catalog entry is what makes a plugin real on every channel.
 
 ## MCP ownership
 

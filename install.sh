@@ -1,25 +1,80 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# msu-skills manual installer — copies the skills of one or more plugins into each
-# CLI's skills directory and (best effort) registers the MCP servers they bundle.
+# msu-skills installer — copies the skills of one or more plugins into each CLI's
+# skills directory and (best effort) registers the MCP servers they bundle.
 #
 # Usage:
 #   ./install.sh                    # every plugin, into ~/.codex ~/.gemini ~/.kimi
 #   ./install.sh --plugin msu       # one plugin only (repeatable)
 #   ./install.sh --target <dir>     # copy into <dir> (repeatable; skips MCP setup)
+#   curl -fsSL <raw URL> | bash -s -- --plugin msu
 #
 # Skills install flat, by skill name, because that is where the target CLIs look for
 # them. The plugin a skill came from is a packaging boundary, not an install path.
 #
-# Claude Code does not need this script — install the plugin instead.
-# Most agents are also covered by: npx skills add NEXPACE-Limited/msu-skills
-# Run from a cloned checkout; this script never downloads anything itself.
+# Claude Code does not need this script — install the plugin instead. Most agents are
+# also covered by: npx skills add NEXPACE-Limited/msu-skills
 
-SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ ! -d "$SRC_DIR/plugins" ]; then
-  echo "plugins/ not found next to install.sh — run from a cloned msu-skills checkout." >&2
-  exit 1
+REPOSITORY="NEXPACE-Limited/msu-skills"
+ARCHIVE_REF="main"
+ARCHIVE_URL="https://codeload.github.com/$REPOSITORY/tar.gz/refs/heads/$ARCHIVE_REF"
+BOOTSTRAP_DIR=""
+
+cleanup_bootstrap() {
+  [ -n "$BOOTSTRAP_DIR" ] || return 0
+  [ -d "$BOOTSTRAP_DIR" ] || return 0
+  rm -rf -- "$BOOTSTRAP_DIR"
+}
+
+trap cleanup_bootstrap EXIT
+trap 'exit 130' HUP INT TERM
+
+# A file next to plugins/ is a local checkout. A script read from stdin, or saved by
+# itself elsewhere, acquires a temporary source snapshot and then uses the exact same
+# install implementation below. Never infer local mode from $PWD: a piped installer may
+# be launched while the user happens to be inside another checkout.
+SCRIPT_PATH="${BASH_SOURCE[0]-}"
+SRC_DIR=""
+if [ -n "$SCRIPT_PATH" ] && [ -f "$SCRIPT_PATH" ]; then
+  SRC_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+fi
+
+if [ -z "$SRC_DIR" ] || [ ! -d "$SRC_DIR/plugins" ]; then
+  for command in curl tar mktemp; do
+    if ! command -v "$command" >/dev/null 2>&1; then
+      echo "Remote install needs '$command', but it is not available." >&2
+      exit 1
+    fi
+  done
+
+  BOOTSTRAP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/msu-skills.XXXXXX")"
+  ARCHIVE_FILE="$BOOTSTRAP_DIR/source.tar.gz"
+  ARCHIVE_ENTRIES="$BOOTSTRAP_DIR/archive-entries"
+  SRC_DIR="$BOOTSTRAP_DIR/source"
+  mkdir -p "$SRC_DIR"
+
+  echo "→ Downloading $REPOSITORY@$ARCHIVE_REF"
+  if ! curl -fsSL --retry 3 --connect-timeout 15 "$ARCHIVE_URL" -o "$ARCHIVE_FILE"; then
+    echo "Could not download $REPOSITORY@$ARCHIVE_REF from GitHub." >&2
+    exit 1
+  fi
+  if ! tar -tzf "$ARCHIVE_FILE" > "$ARCHIVE_ENTRIES"; then
+    echo "The downloaded source archive is invalid." >&2
+    exit 1
+  fi
+  if [ ! -s "$ARCHIVE_ENTRIES" ] || grep -Eq '(^/|(^|/)\.\.(/|$))' "$ARCHIVE_ENTRIES"; then
+    echo "The downloaded source archive has an unsafe path." >&2
+    exit 1
+  fi
+  if ! tar -xzf "$ARCHIVE_FILE" -C "$SRC_DIR" --strip-components=1; then
+    echo "Could not unpack the downloaded source archive." >&2
+    exit 1
+  fi
+  if [ ! -f "$SRC_DIR/.claude-plugin/marketplace.json" ] || [ ! -d "$SRC_DIR/plugins" ]; then
+    echo "The downloaded source archive is not an msu-skills catalog." >&2
+    exit 1
+  fi
 fi
 
 # Each plugin owns its own .mcp.json, which is the single source of that server's name
@@ -79,6 +134,12 @@ while [ $# -gt 0 ]; do
       TARGETS+=("$2"); shift 2 ;;
     --plugin)
       [ $# -ge 2 ] || { echo "--plugin needs a plugin name argument." >&2; exit 1; }
+      case "$2" in
+        ''|*[!a-z0-9-]*)
+          echo "Invalid plugin name '$2' — use lowercase letters, digits, and hyphens." >&2
+          exit 1
+          ;;
+      esac
       PLUGINS+=("$2"); shift 2 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
