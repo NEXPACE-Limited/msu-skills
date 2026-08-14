@@ -258,14 +258,24 @@ Character/...   → PNGs at  Character/.../01010000/...
 Mob/...         → PNGs at  Mob/0100100/...
 ```
 
-General rule for Character/Mob/Effect/Map assets:
+General rule for Character assets — a frame splits into parts:
 ```
-01010000/             ← PNG folder (no .json extension)
+00002001/             ← PNG folder (no .json extension)
 ├── stand1/0/
 │   ├── body.png
-│   ├── arm.png
-│   └── hand.png
+│   └── arm.png
 ├── walk1/0/
 │   └── ...
 └── ...
 ```
+
+Mob, NPC, Pet, Morph, and Reactor usually carry one PNG per frame instead, with no part
+split — `{file}/{state}/{frame}.png`, e.g. `Mob/0100100/hit1/0.png`. Effect groups its
+own way (`Effect/BasicEff/0/cardGet/0.png`), boss effect sub-trees go deeper
+(`Mob/8880140/attack1/info/hit/0.png`), and Map back, tile, and object PNGs come from
+set files — see `maple-field-map.md`.
+
+**Only the folder rule is universal.** Every `_path` in a file sits under that file's own
+folder, but the depth below it is not fixed, and an aliased frame carries the path of the
+frame it copies rather than its own key path (`blink/3` → `.../blink/0.png`). Use the
+`_path` the JSON gives you; never assemble one from a template.

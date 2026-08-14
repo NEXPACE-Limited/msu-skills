@@ -4,8 +4,6 @@ description: |
   Character sprite assembly: socket attachment formula, z-order, VSlot mapping, flip rules,
   equipment attachment rules, animation states, and AAT (attack action type) table.
   Use when implementing character rendering, equipment display, or character animation.
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Character Rendering (Socket Assembly)
@@ -21,7 +19,7 @@ Characters are rendered by **overlapping matching socket points** between body a
    - Categories: hair, face, cap, coat, longcoat, pants, shoes, glove, weapon, cape, shield, accessory
 2. **Fetch sprite data**: `maple-lookup_get_sprite_data("{category}", "{itemID}", ["stand1"])` → get animation frames with socket data
    - Base body: `maple-lookup_get_sprite_data("body", "2000", ["stand1"])`
-   - Head: `maple-lookup_get_sprite_data("body", "12000", ["stand1"])`
+   - Head: `maple-lookup_get_sprite_data("head", "12000", ["stand1"])`
    - Face/Hair/Equipment: use search results' category and ID
    - Response keys for body/head/equipment are `"{frame}.{part}"` format (e.g. `"0.body"`, `"0.arm"`, `"0.head"`)
    - Each entry includes `_path`, `origin`, `delay`, `z` (layer), and `map` (socket points like navel, neck, brow, hand)
@@ -82,7 +80,11 @@ Frames per action: use only numeric keys (non-numeric meta keys may exist)
 }
 ```
 
-- `_path`: format is `Character/{skinID}/{action}/{frame}/{part}.png`
+- `_path`: CDN-relative PNG path, already resolved. It usually reads
+  `Character/{skinID}/{action}/{frame}/{part}.png`, but never rebuild it from that shape —
+  an aliased frame carries the path of the frame it copies, and not every alias is marked
+  with `_inlink`. On `Character/00002001.json`, `heal/0/arm` reads
+  `Character/00002001/alert/1/arm.png`; the constructed `.../heal/0/arm.png` does not exist.
 - `origin`: anchor pixel coordinate within the sprite image (relative to top-left)
 - `map`: socket coordinates (offset from origin pixel, can be negative)
 - `z`: zmap layer name → determines render order

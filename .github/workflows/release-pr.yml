@@ -1,0 +1,87 @@
+# Opens or refreshes the release PR (develop -> main) every Monday 00:00 UTC, or on
+# demand via workflow_dispatch. It lists what the release would ship and which plugin
+# still needs its bump; picking the versions stays a human decision — see AGENTS.md,
+# *Versioning and release*.
+#
+# Scheduled workflows run from the default branch only, which is why this file lives
+# on main. A PR created by GITHUB_TOKEN triggers no pull_request workflows, so the
+# release PR's checks start when the bump commits are pushed to develop; a release
+# with no plugin change has no bump push coming, so close and reopen it instead.
+
+name: release-pr
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Monday 00:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  open-or-refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Open or refresh the release PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ahead="$(git rev-list --count origin/main..origin/develop)"
+          if [ "$ahead" -eq 0 ]; then
+            echo "develop carries nothing main lacks — no release PR to open"
+            exit 0
+          fi
+
+          read_version() {
+            git cat-file -e "$1:$2" 2>/dev/null && git show "$1:$2" | jq -r '.version // empty' || true
+          }
+
+          body="$(mktemp)"
+          {
+            printf '%s\n\n' 'Merging this PR is the release. Opened by `release-pr.yml`; the body is rewritten on every scheduled run while it stays open.'
+            printf '%s\n\n' '## Plugins changed since `main`'
+            plugins=0
+            pending=0
+            for dir in plugins/*/; do
+              plugin="${dir%/}"
+              manifest="$plugin/.claude-plugin/plugin.json"
+              [ -f "$manifest" ] || continue
+              [ -n "$(git diff --name-only origin/main...origin/develop -- "$plugin")" ] || continue
+              plugins=$((plugins + 1))
+              main_version="$(read_version origin/main "$manifest")"
+              develop_version="$(read_version origin/develop "$manifest")"
+              if [ -z "$main_version" ]; then
+                printf -- '- `%s`: new plugin, first version %s\n' "$plugin" "$develop_version"
+              elif [ "$main_version" = "$develop_version" ]; then
+                printf -- '- `%s`: %s — **bump pending**\n' "$plugin" "$main_version"
+                pending=$((pending + 1))
+              else
+                printf -- '- `%s`: %s -> %s\n' "$plugin" "$main_version" "$develop_version"
+              fi
+            done
+            if [ "$plugins" -eq 0 ]; then
+              printf '%s\n' 'None — docs, site, or CI only. No bump push is coming, so close and reopen this PR to start its checks.'
+            fi
+            printf '\n%s\n\n' '## Commits'
+            git log --reverse --format='- %s' origin/main..origin/develop
+            printf '\n%s\n' '## Before merging'
+            printf -- '- [ ] One bump per changed plugin, committed to `develop` — patch for compatible changes, minor for breaking ones (consumers pin `~0.<minor>`)\n'
+            printf -- '- [ ] Merge with a **merge commit**, never squash — squashing forks the histories and the next release PR re-shows shipped diffs\n'
+          } > "$body"
+
+          existing="$(gh pr list --base main --head develop --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh pr edit "$existing" --body-file "$body"
+            echo "refreshed release PR #$existing — $ahead commit(s), $pending bump(s) pending"
+          else
+            gh pr create --base main --head develop --title "chore: release develop into main" --body-file "$body"
+            echo "opened the release PR — $ahead commit(s), $pending bump(s) pending"
+          fi

@@ -4,11 +4,18 @@
 #
 # This repository already uses GitHub Actions as its Pages source. A new fork enables it
 # once under Settings → Pages; until then only the deploy job fails.
+#
+# Publishing is gated on CI. Triggering on the push directly would publish a merge whose
+# leak scan or linked-page check had just failed, because those guards live only in CI —
+# so this waits for that run and republishes only when it succeeded. The cost is that a
+# CI outage stops publishing; `workflow_dispatch` is the way through.
 
 name: Pages
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -29,9 +36,20 @@ defaults:
 
 jobs:
   build:
+    # `branches` filters the triggering run's head branch, which for a CI run on a pull
+    # request is the PR branch, not its base — so the event is checked too. A manual
+    # dispatch carries no workflow_run context and is allowed on its own terms.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # workflow_run checks out the default branch's tip by default, which need not
+          # be the commit CI passed on. Pin it; a dispatch falls back to its own ref.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
       - uses: actions/setup-node@v7
         with:
           node-version: 22

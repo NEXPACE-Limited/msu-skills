@@ -3,8 +3,6 @@ name: maple-mob-boss-vonleon-structure
 description: |
   Von Leon single-part boss rendering: 1 part, 6 attacks + 7 skills + summon.
   Load when rendering Von Leon (8840000).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Von Leon — Single-Part Boss Rendering

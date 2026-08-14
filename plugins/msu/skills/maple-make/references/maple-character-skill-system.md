@@ -3,8 +3,6 @@ name: maple-character-skill-system
 description: |
   Skill JSON structure, formula syntax, and damage calculation.
   Use when reading skill specs, calculating damage/buff values at a given skill level, or rendering skill icons.
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Skill System

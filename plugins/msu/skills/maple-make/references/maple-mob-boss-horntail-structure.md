@@ -3,8 +3,6 @@ name: maple-mob-boss-horntail-structure
 description: |
   Horntail multi-part boss rendering: 18 parts (10 alive + 8 dead), HP-based phase transitions,
   z-order, and action mapping. Load when rendering Horntail (8810000–8810017).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Horntail — Multi-Part Boss Rendering

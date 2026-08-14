@@ -15,7 +15,7 @@ Always start with `references/maple-data-reference.md`. It is the index that map
 
 | File | Description |
 |------|-------------|
-| [maple-data-reference.md](references/maple-data-reference.md) | **ENTRY POINT** — Quick Rules, ID formulas, skill map |
+| [maple-data-reference.md](references/maple-data-reference.md) | **ENTRY POINT** — Quick Rules, ID formulas, reference map |
 | [maple-core-rendering.md](references/maple-core-rendering.md) | CDN, flip rules, draw formula, Phaser integration |
 | [maple-core-folder-guide.md](references/maple-core-folder-guide.md) | data/ directory structure, file naming conventions |
 | [maple-core-id-system.md](references/maple-core-id-system.md) | ID-to-file resolution rules |
@@ -43,11 +43,11 @@ Always start with `references/maple-data-reference.md`. It is the index that map
 references/maple-data-reference.md
 ```
 
-This gives you the Quick Rules table (ID formulas, draw formulas, socket formulas) and the Skill Map that tells you which resource file to load for each domain.
+This gives you the Quick Rules table (ID formulas, draw formulas, socket formulas) and the Reference Map that tells you which resource file to load for each domain.
 
 ### 2. Load on demand
 
-Only load the resource files relevant to the current task. Use the Skill Map in `maple-data-reference.md` as the selector:
+Only load the resource files relevant to the current task. Use the Reference Map in `maple-data-reference.md` as the selector:
 
 | Task | Load |
 |------|------|

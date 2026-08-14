@@ -3,8 +3,6 @@ name: maple-mob-boss-lotus-structure
 description: |
   Lotus multi-part boss rendering: 4 parts, 3 phases with form evolution.
   Load when rendering Lotus (8950000–8950006).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Lotus — Multi-Part Boss Rendering
