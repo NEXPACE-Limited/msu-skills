@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "game-tools",
   "displayName": "Game Tools",
-  "version": "0.2.0",
+  "version": "0.1.2",
   "description": "Quality gates and live tooling for game production — balance, determinism, cross-device UI, tutorials, localization, and an in-game debug/tuning panel. Works with any engine or platform; published by NEXPACE alongside the MSU builder skills.",
   "author": {
     "name": "NEXPACE"
