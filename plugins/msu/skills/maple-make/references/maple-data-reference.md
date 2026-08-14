@@ -130,7 +130,13 @@ Use the `maple-lookup` MCP server tools to search game data and fetch sprite inf
 **Data CDN**: `https://resource-static.msu.io/data/`
 
 All `_path` values in JSON are relative to this CDN base URL.
-PNG files live in folders named after their parent JSON file:
+Every PNG sits in a folder named after its parent JSON file, without the `.json`
+extension. Depth below that folder varies:
 ```
-{file}.json/{action}/{frame}/{part}.png
+Character/00002001.json → Character/00002001/stand1/0/body.png  (frame split into parts)
+Mob/0100100.json        → Mob/0100100/hit1/0.png                (one PNG per frame)
 ```
+Do not build a path from either shape. Depth differs by category and within one — boss
+effect sub-trees nest deeper (`Mob/8880140/attack1/info/hit/0.png`) — and an aliased
+frame resolves to the path of the frame it copies. Read `_path`.
+Details in `maple-core-folder-guide.md`; map back/tile/object sets in `maple-field-map.md`.
