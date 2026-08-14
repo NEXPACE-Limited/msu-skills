@@ -98,6 +98,76 @@ jobs:
         # Uses a local archive behind a fake curl adapter: PRs test the remote-install
         # interface without depending on GitHub availability or the state of main.
         run: bash scripts/test-remote-installer.sh
+      - name: The MCP registration branch parses every shipped server definition
+        # Every other invocation here passes --target, which exits before the MCP
+        # section — leaving the one path external CLI users rely on untested. This
+        # runs it against a fake HOME (the codex branch prints its snippet without
+        # any CLI binary or key) and pins the sed-parsed server name and url to
+        # jq's read of the same file — to_entries, not keys, because keys sorts
+        # and the installer reads the first server in file order. A reformat the
+        # line parser cannot follow fails this PR instead of silently registering
+        # a wrong server.
+        run: |
+          fake="$RUNNER_TEMP/mcp-probe-home"
+          mkdir -p "$fake/.codex"
+          count=0
+          for mcp_file in plugins/*/.mcp.json; do
+            [ -f "$mcp_file" ] || continue
+            plugin="$(basename "$(dirname "$mcp_file")")"
+            expected="$(jq -r '.mcpServers | to_entries[0].key' "$mcp_file")"
+            expected_url="$(jq -r '.mcpServers | to_entries[0].value.url' "$mcp_file")"
+            out="$(HOME="$fake" bash install.sh --plugin "$plugin")"
+            if ! printf '%s\n' "$out" | grep -F "[mcp_servers.$expected]" >/dev/null; then
+              echo "::error::install.sh derived a wrong MCP server name for $plugin (expected '$expected')"
+              printf '%s\n' "$out"
+              exit 1
+            fi
+            if ! printf '%s\n' "$out" | grep -F "url = \"$expected_url\"" >/dev/null; then
+              echo "::error::install.sh derived a wrong MCP url for $plugin (expected '$expected_url')"
+              printf '%s\n' "$out"
+              exit 1
+            fi
+            count=$((count + 1))
+            echo "$plugin: MCP name '$expected' and url ok"
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "no plugin ships an .mcp.json — nothing to check"
+          fi
+      - name: An unreadable MCP definition stops the run before any skill is copied
+        # The other half of the preflight guarantee: a definition the line parser
+        # cannot read (a minified rendering is exactly that) must fail the run
+        # before the copy loop — it used to fail after "✅ Installed" had printed.
+        run: |
+          src="$RUNNER_TEMP/mcp-negative-src"
+          fake="$RUNNER_TEMP/mcp-negative-home"
+          mkdir -p "$fake/.codex"
+          cp -R . "$src"
+          mcp_file=""
+          for candidate in "$src"/plugins/*/.mcp.json; do
+            if [ -f "$candidate" ]; then mcp_file="$candidate"; break; fi
+          done
+          if [ -z "$mcp_file" ]; then
+            echo "no plugin ships an .mcp.json — nothing to check"
+            exit 0
+          fi
+          plugin="$(basename "$(dirname "$mcp_file")")"
+          jq -c . "$mcp_file" > "$mcp_file.tmp"
+          mv "$mcp_file.tmp" "$mcp_file"
+          if out="$(HOME="$fake" bash "$src/install.sh" --plugin "$plugin" 2>&1)"; then
+            echo "::error::install.sh succeeded although $plugin's .mcp.json is unreadable to its parser"
+            printf '%s\n' "$out"
+            exit 1
+          fi
+          if ! printf '%s\n' "$out" | grep -F "Could not read the MCP" >/dev/null; then
+            echo "::error::install.sh failed for a reason other than the unreadable .mcp.json"
+            printf '%s\n' "$out"
+            exit 1
+          fi
+          if [ -e "$fake/.codex/skills" ]; then
+            echo "::error::skills were copied before the unreadable .mcp.json stopped the run"
+            exit 1
+          fi
+          echo "$plugin: minified .mcp.json stops the run before the copy loop"
 
   skills-discovery:
     runs-on: ubuntu-latest
