@@ -190,6 +190,8 @@ catalog page plus one page per plugin:
 ```
 index.html          hero, install channels, the plugin list, MCP setup, the notices
 <plugin>/index.html that plugin's identity, its own install commands, and its skills
+sitemap.xml         every page the build wrote, absolute
+llms.txt            the same pages as a plain-text index for an LLM reader
 ```
 
 `scripts/build-site.mjs` reads `.claude-plugin/marketplace.json`, every plugin's
@@ -217,7 +219,15 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
 - Relative paths differ by depth, so every rendered asset and in-site link uses the
   page's root value (`./` on the catalog page, `../` on a plugin page). A hard-coded
   `./style.css` would break every plugin page. Metadata is the exception: Open Graph
-  images require an absolute `{{SITE_URL}}`.
+  images require an absolute `{{SITE_URL}}`, and so do the canonical link, `sitemap.xml`,
+  and `llms.txt` — all built from `{{PAGE_URL}}`, the URL each page was written to.
+- `sitemap.xml` carries `<loc>` and nothing else: Google ignores `<priority>` and
+  `<changefreq>`, and reads `<lastmod>` only where it is consistently accurate, which
+  a build that rewrites every page cannot claim.
+- A plugin page's breadcrumb is rendered twice — visibly in `site/plugin.html` and as
+  `BreadcrumbList` JSON-LD through `{{BREADCRUMB_JSONLD}}` — from one set of values, because
+  structured data has to represent what the page shows. The catalog page is the root and
+  gets neither.
 - Preview with `make serve` — the copy buttons need a secure context, so `localhost`
   shows them working and a `file://` open does not. `_site/` is gitignored: the pages are
   built on deploy and never committed.
