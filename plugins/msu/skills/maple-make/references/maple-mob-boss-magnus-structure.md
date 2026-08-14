@@ -3,8 +3,6 @@ name: maple-mob-boss-magnus-structure
 description: |
   Magnus single-part boss rendering: 1 part, 7 attacks, movement.
   Load when rendering Magnus (8880000).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Magnus — Single-Part Boss Rendering

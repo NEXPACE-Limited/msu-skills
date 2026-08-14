@@ -3,8 +3,6 @@ name: maple-mob-boss-gloom-structure
 description: |
   Gloom single-part boss rendering: 1 part (Weakened Gloom 8644611),
   noFlip. Load when rendering Gloom.
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Gloom — Single-Part Boss Rendering

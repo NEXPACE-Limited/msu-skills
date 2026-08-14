@@ -3,8 +3,6 @@ name: maple-mob-boss-verushilla-structure
 description: |
   Verus Hilla multi-part boss rendering: 3 parts, 3 phases with specter summons.
   Load when rendering Verus Hilla (8880405–8880409).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Verus Hilla — Multi-Part Boss Rendering

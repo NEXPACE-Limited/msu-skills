@@ -1,19 +1,17 @@
 ---
 name: maple-data-reference
-description: ENTRY POINT for MapleStory asset reference. Read this before any other maple-* skill. Use when assembling characters, calculating skill damage, looking up items or mobs, or rendering sprites.
-user-invocable: true
-disable-model-invocation: false
+description: ENTRY POINT for MapleStory asset reference. Read this before any other maple-* reference. Use when assembling characters, calculating skill damage, looking up items or mobs, or rendering sprites.
 ---
 
 # Game Asset Reference
 
 
 > **You are reading the entry point.** This file tells you what assets exist and where to find them.
-> Detail reference files are available as separate skills.
+> Detail reference files sit beside this one under `references/`; load them on demand.
 
 > **STOP — before writing any rendering code:**
 > Read `maple-core-rendering.md` **now**, before touching draw/flip/socket logic.
-> The Quick Rules table below is a lookup aid only — it does NOT replace the rendering skill.
+> The Quick Rules table below is a lookup aid only — it does NOT replace the rendering reference.
 > Skipping this step causes origin offset errors and misaligned flipped sprites.
 > For character socket assembly also read `maple-character-rendering.md`.
 
@@ -21,8 +19,8 @@ disable-model-invocation: false
 
 | Rule | Formula |
 |------|---------|
-| Item category | `itemID / 1_000_000` → 1=Equip 2=Consume 3=Install 4=Etc 5=Cash |
-| Skill → job root | `skillID / 10_000` (exception: 8000xx → `skillID / 100`) |
+| Item category | `itemID / 1_000_000` → 1=Equip 2=Consume 3=Install 4=Etc 5=Cash 6=CashEquip |
+| Skill → job root | `skillID / 10_000` (exception: root 8000 or 8001 → `skillID / 100`) |
 | Skill file | `Skill/{skillID / 10000}.json` → key `skill.{skillID}` |
 | Equip → sprite | `Character/{part}/0{equipID}.json` (8-digit zero-pad) |
 | Mob file | `Mob/0{mobID}.json` (7-digit zero-pad) |
@@ -41,9 +39,9 @@ disable-model-invocation: false
 | Canvas detection | `typeof value === "object" && "_path" in value` → has socket data |
 | Sprite direction | All sprites face **LEFT** by default — flip right: Phaser `setFlipX(true)`, Canvas `ctx.scale(-1,1)`, CSS `scaleX(-1)` |
 
-## Skill Map — Load on Demand
+## Reference Map — Load on Demand
 
-| Skill | Load when... |
+| Reference | Load when... |
 |-------|-------------|
 | `maple-core-id-system.md` | Resolving IDs, mapping items/skills/mobs to files |
 | `maple-core-id-reference.md` | All 36 weapon type codes, full job tree, body part slots, skill grades |
@@ -64,9 +62,9 @@ disable-model-invocation: false
 | `maple-character-tamingmob-structure.md` | TamingMob (mount/riding) file structure, z-order layers, navel socket attachment |
 | `maple-mob-boss-{name}-structure.md` | Per-boss rendering spec: parts, phases, z-order, action→pattern mapping — 19 files total (see table below) |
 
-### Boss Structure Skills
+### Boss Structure References
 
-Each boss has a dedicated skill file: `maple-mob-boss-{name}-structure.md`
+Each boss has a dedicated reference file: `maple-mob-boss-{name}-structure.md`
 
 | File | Boss | Parts | Phases |
 |------|------|-------|--------|

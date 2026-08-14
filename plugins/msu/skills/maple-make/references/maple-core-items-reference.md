@@ -3,8 +3,6 @@ name: maple-core-items-reference
 description: |
   Complete field tables for equip, consume, scroll, and install items.
   Cash item type codes (CIT_*). Use when you need specific field names for item stats, potions, scrolls, or cash coupons.
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Items — Full Reference
