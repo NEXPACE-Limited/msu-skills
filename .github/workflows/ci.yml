@@ -109,8 +109,10 @@ jobs:
       - name: List skills the skills CLI discovers
         run: npx --yes skills add . -l | tee discovery.log
       - name: Every skill was discovered
-        # The skills CLI globs SKILL.md recursively, so it sees every plugin's skills
-        # from the repository root. That is the documented behaviour of that channel.
+        # The skills CLI is not a recursive glob: with .claude-plugin/marketplace.json
+        # present it scans exactly the plugins that catalog lists, so a plugin with no
+        # catalog entry is invisible on that channel. This step enumerates plugins from
+        # the filesystem instead, which is what catches the missing entry.
         run: |
           count=0
           for dir in plugins/*/skills/*/; do
