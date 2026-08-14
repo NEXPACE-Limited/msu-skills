@@ -42,6 +42,7 @@ ALLOW_PATTERNS=(
   'http://www\.w3\.org/'      # XML and SVG namespace URIs
   'http://schemas\.'          # namespace URIs
   'http://json-schema\.org/'  # namespace URIs
+  'http://www\.sitemaps\.org/schemas/'  # sitemap protocol namespace URI, never fetched
 )
 
 # Takes one deny match, not a line. Applied to the whole line, an allowed endpoint would

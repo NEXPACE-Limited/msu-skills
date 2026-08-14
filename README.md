@@ -1,5 +1,7 @@
 # MSU Skills
 
+[![skills.sh](https://skills.sh/b/nexpace-limited/msu-skills)](https://skills.sh/nexpace-limited/msu-skills)
+
 Use MapleStory Universe resources with AI agents.
 
 **[nexpace-limited.github.io/msu-skills](https://nexpace-limited.github.io/msu-skills/)** —
