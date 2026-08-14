@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "msu",
   "displayName": "MSU Skills",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "MapleStory Universe (NEXPACE) common skills and modules — Maple asset knowledge with the maple-lookup MCP for building Synergy Apps",
   "author": {
     "name": "NEXPACE"
@@ -15,6 +15,7 @@
       "type": "string",
       "title": "MSU Builder OpenAPI Key",
       "description": "OpenAPI key issued from the MSU Builder Center; sent as the x-nxopen-api-key header to the maple-lookup MCP server",
+      "required": true,
       "sensitive": true
     }
   }

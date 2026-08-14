@@ -163,12 +163,15 @@ for plugin in "${PLUGINS[@]}"; do
   fi
 done
 
-# Every skill directory of every selected plugin, as absolute paths.
+# Every skill directory of every selected plugin, as absolute paths. A directory is a
+# skill only if it holds a SKILL.md — the same test CI's name-uniqueness guard uses.
+# Without it this installer would claim, and replace, a target directory whose name no
+# guard ever checked for a collision.
 skill_dirs() {
   local plugin src
   for plugin in "${PLUGINS[@]}"; do
     for src in "$SRC_DIR/plugins/$plugin"/skills/*/; do
-      [ -d "$src" ] || continue
+      [ -f "$src/SKILL.md" ] || continue
       (cd "$src" && pwd -P)
     done
   done
