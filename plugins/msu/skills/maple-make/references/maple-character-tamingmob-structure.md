@@ -4,8 +4,6 @@ description: |
   TamingMob (mount/riding) file structure: stats vs sprite file distinction,
   multi-layer z-ordering, character attachment via navel socket, and animation states.
   Use when implementing mount riding, character-on-mount rendering, or mount selection.
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # TamingMob (Mount/Riding) Structure

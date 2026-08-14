@@ -3,8 +3,6 @@ name: maple-mob-boss-will-structure
 description: |
   Will multi-part boss rendering: 3 parts, 3 phases with form progression.
   Load when rendering Will (8880300–8880302).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Will — Multi-Part Boss Rendering

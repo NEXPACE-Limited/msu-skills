@@ -15,6 +15,7 @@
       "type": "string",
       "title": "MSU Builder OpenAPI Key",
       "description": "OpenAPI key issued from the MSU Builder Center; sent as the x-nxopen-api-key header to the maple-lookup MCP server",
+      "required": true,
       "sensitive": true
     }
   }

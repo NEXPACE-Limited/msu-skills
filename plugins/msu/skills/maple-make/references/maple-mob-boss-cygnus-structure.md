@@ -3,8 +3,6 @@ name: maple-mob-boss-cygnus-structure
 description: |
   Cygnus single-part boss rendering: 1 part, 6 attacks + 7 skills + sleep/wakeup.
   Load when rendering Cygnus (8850011).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Cygnus — Single-Part Boss Rendering

@@ -3,8 +3,6 @@ name: maple-mob-structure
 description: |
   Mob file structure, stats, animation states, rendering workflow, and combat rules.
   Load when implementing mob spawning, rendering, or combat. For CDN/Phaser/flip → see maple-core-rendering.md.
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Mob File Structure & Rendering

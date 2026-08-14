@@ -3,8 +3,6 @@ name: maple-mob-boss-balrog-structure
 description: |
   Balrog multi-part boss rendering: 7 parts, HP-based phase transitions, z-order,
   and action mapping. Load when rendering Balrog (8830000–8830006).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Balrog — Multi-Part Boss Rendering

@@ -68,8 +68,10 @@ Commit subjects read `<type>: <summary>` — `feat`, `fix`, `refactor`, `docs`, 
 CI runs on every push to `main` or `develop` and on every pull request:
 `plugin-validate`, `install-smoke`, `skills-discovery`, `site-build`, `guards`, and
 one of two version guards picked by base branch — `no-premature-bump` into `develop`,
-`version-bump` into `main`. A push to `main` also runs `pages.yml`, which republishes
-the landing page.
+`version-bump` into `main`. `pages.yml` then republishes the landing page, but only
+after a `main` run of CI succeeds: it triggers on that run's completion rather than on
+the push, so a release whose guards failed is never published, and a `develop` run
+never publishes anything.
 
 ## Core principle — one source, three channels
 
@@ -119,7 +121,7 @@ site/style.css, main.js, favicon.svg  # copied to the output as they are
 scripts/build-site.mjs     # renders site/ + the catalog + every SKILL.md into _site/
 scripts/check-endpoints.sh # public-repo scan, inherited from the retired hub
 .github/workflows/ci.yml   # the commands above, plus guards, on every PR and push
-.github/workflows/pages.yml # renders and publishes the page on every push to main
+.github/workflows/pages.yml # renders and publishes the page after CI passes on main
 .github/workflows/retarget-prs.yml # moves a PR opened against main onto develop
 .github/workflows/release-pr.yml # opens/refreshes the release PR, Mondays 00:00 UTC
 AGENTS.md                  # this file. CLAUDE.md and GEMINI.md are one-line @ imports
@@ -241,8 +243,10 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
 - `site-build` renders on every pull request. It looks for each skill's card on *its own
   plugin's page*, anchored on the card heading — searching the whole site would prove
   nothing, because the catalog page's plugin card already lists every skill name.
-  `pages.yml` publishes on push to `main` — the merge that releases a plugin also
-  republishes the site.
+  `pages.yml` publishes once CI passes on `main`, so merging the release PR is what
+  republishes the site and a merge to `develop` publishes nothing. A release whose
+  guards failed publishes nothing either; deploying anyway, after a CI outage rather
+  than a real failure, is `workflow_dispatch`.
 - This repository's Pages source is GitHub Actions. A new fork enables it once under
   Settings → Pages before its first deployment.
 - The catalog page repeats the README's legal notices verbatim. Keep the two in step, and

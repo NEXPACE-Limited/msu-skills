@@ -3,8 +3,6 @@ name: maple-mob-boss-pinkbean-structure
 description: |
   Pink Bean multi-part boss rendering: 13 parts (5 alive statues + 5 dead statues + 2 PB forms + Mini Bean),
   2-phase fight structure, z-order, and action mapping. Load when rendering Pink Bean (8820000–8820019).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Pink Bean — Multi-Part Boss Rendering

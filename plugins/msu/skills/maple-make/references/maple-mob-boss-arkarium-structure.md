@@ -3,8 +3,6 @@ name: maple-mob-boss-arkarium-structure
 description: |
   Arkarium single-part boss rendering: 1 part, 4 attacks + 11 skills + summon.
   Load when rendering Arkarium (8860000).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Arkarium — Single-Part Boss Rendering

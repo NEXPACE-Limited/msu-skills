@@ -3,8 +3,6 @@ name: maple-mob-boss-seren-structure
 description: |
   Chosen Seren multi-part boss rendering: 7 parts, 2-field-phase with time-of-day
   rotation, HP linking. Load when rendering Seren (8880600–8880612).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Chosen Seren — Multi-Part Boss Rendering

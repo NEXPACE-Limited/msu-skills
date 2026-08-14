@@ -3,8 +3,6 @@ name: maple-mob-boss-hilla-structure
 description: |
   Hilla single-part boss rendering: 1 part, 5 attacks + 4 skills.
   Load when rendering Hilla (8870000).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Hilla — Single-Part Boss Rendering

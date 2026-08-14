@@ -3,8 +3,6 @@ name: maple-mob-boss-lucid-structure
 description: |
   Lucid multi-part boss rendering: 2 parts, 2–3 phases (dream→awakened→fury).
   Load when rendering Lucid (8880140, 8880150).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Lucid — Multi-Part Boss Rendering

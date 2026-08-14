@@ -3,8 +3,6 @@ name: maple-mob-boss-gas-structure
 description: |
   Guardian Angel Slime single-part boss rendering: 1 part (8880700),
   3 attacks + 8 skills + sleep/wakeup.
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Guardian Angel Slime — Single-Part Boss Rendering
