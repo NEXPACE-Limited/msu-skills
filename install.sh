@@ -20,14 +20,16 @@ REPOSITORY="NEXPACE-Limited/msu-skills"
 ARCHIVE_REF="main"
 ARCHIVE_URL="https://codeload.github.com/$REPOSITORY/tar.gz/refs/heads/$ARCHIVE_REF"
 BOOTSTRAP_DIR=""
+MCP_ERR_FILE=""
 
-cleanup_bootstrap() {
+cleanup_temp() {
+  [ -z "$MCP_ERR_FILE" ] || rm -f -- "$MCP_ERR_FILE"
   [ -n "$BOOTSTRAP_DIR" ] || return 0
   [ -d "$BOOTSTRAP_DIR" ] || return 0
   rm -rf -- "$BOOTSTRAP_DIR"
 }
 
-trap cleanup_bootstrap EXIT
+trap cleanup_temp EXIT
 trap 'exit 130' HUP INT TERM
 
 # A file next to plugins/ is a local checkout. A script read from stdin, or saved by
@@ -287,12 +289,17 @@ for mcp_idx in ${MCP_PLUGINS[@]+"${!MCP_PLUGINS[@]}"}; do
       echo "⚠️  $cli: not found on PATH — run manually once it is installed: $shown"
       continue
     fi
-    if cli_err="$("$cli" "${args[@]}" 2>&1 >/dev/null)"; then
+    # stderr is captured into a file, not a command substitution: a CLI that
+    # leaves a background child holding the pipe would block the substitution
+    # until that child exits, long after the CLI itself returned.
+    [ -n "$MCP_ERR_FILE" ] || MCP_ERR_FILE="$(mktemp "${TMPDIR:-/tmp}/msu-skills.mcp-err.XXXXXX")"
+    if "$cli" "${args[@]}" >/dev/null 2>"$MCP_ERR_FILE"; then
       echo "✅ MCP $MCP_NAME registered → $cli"
     else
       echo "⚠️  $cli: automatic MCP registration failed — run manually: $shown"
+      cli_err="$(cat "$MCP_ERR_FILE")"
       if [ -n "$cli_err" ]; then
-        printf '%s\n' "${cli_err//$MSU_OPENAPI_KEY/\$MSU_OPENAPI_KEY}" | sed 's/^/    /'
+        printf '%s\n' "${cli_err//"$MSU_OPENAPI_KEY"/\$MSU_OPENAPI_KEY}" | sed 's/^/    /'
       fi
     fi
   done

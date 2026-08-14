@@ -161,7 +161,9 @@ declaration and must not redefine a server under the same name.
   plugin's root. Do not put an `.mcp.json` at the repository root: it would be loaded as
   a *project-scoped* server while working in this repo, where `${user_config.*}` does
   not resolve, and it would not belong to any plugin.
-- Never commit a key. `install.sh` echoes the env-var form only, never a value.
+- Never commit a key. `install.sh` itself never prints a key value — its own messages
+  show the env-var form only, and a failing CLI's stderr is relayed with literal key
+  occurrences redacted to that form.
 
 ## Consumers
 
