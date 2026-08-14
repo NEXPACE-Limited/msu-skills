@@ -37,10 +37,18 @@ new check belongs there first.
 
 ## Contributing
 
-Branch from `main` and open the pull request against `main`. `main` is protected:
-direct pushes are rejected for everyone, admins included, so every change lands through
-a PR. **Merging is the release** — no staging branch, no separate publish step, so a
-merged mistake is live.
+Branch from `develop` and open the pull request against `develop` — `gh pr create
+--base develop`, or GitHub's compare page with `develop` as the base. A PR opened
+against `main` is moved onto `develop` by `retarget-prs.yml`, which comments when it
+does; it acts only when the PR is opened, so a change that genuinely belongs on
+`main` (a hotfix, a release-machinery change) keeps its base by being moved back
+once, by hand.
+
+`main` stays the default branch because every install channel reads it, and it is
+protected: direct pushes are rejected for everyone, admins included. **Merging the
+release PR is the release** — work integrates on `develop` and ships when a
+`develop` → `main` PR merges, so a mistake merged to `develop` can still be caught
+before it is live. See *Versioning and release* for how that PR is cut.
 
 Write access is limited. If pushing a branch to this repository is denied, fork it and
 open the PR from the fork.
@@ -48,18 +56,20 @@ open the PR from the fork.
 Before opening the PR:
 
 - Run the commands above. CI runs the same ones and adds guards on top.
-- **Bump `version` in `plugins/<plugin>/.claude-plugin/plugin.json` for every plugin you
-  touched.** CI's `version-bump` job fails the PR otherwise, and that string is the only
-  signal that tells installed users to update. See *Versioning and release*.
+- **Leave `version` strings alone** — the release PR bumps every changed plugin at
+  once, and CI's `no-premature-bump` job fails a PR into `develop` that bumps early,
+  because two in-flight PRs bumping the same plugin conflict on that line. A plugin
+  new in the PR states its first version; that is not a bump.
 - Fill in the checklist GitHub applies from `.github/PULL_REQUEST_TEMPLATE.md`.
 
 Commit subjects read `<type>: <summary>` — `feat`, `fix`, `refactor`, `docs`, `chore`,
 `ci`. Nothing enforces it.
 
-CI runs on every push to `main` and on every pull request: `plugin-validate`,
-`install-smoke`, `skills-discovery`, `site-build`, `guards`, and — on pull requests
-only — `version-bump`. A push to `main` also runs `pages.yml`, which republishes the
-landing page.
+CI runs on every push to `main` or `develop` and on every pull request:
+`plugin-validate`, `install-smoke`, `skills-discovery`, `site-build`, `guards`, and
+one of two version guards picked by base branch — `no-premature-bump` into `develop`,
+`version-bump` into `main`. A push to `main` also runs `pages.yml`, which republishes
+the landing page.
 
 ## Core principle — one source, three channels
 
@@ -110,6 +120,7 @@ scripts/build-site.mjs     # renders site/ + the catalog + every SKILL.md into _
 scripts/check-endpoints.sh # public-repo scan, inherited from the retired hub
 .github/workflows/ci.yml   # the commands above, plus guards, on every PR and push
 .github/workflows/pages.yml # renders and publishes the page on every push to main
+.github/workflows/retarget-prs.yml # moves a PR opened against main onto develop
 AGENTS.md                  # this file. CLAUDE.md and GEMINI.md are one-line @ imports
 ```
 
@@ -243,19 +254,28 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
 
 ## Versioning and release
 
-**Plugins version independently.** Touch anything under `plugins/<plugin>/` and bump
-that plugin's own `version`, then merge to `main`. That is the release — no tag to cut,
-no second repository to bump. A change confined to one plugin leaves the others' version
-strings alone, so their installed users are not disturbed.
+**Plugins version independently, and versions move only on the release PR.** Work
+merges to `develop` with version strings untouched. To release: open a PR from
+`develop` to `main`, read `git diff main...develop` plugin by plugin, and commit one
+bump per touched plugin to `develop` — patch for compatible changes, minor for
+breaking ones, since consumers pin `~0.<minor>`. Merging that PR is the release — no
+tag to cut, no second repository to bump. A change confined to one plugin leaves the
+others' version strings alone, so their installed users are not disturbed.
+
+Merge the release PR with a merge commit. Squashing forks `main`'s history away from
+`develop`'s, and every later release PR re-shows diffs that already shipped. The rare
+PR that lands on `main` directly bumps its own plugins — `version-bump` gates every
+PR into `main` — and is followed by merging `main` back into `develop`, or the next
+release PR conflicts on those files.
 
 `version` belongs in `plugin.json` and nowhere else. The catalog entry omits it on
 purpose: Claude Code always reads the `plugin.json` value and ignores a `version` in the
 entry without warning, so declaring both creates a field that drifts while looking
 authoritative. The consequence worth remembering is that the version string *is* the
 update signal — push commits without bumping it and installed users keep the cached
-copy. CI's `version-bump` job fails a PR that changes a plugin without bumping *that*
-plugin, because nothing else catches it now that the hub's catalog-agreement check is
-gone.
+copy. CI's `version-bump` job fails a PR into `main` that changes a plugin without
+bumping *that* plugin, because nothing else catches it now that the hub's
+catalog-agreement check is gone.
 
 Tags are optional. Nothing in the install path reads them — `/plugin marketplace add`
 clones the default branch — though a marketplace source does accept a `ref`, so

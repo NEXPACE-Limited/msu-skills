@@ -9,7 +9,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, develop]
 
 permissions:
   contents: read
@@ -390,8 +390,9 @@ jobs:
   version-bump:
     # Merging to main is the release, and the version string is the only update signal:
     # ship changed skills without bumping it and installed users keep the cached copy.
-    # The hub's catalog-agreement check used to catch this; nothing else does now.
-    if: github.event_name == 'pull_request'
+    # Bumps happen once, on the PR into main (normally the release PR, develop -> main),
+    # so this runs only there; no-premature-bump below covers the other side.
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -435,3 +436,34 @@ jobs:
             checked=$((checked + 1))
           done
           echo "$checked plugin(s) bumped"
+
+  no-premature-bump:
+    # The other half of version-bump: a bump on a PR into develop would conflict with
+    # every in-flight PR touching the same plugin — the friction develop exists to
+    # remove — and would skip the release PR's whole-diff review. A plugin new in the
+    # PR has no base version, so stating its first one passes.
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: No existing plugin changes its version
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          checked=0
+          for dir in plugins/*/; do
+            manifest="${dir%/}/.claude-plugin/plugin.json"
+            git cat-file -e "$BASE:$manifest" 2>/dev/null || continue
+            git cat-file -e "$HEAD:$manifest" 2>/dev/null || continue
+            base_version="$(git show "$BASE:$manifest" | jq -r '.version // empty')"
+            head_version="$(git show "$HEAD:$manifest" | jq -r '.version // empty')"
+            if [ "$base_version" != "$head_version" ]; then
+              echo "::error file=$manifest::version changed ($base_version -> $head_version) on a PR into develop — leave it alone; the release PR bumps every changed plugin at once"
+              exit 1
+            fi
+            checked=$((checked + 1))
+          done
+          echo "$checked plugin(s) left their version alone"
