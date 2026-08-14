@@ -121,6 +121,7 @@ scripts/check-endpoints.sh # public-repo scan, inherited from the retired hub
 .github/workflows/ci.yml   # the commands above, plus guards, on every PR and push
 .github/workflows/pages.yml # renders and publishes the page on every push to main
 .github/workflows/retarget-prs.yml # moves a PR opened against main onto develop
+.github/workflows/release-pr.yml # opens/refreshes the release PR, Mondays 00:00 UTC
 AGENTS.md                  # this file. CLAUDE.md and GEMINI.md are one-line @ imports
 ```
 
@@ -255,9 +256,10 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
 ## Versioning and release
 
 **Plugins version independently, and versions move only on the release PR.** Work
-merges to `develop` with version strings untouched. To release: open a PR from
-`develop` to `main`, read `git diff main...develop` plugin by plugin, and commit one
-bump per touched plugin to `develop` — patch for compatible changes, minor for
+merges to `develop` with version strings untouched. To release: take the release PR —
+`release-pr.yml` opens or refreshes it Mondays 00:00 UTC while `develop` is ahead,
+`workflow_dispatch` any time — read `git diff main...develop` plugin by plugin, and
+commit one bump per touched plugin to `develop` — patch for compatible changes, minor for
 breaking ones, since consumers pin `~0.<minor>`. Merging that PR is the release — no
 tag to cut, no second repository to bump. A change confined to one plugin leaves the
 others' version strings alone, so their installed users are not disturbed.
