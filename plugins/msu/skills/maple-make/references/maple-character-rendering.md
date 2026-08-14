@@ -82,7 +82,11 @@ Frames per action: use only numeric keys (non-numeric meta keys may exist)
 }
 ```
 
-- `_path`: format is `Character/{skinID}/{action}/{frame}/{part}.png`
+- `_path`: CDN-relative PNG path, already resolved. It usually reads
+  `Character/{skinID}/{action}/{frame}/{part}.png`, but never rebuild it from that shape —
+  an aliased frame carries the path of the frame it copies, and not every alias is marked
+  with `_inlink`. On `Character/00002001.json`, `heal/0/arm` reads
+  `Character/00002001/alert/1/arm.png`; the constructed `.../heal/0/arm.png` does not exist.
 - `origin`: anchor pixel coordinate within the sprite image (relative to top-left)
 - `map`: socket coordinates (offset from origin pixel, can be negative)
 - `z`: zmap layer name → determines render order
