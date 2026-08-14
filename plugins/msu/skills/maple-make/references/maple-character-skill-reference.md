@@ -4,8 +4,6 @@ description: |
   Complete skill spec field list, monster skill ID table (MobSkill enum 100–267),
   and effect animation rendering rules (layers, z-order, hit effects).
   Use when implementing mob AI skills, boss mechanics, skill effects, or need exhaustive skill field names.
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Skills — Full Reference

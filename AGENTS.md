@@ -68,8 +68,10 @@ Commit subjects read `<type>: <summary>` — `feat`, `fix`, `refactor`, `docs`, 
 CI runs on every push to `main` or `develop` and on every pull request:
 `plugin-validate`, `install-smoke`, `skills-discovery`, `site-build`, `guards`, and
 one of two version guards picked by base branch — `no-premature-bump` into `develop`,
-`version-bump` into `main`. A push to `main` also runs `pages.yml`, which republishes
-the landing page.
+`version-bump` into `main`. `pages.yml` then republishes the landing page, but only
+after a `main` run of CI succeeds: it triggers on that run's completion rather than on
+the push, so a release whose guards failed is never published, and a `develop` run
+never publishes anything.
 
 ## Core principle — one source, three channels
 
@@ -119,7 +121,7 @@ site/style.css, main.js, favicon.svg  # copied to the output as they are
 scripts/build-site.mjs     # renders site/ + the catalog + every SKILL.md into _site/
 scripts/check-endpoints.sh # public-repo scan, inherited from the retired hub
 .github/workflows/ci.yml   # the commands above, plus guards, on every PR and push
-.github/workflows/pages.yml # renders and publishes the page on every push to main
+.github/workflows/pages.yml # renders and publishes the page after CI passes on main
 .github/workflows/retarget-prs.yml # moves a PR opened against main onto develop
 .github/workflows/release-pr.yml # opens/refreshes the release PR, Mondays 00:00 UTC
 AGENTS.md                  # this file. CLAUDE.md and GEMINI.md are one-line @ imports
@@ -173,7 +175,9 @@ declaration and must not redefine a server under the same name.
   plugin's root. Do not put an `.mcp.json` at the repository root: it would be loaded as
   a *project-scoped* server while working in this repo, where `${user_config.*}` does
   not resolve, and it would not belong to any plugin.
-- Never commit a key. `install.sh` echoes the env-var form only, never a value.
+- Never commit a key. `install.sh` itself never prints a key value — its own messages
+  show the env-var form only, and a failing CLI's stderr is relayed with literal key
+  occurrences redacted to that form.
 
 ## Consumers
 
@@ -202,6 +206,8 @@ catalog page plus one page per plugin:
 ```
 index.html          hero, install channels, the plugin list, MCP setup, the notices
 <plugin>/index.html that plugin's identity, its own install commands, and its skills
+sitemap.xml         every page the build wrote, absolute
+llms.txt            the same pages as a plain-text index for an LLM reader
 ```
 
 `scripts/build-site.mjs` reads `.claude-plugin/marketplace.json`, every plugin's
@@ -229,7 +235,15 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
 - Relative paths differ by depth, so every rendered asset and in-site link uses the
   page's root value (`./` on the catalog page, `../` on a plugin page). A hard-coded
   `./style.css` would break every plugin page. Metadata is the exception: Open Graph
-  images require an absolute `{{SITE_URL}}`.
+  images require an absolute `{{SITE_URL}}`, and so do the canonical link, `sitemap.xml`,
+  and `llms.txt` — all built from `{{PAGE_URL}}`, the URL each page was written to.
+- `sitemap.xml` carries `<loc>` and nothing else: Google ignores `<priority>` and
+  `<changefreq>`, and reads `<lastmod>` only where it is consistently accurate, which
+  a build that rewrites every page cannot claim.
+- A plugin page's breadcrumb is rendered twice — visibly in `site/plugin.html` and as
+  `BreadcrumbList` JSON-LD through `{{BREADCRUMB_JSONLD}}` — from one set of values, because
+  structured data has to represent what the page shows. The catalog page is the root and
+  gets neither.
 - Preview with `make serve` — the copy buttons need a secure context, so `localhost`
   shows them working and a `file://` open does not. `_site/` is gitignored: the pages are
   built on deploy and never committed.
@@ -241,8 +255,10 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
 - `site-build` renders on every pull request. It looks for each skill's card on *its own
   plugin's page*, anchored on the card heading — searching the whole site would prove
   nothing, because the catalog page's plugin card already lists every skill name.
-  `pages.yml` publishes on push to `main` — the merge that releases a plugin also
-  republishes the site.
+  `pages.yml` publishes once CI passes on `main`, so merging the release PR is what
+  republishes the site and a merge to `develop` publishes nothing. A release whose
+  guards failed publishes nothing either; deploying anyway, after a CI outage rather
+  than a real failure, is `workflow_dispatch`.
 - This repository's Pages source is GitHub Actions. A new fork enables it once under
   Settings → Pages before its first deployment.
 - The catalog page repeats the README's legal notices verbatim. Keep the two in step, and

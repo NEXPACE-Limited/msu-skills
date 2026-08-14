@@ -3,8 +3,6 @@ name: maple-mob-boss-damien-structure
 description: |
   Damien multi-part boss rendering: 2 parts, 2 phases (human→demon transform).
   Load when rendering Damien (8880100–8880101).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Damien — Multi-Part Boss Rendering

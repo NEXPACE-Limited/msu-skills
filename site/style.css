@@ -694,7 +694,7 @@ a {
 }
 
 .section-source,
-.eyebrow {
+.crumbs {
   font-family: var(--mono);
   font-size: 0.72rem;
 }
@@ -705,19 +705,41 @@ a {
 }
 
 .section-source a,
-.eyebrow a {
+.crumbs a {
   color: var(--ink-4);
   text-decoration: none;
   transition: color 0.16s ease;
 }
 
 .section-source a:hover,
-.eyebrow a:hover {
+.crumbs a:hover {
   color: var(--blue-strong);
 }
 
-.eyebrow {
+/* Breadcrumb — the visible half of a plugin page's BreadcrumbList. */
+
+.crumbs {
   margin: 0 0 1.2rem;
+  color: var(--ink-4);
+}
+
+.crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crumbs li + li::before {
+  content: "/";
+  margin-right: 0.5rem;
+  color: var(--line-strong);
+}
+
+.crumbs [aria-current="page"] {
+  color: var(--ink-3);
 }
 
 /* Install picker */

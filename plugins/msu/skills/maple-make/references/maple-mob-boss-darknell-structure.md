@@ -3,8 +3,6 @@ name: maple-mob-boss-darknell-structure
 description: |
   Darknell single-part boss rendering: 1 part (Guard Captain Darknell 8645009),
   12 attacks + 4 skills. Load when rendering Darknell.
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Darknell — Single-Part Boss Rendering

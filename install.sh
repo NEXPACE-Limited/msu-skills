@@ -20,14 +20,16 @@ REPOSITORY="NEXPACE-Limited/msu-skills"
 ARCHIVE_REF="main"
 ARCHIVE_URL="https://codeload.github.com/$REPOSITORY/tar.gz/refs/heads/$ARCHIVE_REF"
 BOOTSTRAP_DIR=""
+MCP_ERR_FILE=""
 
-cleanup_bootstrap() {
+cleanup_temp() {
+  [ -z "$MCP_ERR_FILE" ] || rm -f -- "$MCP_ERR_FILE"
   [ -n "$BOOTSTRAP_DIR" ] || return 0
   [ -d "$BOOTSTRAP_DIR" ] || return 0
   rm -rf -- "$BOOTSTRAP_DIR"
 }
 
-trap cleanup_bootstrap EXIT
+trap cleanup_temp EXIT
 trap 'exit 130' HUP INT TERM
 
 # A file next to plugins/ is a local checkout. A script read from stdin, or saved by
@@ -163,12 +165,15 @@ for plugin in "${PLUGINS[@]}"; do
   fi
 done
 
-# Every skill directory of every selected plugin, as absolute paths.
+# Every skill directory of every selected plugin, as absolute paths. A directory is a
+# skill only if it holds a SKILL.md — the same test CI's name-uniqueness guard uses.
+# Without it this installer would claim, and replace, a target directory whose name no
+# guard ever checked for a collision.
 skill_dirs() {
   local plugin src
   for plugin in "${PLUGINS[@]}"; do
     for src in "$SRC_DIR/plugins/$plugin"/skills/*/; do
-      [ -d "$src" ] || continue
+      [ -f "$src/SKILL.md" ] || continue
       (cd "$src" && pwd -P)
     done
   done
@@ -194,6 +199,25 @@ if [ ${#TARGETS[@]} -eq 0 ]; then
   echo "No target CLI found (~/.codex, ~/.gemini, ~/.kimi missing)." >&2
   echo "Specify a directory manually: ./install.sh --target <skills-dir>" >&2
   exit 1
+fi
+
+# Parse every bundled MCP definition up front, so a definition this script cannot
+# read fails the run before any skill is copied — not after "✅ Installed" printed.
+MCP_PLUGINS=()
+MCP_NAMES=()
+MCP_URLS=()
+if [ ${#CLIS[@]} -gt 0 ]; then
+  for plugin in "${PLUGINS[@]}"; do
+    mcp_file="$SRC_DIR/plugins/$plugin/.mcp.json"
+    [ -f "$mcp_file" ] || continue
+    mcp_name="$(read_mcp_name "$mcp_file")"
+    mcp_url="$(read_mcp_url "$mcp_file")"
+    [ -n "$mcp_name" ] || { echo "Could not read the MCP server name from $mcp_file." >&2; exit 1; }
+    [ -n "$mcp_url" ] || { echo "Could not read the MCP url from $mcp_file." >&2; exit 1; }
+    MCP_PLUGINS+=("$plugin")
+    MCP_NAMES+=("$mcp_name")
+    MCP_URLS+=("$mcp_url")
+  done
 fi
 
 # Resolve and validate every destination before copying any skill. A destination
@@ -234,14 +258,10 @@ fi
 # reads the key from the environment at runtime (config references the variable name),
 # gemini/kimi need the key value at add time. User configs are never edited directly —
 # each CLI's own `mcp add` does it.
-for plugin in "${PLUGINS[@]}"; do
-  mcp_file="$SRC_DIR/plugins/$plugin/.mcp.json"
-  [ -f "$mcp_file" ] || continue
-
-  MCP_NAME="$(read_mcp_name "$mcp_file")"
-  MCP_URL="$(read_mcp_url "$mcp_file")"
-  [ -n "$MCP_NAME" ] || { echo "Could not read the MCP server name from $mcp_file." >&2; exit 1; }
-  [ -n "$MCP_URL" ] || { echo "Could not read the MCP url from $mcp_file." >&2; exit 1; }
+# The sentinel expansion keeps Bash 3.2 with `set -u` happy on an empty array.
+for mcp_idx in ${MCP_PLUGINS[@]+"${!MCP_PLUGINS[@]}"}; do
+  MCP_NAME="${MCP_NAMES[$mcp_idx]}"
+  MCP_URL="${MCP_URLS[$mcp_idx]}"
 
   for cli in "${CLIS[@]}"; do
     case "$cli" in
@@ -266,11 +286,24 @@ for plugin in "${PLUGINS[@]}"; do
       continue
     fi
 
-    # Key values are never echoed; failure messages show the env-var form only.
-    if command -v "$cli" >/dev/null 2>&1 && "$cli" "${args[@]}" >/dev/null 2>&1; then
+    # Key values are never echoed; failure messages show the env-var form only,
+    # and the CLI's own stderr is relayed with any key occurrence redacted.
+    if ! command -v "$cli" >/dev/null 2>&1; then
+      echo "⚠️  $cli: not found on PATH — run manually once it is installed: $shown"
+      continue
+    fi
+    # stderr is captured into a file, not a command substitution: a CLI that
+    # leaves a background child holding the pipe would block the substitution
+    # until that child exits, long after the CLI itself returned.
+    [ -n "$MCP_ERR_FILE" ] || MCP_ERR_FILE="$(mktemp "${TMPDIR:-/tmp}/msu-skills.mcp-err.XXXXXX")"
+    if "$cli" "${args[@]}" >/dev/null 2>"$MCP_ERR_FILE"; then
       echo "✅ MCP $MCP_NAME registered → $cli"
     else
       echo "⚠️  $cli: automatic MCP registration failed — run manually: $shown"
+      cli_err="$(cat "$MCP_ERR_FILE")"
+      if [ -n "$cli_err" ]; then
+        printf '%s\n' "${cli_err//"$MSU_OPENAPI_KEY"/\$MSU_OPENAPI_KEY}" | sed 's/^/    /'
+      fi
     fi
   done
 done

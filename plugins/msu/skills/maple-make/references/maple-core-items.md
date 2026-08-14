@@ -3,8 +3,6 @@ name: maple-core-items
 description: |
   Item categories, file paths, consume/install/cash item spec structure,
   and string table cross-references. Use when looking up item data or working with potions, scrolls, or equipment files.
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Item System

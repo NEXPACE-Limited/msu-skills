@@ -1,4 +1,4 @@
-/* ==== DEBUG PANEL v1 — verbatim library, do not edit (builder's tuning panel). Only the ENABLED and LANG lines may be changed. ==== */
+/* ==== DEBUG PANEL v2 — verbatim library, do not edit (builder's tuning panel). Only the ENABLED and LANG lines may be changed. ==== */
 /*!
  * debug-panel.js v1.2.0 — zero-dependency in-game debug/tuning panel (reference implementation).
  * Toggle: backtick (`) key, or the floating 🔧 button (top-right, draggable). On phones the panel is a
@@ -465,16 +465,26 @@
         const wrap = document.createElement('span'); wrap.className = 'dbgp-stpw';
         const minus = inp('button', { type: 'button', className: 'dbgp-stp', textContent: '−' });
         const num = inp('input', { type: 'number', className: 'dbgp-num', step: o.step, value: o.value });
+        if (typeof o.min === 'number') num.min = o.min; // set conditionally: `undefined` would land as the literal attribute
+        if (typeof o.max === 'number') num.max = o.max;
         const plus = inp('button', { type: 'button', className: 'dbgp-stp', textContent: '+' });
-        const bump = dir => {
-          let v = +(cur + dir * (+o.step || 1)).toFixed(stepDecimals(o.step));
+        const clamp = v => { // range only: rounding a typed value would drop precision it meant
+          v = +v;
           if (typeof o.min === 'number') v = Math.max(o.min, v);
           if (typeof o.max === 'number') v = Math.min(o.max, v);
-          o.set(v);
+          return v;
         };
+        // toFixed here, not in clamp: it exists for the float junk repeated addition leaves.
+        const bump = dir => o.set(clamp(+(cur + dir * (+o.step || 1)).toFixed(stepDecimals(o.step))));
         minus.addEventListener('click', () => bump(-1));
         plus.addEventListener('click', () => bump(1));
-        num.addEventListener('change', () => o.set(num.value)); // 'change' not 'input': don't fight the caret
+        num.addEventListener('change', () => { // 'change' not 'input': don't fight the caret
+          const raw = String(num.value).trim();
+          const v = raw === '' ? NaN : clamp(raw);
+          if (Number.isNaN(v)) { num.value = cur; return; } // cleared or unparseable: restore, never write NaN
+          o.set(v);
+          num.value = v; // setValue no-ops when the clamp lands on the current value, so re-sync here
+        });
         wrap.append(minus, num, plus);
         row.appendChild(wrap); appendReset(row, o);
         const rng = inp('input', { type: 'range', min: o.min, max: o.max, step: o.step, value: o.value });
@@ -710,10 +720,16 @@
       chip.hidden = restoredCount <= 0;
       if (restoredCount > 0) chipT.textContent = S.restored(restoredCount);
     }
+    const flashState = new WeakMap(); // btn -> { label, timer }
     function flash(btn, txt) {
       if (!btn) return;
-      const old = btn.textContent; btn.textContent = txt;
-      setTimeout(() => { btn.textContent = old; }, 1400);
+      // The label is captured once. Reading it back on a second tap would adopt the flash
+      // text as the label, and a double tap inside the window would stick it there.
+      let st = flashState.get(btn);
+      if (!st) flashState.set(btn, st = { label: btn.textContent, timer: 0 });
+      clearTimeout(st.timer);
+      btn.textContent = txt;
+      st.timer = setTimeout(() => { btn.textContent = st.label; }, 1400);
     }
     function showTA(text) {
       if (!ta) return;

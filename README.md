@@ -1,5 +1,7 @@
 # MSU Skills
 
+[![skills.sh](https://skills.sh/b/nexpace-limited/msu-skills)](https://skills.sh/nexpace-limited/msu-skills)
+
 Use MapleStory Universe resources with AI agents.
 
 **[nexpace-limited.github.io/msu-skills](https://nexpace-limited.github.io/msu-skills/)** —
@@ -48,16 +50,16 @@ setup is needed.
 
 ### Other agents — skills CLI
 
-Requires [Node.js](https://nodejs.org) 18+.
+Requires [Node.js](https://nodejs.org) 22.20+.
 
 ```bash
 npx skills add NEXPACE-Limited/msu-skills
 ```
 
 This installs the skills for your active coding agent, such as Cursor, Codex
-CLI, OpenCode, Windsurf, Continue, Cline, or Claude Desktop. (Claude Code users
-should prefer the plugin channel above.) The skills do not bundle a CLI helper
-or require shell utilities.
+CLI, OpenCode, Windsurf, Continue, Cline, or Zed. (Claude Code users should
+prefer the plugin channel above.) The skills do not bundle a CLI helper or
+require shell utilities.
 
 This offers the skills of every plugin in the repository at once. Name the ones
 you want to narrow it:
