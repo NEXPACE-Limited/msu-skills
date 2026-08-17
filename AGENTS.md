@@ -37,10 +37,13 @@ new check belongs there first.
 
 ## Contributing
 
-Branch from `develop` and open the pull request against `develop` — `gh pr create
---base develop`, or GitHub's compare page with `develop` as the base. A PR opened
-against `main` is moved onto `develop` by `retarget-prs.yml`, which comments when it
-does; it acts only when the PR is opened, so a change that genuinely belongs on
+The contributor's half lives in [CONTRIBUTING.md](CONTRIBUTING.md) — where a skill file
+goes, which plugin it belongs in, how to write it, what the local checks do and do not
+catch, and how to open the pull request. Send anyone contributing a skill there rather
+than here; what follows governs the repository rather than the contribution.
+
+A PR opened against `main` is moved onto `develop` by `retarget-prs.yml`, which comments
+when it does; it acts only when the PR is opened, so a change that genuinely belongs on
 `main` (a hotfix, a release-machinery change) keeps its base by being moved back
 once, by hand.
 
@@ -49,21 +52,6 @@ protected: direct pushes are rejected for everyone, admins included. **Merging t
 release PR is the release** — work integrates on `develop` and ships when a
 `develop` → `main` PR merges, so a mistake merged to `develop` can still be caught
 before it is live. See *Versioning and release* for how that PR is cut.
-
-Write access is limited. If pushing a branch to this repository is denied, fork it and
-open the PR from the fork.
-
-Before opening the PR:
-
-- Run the commands above. CI runs the same ones and adds guards on top.
-- **Leave `version` strings alone** — the release PR bumps every changed plugin at
-  once, and CI's `no-premature-bump` job fails a PR into `develop` that bumps early,
-  because two in-flight PRs bumping the same plugin conflict on that line. A plugin
-  new in the PR states its first version; that is not a bump.
-- Fill in the checklist GitHub applies from `.github/PULL_REQUEST_TEMPLATE.md`.
-
-Commit subjects read `<type>: <summary>` — `feat`, `fix`, `refactor`, `docs`, `chore`,
-`ci`. Nothing enforces it.
 
 CI runs on every push to `main` or `develop` and on every pull request:
 `plugin-validate`, `install-smoke`, `skills-discovery`, `site-build`, `guards`, and
@@ -125,6 +113,8 @@ scripts/check-endpoints.sh # public-repo scan, inherited from the retired hub
 .github/workflows/pages.yml # renders and publishes the page after CI passes on main
 .github/workflows/retarget-prs.yml # moves a PR opened against main onto develop
 .github/workflows/release-pr.yml # opens/refreshes the release PR, Mondays 00:00 UTC
+.github/ISSUE_TEMPLATE/    # new-plugin proposal form; blank issues stay enabled
+CONTRIBUTING.md            # the contributor's half: writing a skill, placement, the PR
 AGENTS.md                  # this file. CLAUDE.md and GEMINI.md are one-line @ imports
 ```
 
@@ -309,26 +299,14 @@ clones the default branch — though a marketplace source does accept a `ref`, s
 
 ## Writing skills
 
-- `plugins/<plugin>/skills/<name>/SKILL.md`, with `name` in frontmatter equal to the
-  directory name, kebab-case.
-- **Which plugin does it go in?** The test is the configuration surface, not the
-  audience. A skill that needs the MSU OpenAPI key belongs to `msu`. A skill that holds
-  no credential goes to a plugin that acquires none.
-- **Skill names are unique across the whole repository.** `install.sh` and the skills
-  CLI both install flat, by skill name, so two plugins claiming one name would overwrite
-  each other on those channels. CI fails on a duplicate.
-- The frontmatter `description` is **the LLM's skill-matching input**, not
-  documentation. Write it at final quality even for a stub.
-- **Every skill needs a row in the README `## Skills` table** linking to
-  `plugins/<plugin>/skills/<name>/`; CI fails without it. That table is inventory on
-  purpose — it is where a browsing user sees what the catalog holds, which is why it
-  carries a list where this file must not. Write its description for a human deciding
-  whether to install, not by copying the frontmatter `description`, which is written
-  for matching and runs several times too long.
-- **Do not name CLI-specific tools.** `AskUserQuestion` and friends only exist in
-  Claude Code. Describe the behavior ("ask the user") so all four CLIs can follow it.
-- Keep `SKILL.md` thin and push detail into `references/`, loaded on demand. The
-  always-on cost of a skill is its frontmatter; the body is paid on every invocation.
+How to write one is [CONTRIBUTING.md](CONTRIBUTING.md): the path and the kebab-case
+naming, the placement test, repository-wide name uniqueness, the `description` as
+matching input, the thin body over `references/`, and the rule against naming
+CLI-specific tools. Maintainers write against that document too, so do not restate its
+rules here — a rule stated twice drifts.
+
+The README `## Skills` table is inventory on purpose. It is where a browsing user sees
+what the catalog holds, which is why it carries a list where this file must not.
 
 Adding a plugin is four files: `plugins/<name>/.claude-plugin/plugin.json`, at least one
 `plugins/<name>/skills/<skill>/SKILL.md`, an entry in the catalog pointing at

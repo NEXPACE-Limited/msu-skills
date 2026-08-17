@@ -237,6 +237,11 @@ Example prompt:
 Please build a web view featuring three moving Orange Mushrooms.
 ```
 
+## Contributing
+
+Have a skill worth publishing here? [CONTRIBUTING.md](CONTRIBUTING.md) covers where the
+file goes, which plugin it belongs in, how to write it, and how to open the pull request.
+
 ## Important Notes
 
 - MSU Resource Skills are reference instructions for using MSU game resources
