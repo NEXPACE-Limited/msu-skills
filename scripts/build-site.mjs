@@ -252,7 +252,10 @@ ${plugin.skills.map(skill => `              <li>${escape(skill.name)}</li>`).joi
           </div>
         </a>`
 
-const skillCard = (skill, plugin, repoUrl) => {
+/** `repoSlug` is the same `<owner>/<repo>` every install command on the site is built from,
+ *  passed in rather than rebuilt here: the skills CLI addresses a skill by repository and
+ *  name, so this card is where a reader finds the command for one skill. */
+const skillCard = (skill, plugin, repoUrl, repoSlug) => {
   const path = `${plugin.source}/skills/${escape(skill.name)}`
   const browse = skill.hasReferences
     ? `<a href="${repoUrl}/tree/main/${path}/references">Browse references →</a>`
@@ -273,6 +276,15 @@ const skillCard = (skill, plugin, repoUrl) => {
           <dl class="skill-meta">
 ${skill.bundled > 0 ? `            <div><dt>Bundled files</dt><dd>${skill.bundled}</dd></div>\n` : ''}            <div><dt>Requires</dt><dd>${plugin.servers.length === 0 ? 'No credential' : `${serverList(plugin.servers)} MCP`}</dd></div>
           </dl>
+          <p class="skill-cmd-label">Install this skill on its own · skills CLI</p>
+          <div class="cmd cmd-contextual cmd-compact">
+            <div class="cmd-context cmd-context-shell">
+              <span class="cmd-context-icon" aria-hidden="true">$</span>
+              <span>Terminal</span>
+            </div>
+            <pre><code>npx skills add ${escape(repoSlug)} --skill ${escape(skill.name)}</code></pre>
+            <button class="copy" type="button">Copy</button>
+          </div>
           <p class="skill-links">
             <a href="${repoUrl}/blob/main/${path}/SKILL.md">Read SKILL.md →</a>
             ${browse}
@@ -578,7 +590,9 @@ const build = async () => {
           PLUGIN_SOURCE: escape(plugin.source),
           PLUGIN_SKILL_COUNT_PHRASE: plural(plugin.skills.length, 'skill'),
           PLUGIN_MCP_SUMMARY: mcpSummary(plugin.servers),
-          SKILL_CARDS: plugin.skills.map(skill => skillCard(skill, plugin, repoUrl)).join('\n'),
+          SKILL_CARDS: plugin.skills
+            .map(skill => skillCard(skill, plugin, repoUrl, common.REPO_SLUG))
+            .join('\n'),
           BREADCRUMB_JSONLD: breadcrumbJsonLd(catalog, plugin.display, siteUrl)
         },
         `site/plugin.html (${plugin.name})`
