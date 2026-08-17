@@ -942,6 +942,17 @@ a {
   font-size: 0.8rem;
 }
 
+/* The same command surface at card scale. Its contextual header carries the copy button,
+   so the command line needs none of the right-hand gutter a bare .cmd reserves. */
+.cmd-compact {
+  margin: 0 0 1.3rem;
+}
+
+.cmd-compact pre {
+  padding: 0.85rem 1rem;
+  font-size: 0.74rem;
+}
+
 .channel .cmd-contextual pre {
   padding-right: 1rem;
 }
@@ -1498,6 +1509,15 @@ a {
   color: var(--ink-3);
 }
 
+/* Names the channel the command below belongs to, so it is not read as another form of the
+   plugin:skill invocation in the card header. */
+.skill-cmd-label {
+  margin: 0 0 0.45rem;
+  color: var(--ink-4);
+  font-family: var(--mono);
+  font-size: 0.67rem;
+}
+
 .skill-links {
   margin: auto 0 0;
   display: flex;
@@ -1772,7 +1792,8 @@ a {
     scrollbar-gutter: auto;
   }
 
-  .channel .cmd-contextual pre {
+  .channel .cmd-contextual pre,
+  .cmd-compact pre {
     padding: 1rem 0.9rem;
   }
 
