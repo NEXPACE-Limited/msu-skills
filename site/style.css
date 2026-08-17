@@ -182,35 +182,14 @@ a {
   text-decoration: none;
 }
 
+/* The favicon doubles as the wordmark, so the two never drift apart. Its URL is
+   relative to this stylesheet rather than to the page, which is what lets one rule
+   serve both the catalog page and the deeper plugin pages. */
 .wordmark-mark {
-  position: relative;
-  width: 25px;
-  height: 25px;
-  flex: 0 0 25px;
-  border-radius: 8px;
-  background: var(--blue);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
-}
-
-.wordmark-mark::before,
-.wordmark-mark::after {
-  content: "";
-  position: absolute;
-  left: 7px;
-  right: 7px;
-  height: 3px;
-  border-radius: 999px;
-  background: #fff;
-}
-
-.wordmark-mark::before {
-  top: 7px;
-  box-shadow: 0 4px 0 rgba(255, 255, 255, 0.78);
-}
-
-.wordmark-mark::after {
-  top: 15px;
-  right: 11px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  background: center / contain no-repeat url(favicon.svg);
 }
 
 .topnav {

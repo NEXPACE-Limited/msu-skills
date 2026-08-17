@@ -116,6 +116,7 @@ install.sh                 # local or curl installer for non-Claude CLIs; --plug
 Makefile                   # wrappers: make check, make serve, make site. See Commands
 site/template.html         # the catalog page. {{TOKEN}}s are filled at build
 site/plugin.html           # one page per plugin, rendered to <plugin>/index.html
+site/mcp.html              # the MCP server's own page, rendered to mcp/index.html
 site/partials/*.html       # head, topbar, footer — included with {{>name}}
 site/style.css, main.js, favicon.svg  # copied to the output as they are
 scripts/build-site.mjs     # renders site/ + the catalog + every SKILL.md into _site/
@@ -201,19 +202,21 @@ Consumers pin `~0.<minor>` because in 0.x a minor bump is the breaking bump.
 ## The landing page
 
 `https://nexpace-limited.github.io/msu-skills/` is generated, not written. It is a
-catalog page plus one page per plugin:
+catalog page, one page per plugin, and one page for the MCP server:
 
 ```
 index.html          hero, install channels, the plugin list, MCP setup, the notices
 <plugin>/index.html that plugin's identity, its own install commands, and its skills
+mcp/index.html      the server: its values, its tools, and the skills that call it
 sitemap.xml         every page the build wrote, absolute
 llms.txt            the same pages as a plain-text index for an LLM reader
 ```
 
 `scripts/build-site.mjs` reads `.claude-plugin/marketplace.json`, every plugin's
 `plugin.json` and `.mcp.json`, and every `SKILL.md` frontmatter, then fills the
-`{{TOKEN}}`s in `site/template.html` and `site/plugin.html`. Chrome shared by both —
-head, topbar, footer — lives in `site/partials/` and is included with `{{>name}}`.
+`{{TOKEN}}`s in `site/template.html`, `site/plugin.html`, and `site/mcp.html`. Chrome
+shared by all three — head, topbar, footer — lives in `site/partials/` and is included
+with `{{>name}}`.
 A plugin card, and a skill card's name, description, bundled-file count, `plugin:skill`
 invocation, and MCP requirement, all come from those files. A card links to
 `references/` only when the skill has one — not every skill does.
@@ -240,10 +243,15 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
 - `sitemap.xml` carries `<loc>` and nothing else: Google ignores `<priority>` and
   `<changefreq>`, and reads `<lastmod>` only where it is consistently accurate, which
   a build that rewrites every page cannot claim.
-- A plugin page's breadcrumb is rendered twice — visibly in `site/plugin.html` and as
+- A sub-page's breadcrumb is rendered twice — visibly in the template and as
   `BreadcrumbList` JSON-LD through `{{BREADCRUMB_JSONLD}}` — from one set of values, because
   structured data has to represent what the page shows. The catalog page is the root and
   gets neither.
+- `.mcp.json` says how to reach a server, never what it answers, so `mcp/index.html` reads
+  its tool names and purposes from the `## MCP Tool: <server>` table the owning plugin's
+  skills already keep for their own agent. Find no table and the build stops rather than
+  render a page that names no tool. `mcp/` is also a page path, so a plugin claiming that
+  name is refused instead of silently overwriting it.
 - Preview with `make serve` — the copy buttons need a secure context, so `localhost`
   shows them working and a `file://` open does not. `_site/` is gitignored: the pages are
   built on deploy and never committed.
