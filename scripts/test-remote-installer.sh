@@ -73,6 +73,7 @@ for skill in "$ROOT"/plugins/game-tools/skills/*/; do
   name="$(basename "$skill")"
   [ -f "$PROBE/$name/SKILL.md" ] || {
     echo "remote installer missed game-tools skill '$name'" >&2
+    echo "  the archive is built from HEAD, so an uncommitted skill cannot appear in it" >&2
     exit 1
   }
   count=$((count + 1))

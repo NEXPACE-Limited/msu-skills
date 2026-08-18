@@ -84,14 +84,14 @@ costs you an afternoon:
 
 - **Commit first.** The suite builds an archive from `HEAD` and compares it against your
   working tree, so an uncommitted skill fails with `remote installer missed …`. Staging is
-  not enough. The message names the installer; the cause is the missing commit.
+  not enough.
 - **A green local run is not a green CI run.** CI adds a `guards` job the local commands
-  do not include. The README row, the frontmatter name matching the directory name, and
-  skill-name uniqueness are checked only there.
-- **A colon breaks the frontmatter silently.** `description: Fixes X. Use when: …` is
-  invalid YAML, and nothing in this repository reports it — validation passes, the
-  installer installs, the site renders a normal-looking card. Quote any description
-  containing a colon followed by a space.
+  do not include. The README row, the frontmatter name matching the directory name,
+  skill-name uniqueness, and whether the frontmatter parses at all are checked only there.
+- **Quote a description that holds a colon.** `description: Fixes X. Use when: …` is
+  invalid YAML, and only CI notices — `claude plugin validate` passes without a warning,
+  the installer copies the file, and the site renders a normal-looking card. A skill whose
+  frontmatter does not parse reaches the agent with no description, so it never matches.
 
 For something faster than the full suite, `claude plugin validate plugins/<plugin>` and
 `npx skills add . -l` cover the manifest and discovery halves — subject to the second

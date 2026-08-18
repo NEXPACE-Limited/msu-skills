@@ -422,6 +422,46 @@ jobs:
             exit 1
           fi
           echo "$count skill(s) checked"
+
+      - name: Skill frontmatter parses as YAML
+        # The description is the skill-matching input, and a plain scalar holding a colon
+        # followed by a space is not valid YAML. Nothing else notices: plugin validate
+        # passes without even a warning, both installers copy the file, and the site
+        # renders the card from a line reader. The skill reaches the agent with no
+        # description at all, so it never matches.
+        run: |
+          command -v ruby >/dev/null || {
+            echo "::error::ruby is required to parse skill frontmatter"
+            exit 2
+          }
+          shopt -s nullglob
+          count=0
+          for file in plugins/*/skills/*/SKILL.md; do
+            ruby -ryaml -e '
+              path = ARGV[0]
+              text = File.read(path)
+              unless text.start_with?("---")
+                warn "::error file=#{path}::no frontmatter block"
+                exit 1
+              end
+              begin
+                data = YAML.safe_load(text.split(/^---\s*$/, 3)[1].to_s)
+              rescue => e
+                warn "::error file=#{path}::frontmatter is not valid YAML (#{e.class}) - quote any value holding a colon followed by a space"
+                exit 1
+              end
+              unless data.is_a?(Hash) && data["name"].is_a?(String) && data["description"].is_a?(String)
+                warn "::error file=#{path}::frontmatter must parse to a mapping with a name and a description"
+                exit 1
+              end
+            ' "$file" || exit 1
+            count=$((count + 1))
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "::error::no SKILL.md under plugins/*/skills/"
+            exit 1
+          fi
+          echo "$count skill frontmatter block(s) parse"
       - name: Skill names are unique across plugins
         # install.sh and the skills CLI both install flat, by skill name. Two plugins
         # claiming one name would silently overwrite each other on those channels.
