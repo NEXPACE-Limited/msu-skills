@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Contributing a skill
+    url: https://github.com/NEXPACE-Limited/msu-skills/blob/main/CONTRIBUTING.md
+    about: Where a skill file goes, which plugin it belongs in, and how to open the pull request.

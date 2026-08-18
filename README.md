@@ -197,6 +197,9 @@ Official MCP setup docs:
 | `game-tools` | [`game-tutorial`](plugins/game-tools/skills/game-tutorial/) | First-time-player onboarding: what to teach, when, and how to verify it |
 | `game-tools` | [`i18n-setup`](plugins/game-tools/skills/i18n-setup/) | Localization: string extraction, locale catalogs, fallback, plurals, glyphs, safe layouts |
 
+Any row above installs on its own with
+`npx skills add NEXPACE-Limited/msu-skills --skill <name>`.
+
 ## MCP Requirement
 
 The target agent environment must have the `maple-lookup` MCP server configured
@@ -233,6 +236,11 @@ Example prompt:
 ```text
 Please build a web view featuring three moving Orange Mushrooms.
 ```
+
+## Contributing
+
+Have a skill worth publishing here? [CONTRIBUTING.md](CONTRIBUTING.md) covers where the
+file goes, which plugin it belongs in, how to write it, and how to open the pull request.
 
 ## Important Notes
 

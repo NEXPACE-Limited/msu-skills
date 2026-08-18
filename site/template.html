@@ -399,5 +399,12 @@ env_http_headers = { "{{MCP_HEADER}}" = "MSU_OPENAPI_KEY" }</code></pre>
 
 {{>footer}}
 
+<!-- Who publishes the catalog, for search engines that resolve entities rather than pages.
+     The catalog page carries it and the sub-pages do not: Google asks for the organization
+     once per site, not on every page. -->
+<script type="application/ld+json">
+{{ORGANIZATION_JSONLD}}
+</script>
+
 </body>
 </html>

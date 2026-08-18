@@ -1,0 +1,52 @@
+name: New plugin proposal
+description: Propose a new plugin, when a skill fits no existing one
+title: "New plugin: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Most skills need no issue — pick an existing plugin, say which one in the pull
+        request, and we confirm it. See
+        [CONTRIBUTING.md](https://github.com/NEXPACE-Limited/msu-skills/blob/main/CONTRIBUTING.md).
+
+        Open this one when a skill needs a credential no plugin declares, or fits no
+        plugin's stated scope. A new plugin gets its own install identity and its own
+        version pin for downstream consumers, so it is worth agreeing on before you
+        write the skill rather than after.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What would the skill do?
+      description: A sentence or two. The concept, not the implementation.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: credential
+    attributes:
+      label: Does it need a credential?
+      description: This is the test that decides plugin boundaries — a plugin that needs no credential must not acquire one.
+      options:
+        - "No credential"
+        - "The MSU OpenAPI key"
+        - "A different credential"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-new
+    attributes:
+      label: Why does no existing plugin fit?
+      description: The README's plugin table lists what each one currently covers.
+    validations:
+      required: true
+
+  - type: textarea
+    id: anything-else
+    attributes:
+      label: Anything else
+      description: Prior art, a draft, related skills. Optional.
+    validations:
+      required: false

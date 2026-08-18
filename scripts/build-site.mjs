@@ -252,7 +252,10 @@ ${plugin.skills.map(skill => `              <li>${escape(skill.name)}</li>`).joi
           </div>
         </a>`
 
-const skillCard = (skill, plugin, repoUrl) => {
+/** `repoSlug` is the same `<owner>/<repo>` every install command on the site is built from,
+ *  passed in rather than rebuilt here: the skills CLI addresses a skill by repository and
+ *  name, so this card is where a reader finds the command for one skill. */
+const skillCard = (skill, plugin, repoUrl, repoSlug) => {
   const path = `${plugin.source}/skills/${escape(skill.name)}`
   const browse = skill.hasReferences
     ? `<a href="${repoUrl}/tree/main/${path}/references">Browse references →</a>`
@@ -273,6 +276,15 @@ const skillCard = (skill, plugin, repoUrl) => {
           <dl class="skill-meta">
 ${skill.bundled > 0 ? `            <div><dt>Bundled files</dt><dd>${skill.bundled}</dd></div>\n` : ''}            <div><dt>Requires</dt><dd>${plugin.servers.length === 0 ? 'No credential' : `${serverList(plugin.servers)} MCP`}</dd></div>
           </dl>
+          <p class="skill-cmd-label">Install this skill on its own · skills CLI</p>
+          <div class="cmd cmd-contextual cmd-compact">
+            <div class="cmd-context cmd-context-shell">
+              <span class="cmd-context-icon" aria-hidden="true">$</span>
+              <span>Terminal</span>
+            </div>
+            <pre><code>npx skills add ${escape(repoSlug)} --skill ${escape(skill.name)}</code></pre>
+            <button class="copy" type="button">Copy</button>
+          </div>
           <p class="skill-links">
             <a href="${repoUrl}/blob/main/${path}/SKILL.md">Read SKILL.md →</a>
             ${browse}
@@ -352,6 +364,23 @@ const breadcrumbJsonLd = (catalog, pageLabel, siteUrl) =>
         { '@type': 'ListItem', position: 1, name: catalog.name, item: siteUrl },
         { '@type': 'ListItem', position: 2, name: pageLabel }
       ]
+    },
+    null,
+    2
+    // Inside a <script> element an entity is not decoded, so only `<` needs neutralising.
+  ).replaceAll('<', '\\u003c')
+
+/** Who publishes the catalog, for search engines that resolve entities rather than pages. Both
+ *  values come from the manifest's owner block, so the page and the catalog cannot name
+ *  different owners. Any further identity URL would be an assertion about the company that no
+ *  manifest here backs, so this states only what the catalog already declares. */
+const organizationJsonLd = catalog =>
+  JSON.stringify(
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: catalog.owner.name,
+      url: catalog.owner.url
     },
     null,
     2
@@ -510,6 +539,9 @@ const build = async () => {
     REPO_URL: repoUrl,
     REPO_SLUG: `${owner}/${repo}`,
     REPO_NAME: repo,
+    // Where the MCP page is written. Shared because the topbar links to it from every page,
+    // not because the server declares it — which is why it sits here and not in mcpTokens.
+    MCP_PAGE_PATH: MCP_PAGE_DIR,
     INSTALL_URL: `https://raw.githubusercontent.com/${owner}/${repo}/main/install.sh`,
     PLUGIN_VERSIONS: plugins
       .map(plugin => `${escape(plugin.name)} v${escape(plugin.version)}`)
@@ -519,7 +551,6 @@ const build = async () => {
   // Everything the MCP server declares about itself, shared by the catalog page's setup
   // section and by the page devoted to the server, so the two cannot describe it differently.
   const mcpTokens = {
-    MCP_PAGE_PATH: MCP_PAGE_DIR,
     MCP_PLUGIN: escape(mcpOwner.name),
     MCP_SOURCE: escape(mcpOwner.source),
     MCP_SERVER: escape(mcpServer?.name ?? ''),
@@ -550,7 +581,8 @@ const build = async () => {
       PLUGIN_INSTALL_LINES: plugins
         .map(plugin => `/plugin install ${escape(plugin.name)}@${escape(catalog.name)}`)
         .join('\n'),
-      PLUGIN_CARDS: plugins.map(plugin => pluginCard(plugin, './')).join('\n')
+      PLUGIN_CARDS: plugins.map(plugin => pluginCard(plugin, './')).join('\n'),
+      ORGANIZATION_JSONLD: organizationJsonLd(catalog)
     },
     'site/template.html'
   )
@@ -578,7 +610,9 @@ const build = async () => {
           PLUGIN_SOURCE: escape(plugin.source),
           PLUGIN_SKILL_COUNT_PHRASE: plural(plugin.skills.length, 'skill'),
           PLUGIN_MCP_SUMMARY: mcpSummary(plugin.servers),
-          SKILL_CARDS: plugin.skills.map(skill => skillCard(skill, plugin, repoUrl)).join('\n'),
+          SKILL_CARDS: plugin.skills
+            .map(skill => skillCard(skill, plugin, repoUrl, common.REPO_SLUG))
+            .join('\n'),
           BREADCRUMB_JSONLD: breadcrumbJsonLd(catalog, plugin.display, siteUrl)
         },
         `site/plugin.html (${plugin.name})`
