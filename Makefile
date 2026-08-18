@@ -30,7 +30,7 @@ open: site ## Render it, then open it in a browser
 clean: ## Delete the rendered page
 	node scripts/build-site.mjs --clean "$(OUT)"
 
-check: ## Run what CI runs, in one pass
+check: ## Run the commands CI runs (CI adds a guards job on top)
 	claude plugin validate .
 	@for dir in plugins/*/; do \
 		[ -f "$$dir/.claude-plugin/plugin.json" ] || continue; \
