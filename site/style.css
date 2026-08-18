@@ -972,10 +972,10 @@ a {
 
 .copy {
   position: absolute;
-  top: 0.58rem;
+  top: 0.8rem;
   right: 0.58rem;
   min-width: 54px;
-  min-height: 44px;
+  min-height: 28px;
   padding: 0.25rem 0.5rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
@@ -985,6 +985,19 @@ a {
   font-size: 0.64rem;
   cursor: pointer;
   transition: color 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
+}
+
+/* The visual button is 28px tall so it stays inside the 42px context bar and single-line
+   command blocks; this invisible halo keeps the touch target at the 44px it had before. */
+.copy::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+
+/* Centered in the 42px .cmd-context bar the button visually belongs to. */
+.cmd-contextual .copy {
+  top: 7px;
 }
 
 .copy:hover {
