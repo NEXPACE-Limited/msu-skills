@@ -370,6 +370,23 @@ const breadcrumbJsonLd = (catalog, pageLabel, siteUrl) =>
     // Inside a <script> element an entity is not decoded, so only `<` needs neutralising.
   ).replaceAll('<', '\\u003c')
 
+/** Who publishes the catalog, for search engines that resolve entities rather than pages. Both
+ *  values come from the manifest's owner block, so the page and the catalog cannot name
+ *  different owners. Any further identity URL would be an assertion about the company that no
+ *  manifest here backs, so this states only what the catalog already declares. */
+const organizationJsonLd = catalog =>
+  JSON.stringify(
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: catalog.owner.name,
+      url: catalog.owner.url
+    },
+    null,
+    2
+    // Inside a <script> element an entity is not decoded, so only `<` needs neutralising.
+  ).replaceAll('<', '\\u003c')
+
 /* ── rendering ───────────────────────────────────────────────────────────────────── */
 
 const loadPartials = async () => {
@@ -522,6 +539,9 @@ const build = async () => {
     REPO_URL: repoUrl,
     REPO_SLUG: `${owner}/${repo}`,
     REPO_NAME: repo,
+    // Where the MCP page is written. Shared because the topbar links to it from every page,
+    // not because the server declares it — which is why it sits here and not in mcpTokens.
+    MCP_PAGE_PATH: MCP_PAGE_DIR,
     INSTALL_URL: `https://raw.githubusercontent.com/${owner}/${repo}/main/install.sh`,
     PLUGIN_VERSIONS: plugins
       .map(plugin => `${escape(plugin.name)} v${escape(plugin.version)}`)
@@ -531,7 +551,6 @@ const build = async () => {
   // Everything the MCP server declares about itself, shared by the catalog page's setup
   // section and by the page devoted to the server, so the two cannot describe it differently.
   const mcpTokens = {
-    MCP_PAGE_PATH: MCP_PAGE_DIR,
     MCP_PLUGIN: escape(mcpOwner.name),
     MCP_SOURCE: escape(mcpOwner.source),
     MCP_SERVER: escape(mcpServer?.name ?? ''),
@@ -562,7 +581,8 @@ const build = async () => {
       PLUGIN_INSTALL_LINES: plugins
         .map(plugin => `/plugin install ${escape(plugin.name)}@${escape(catalog.name)}`)
         .join('\n'),
-      PLUGIN_CARDS: plugins.map(plugin => pluginCard(plugin, './')).join('\n')
+      PLUGIN_CARDS: plugins.map(plugin => pluginCard(plugin, './')).join('\n'),
+      ORGANIZATION_JSONLD: organizationJsonLd(catalog)
     },
     'site/template.html'
   )
