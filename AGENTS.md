@@ -11,8 +11,8 @@ repositories and depend on these.
 
 Skills have no build and no package manifest: one is edited in place at
 `plugins/<plugin>/skills/<name>/SKILL.md` and shipped verbatim. The landing page is the
-only generated artifact, and it is generated *from* those files — see *The landing page*.
-The commands below stand in for a test suite, and CI runs all of them.
+only thing here that is built, and it is built *from* those files — see *The landing
+page*. The commands below stand in for a test suite, and CI runs all of them.
 
 ```bash
 claude plugin validate .                            # marketplace catalog
@@ -22,7 +22,7 @@ bash install.sh --target /tmp/probe                 # smoke-test the manual inst
 bash install.sh --plugin <plugin> --target /tmp/one # ...and the single-plugin path
 bash scripts/test-remote-installer.sh               # piped installer, local archive adapter
 bash scripts/check-endpoints.sh                     # no leaked endpoint or credential
-node scripts/build-site.mjs                         # render the landing page into _site/
+cd web && npm ci --ignore-scripts && npm run build  # export the landing page into web/out/
 ```
 
 Pointed at the repo root the validator reads `marketplace.json`, and for every
@@ -30,10 +30,16 @@ local-path entry it also reads that plugin's `plugin.json` — so the first line
 the packaging as a whole. The second is still worth running once per plugin you touched,
 because only the plugin-directory form checks the skill, command, and hook files.
 
-`make check` runs that list in one pass, and `make serve` renders the page and serves it
-at `http://localhost:8731` (`make help` lists the rest). The Makefile is a convenience
-wrapper only — CI runs these commands directly, so `ci.yml` stays the authority and a
-new check belongs there first.
+The last line runs with the working directory at `web/`, because the app resolves the
+repository it reads as the parent of the working directory. `npm ci`, never `npm install`:
+`web/package-lock.json` is committed and `ci` installs exactly what it pins rather than
+re-resolving. `--ignore-scripts` is required of both workflows — see *Public-repository
+rules*. CI runs Node 22.
+
+`make check` runs that list in one pass, and `make dev` runs the site locally on whatever
+port is free (`make help` lists the rest). The Makefile is a convenience wrapper only —
+CI runs these commands directly, so `ci.yml` stays the authority and a new check belongs
+there first.
 
 ## Contributing
 
@@ -54,7 +60,8 @@ release PR is the release** — work integrates on `develop` and ships when a
 before it is live. See *Versioning and release* for how that PR is cut.
 
 CI runs on every push to `main` or `develop` and on every pull request:
-`plugin-validate`, `install-smoke`, `skills-discovery`, `site-build`, `guards`, and
+`plugin-validate`, `install-smoke`, `skills-discovery`, `site-build` — which installs
+`web/`'s dependencies from the committed lockfile and runs the export — `guards`, and
 one of two version guards picked by base branch — `no-premature-bump` into `develop`,
 `version-bump` into `main`. `pages.yml` then republishes the landing page, but only
 after a `main` run of CI succeeds: it triggers on that run's completion rather than on
@@ -64,9 +71,10 @@ never publishes anything.
 ## Core principle — one source, three channels
 
 The Agent Skills open standard (`SKILL.md`) is adopted by Claude Code, Codex CLI,
-Gemini CLI, and Kimi CLI. So there is **no conversion and no build step**: the
-`SKILL.md` files under `plugins/*/skills/` are the only source, shipped verbatim
-everywhere.
+Gemini CLI, and Kimi CLI. So there is **no conversion, and nothing on an install path is
+built**: the `SKILL.md` files under `plugins/*/skills/` are the only source, shipped
+verbatim everywhere. The landing page under `web/` is a real build, but it sits
+downstream of those files — it reads them, and no channel reads it.
 
 Skills install automatically on all three; they differ only in what happens to the
 `maple-lookup` MCP server.
@@ -101,16 +109,16 @@ plugins/<plugin>/.mcp.json               # MCP servers this plugin owns, if any
 plugins/<plugin>/skills/<name>/SKILL.md  # the only source. name = dir name = kebab-case
 plugins/<plugin>/skills/<name>/references/  # files the skill loads on demand
 install.sh                 # local or curl installer for non-Claude CLIs; --plugin selects one
-Makefile                   # wrappers: make check, make serve, make site. See Commands
-site/template.html         # the catalog page. {{TOKEN}}s are filled at build
-site/plugin.html           # one page per plugin, rendered to <plugin>/index.html
-site/mcp.html              # the MCP server's own page, rendered to mcp/index.html
-site/partials/*.html       # head, topbar, footer — included with {{>name}}
-site/style.css, main.js, favicon.svg  # copied to the output as they are
-scripts/build-site.mjs     # renders site/ + the catalog + every SKILL.md into _site/
+Makefile                   # wrappers: make check, make dev. See Commands
+web/                       # the landing page: a Next.js App Router app, statically exported
+web/next.config.mjs        # output:'export'. basePath and site URL derived from the catalog
+web/lib/*.ts               # the repository read into the data every page renders from
+web/app/**                 # the page types, plus the sitemap.xml and llms.txt handlers
+web/public/                # og.png, favicon.svg, logo.svg — copied into the export as-is
+web/package.json, web/package-lock.json  # the app's deps. Both committed; npm ci reads them
 scripts/check-endpoints.sh # public-repo scan, inherited from the retired hub
 .github/workflows/ci.yml   # the commands above, plus guards, on every PR and push
-.github/workflows/pages.yml # renders and publishes the page after CI passes on main
+.github/workflows/pages.yml # builds and publishes the page after CI passes on main
 .github/workflows/retarget-prs.yml # moves a PR opened against main onto develop
 .github/workflows/release-pr.yml # opens/refreshes the release PR, Mondays 00:00 UTC
 .github/ISSUE_TEMPLATE/    # new-plugin proposal form; blank issues stay enabled
@@ -191,81 +199,117 @@ Consumers pin `~0.<minor>` because in 0.x a minor bump is the breaking bump.
 
 ## The landing page
 
-`https://nexpace-limited.github.io/msu-skills/` is generated, not written. It is a
-catalog page, one page per plugin, and one page for the MCP server:
+`https://nexpace-limited.github.io/msu-skills/` is generated, not written. `web/` is a
+Next.js App Router app that reads `.claude-plugin/marketplace.json`, every plugin's
+`plugin.json` and `.mcp.json`, and every `SKILL.md` frontmatter at build time, then
+exports static HTML (`output: 'export'`). `next build` writes `web/out/`, and that
+directory is what Pages serves; nothing runs at request time.
 
 ```
-index.html          hero, install channels, the plugin list, MCP setup, the notices
-<plugin>/index.html that plugin's identity, its own install commands, and its skills
-mcp/index.html      the server: its values, its tools, and the skills that call it
-sitemap.xml         every page the build wrote, absolute
-llms.txt            the same pages as a plain-text index for an LLM reader
+/                   hero, install channels, the plugin list, MCP setup, the notices
+/<plugin>/          that plugin's identity, its own install commands, and its skills
+/<plugin>/<skill>/  one skill: its description, what it bundles, how it is invoked
+/mcp/               the server: its values, its tools, and the skills that call it
+/sitemap.xml        every page the build published, absolute
+/llms.txt           the same pages as a plain-text index for an LLM reader
 ```
 
-`scripts/build-site.mjs` reads `.claude-plugin/marketplace.json`, every plugin's
-`plugin.json` and `.mcp.json`, and every `SKILL.md` frontmatter, then fills the
-`{{TOKEN}}`s in `site/template.html`, `site/plugin.html`, and `site/mcp.html`. Chrome
-shared by all three — head, topbar, footer — lives in `site/partials/` and is included
-with `{{>name}}`.
-A plugin card, and a skill card's name, description, bundled-file count, `plugin:skill`
-invocation, and MCP requirement, all come from those files. A card links to
-`references/` only when the skill has one — not every skill does.
+A skill has its own page, so the published URL set grows with the catalog rather than
+holding at one page per plugin. A plugin card, and a skill's description, bundled-file
+count, `plugin:skill` invocation, and MCP requirement, all come from the files above. A
+page links to `references/` only when the skill has one — not every skill does.
 
-**Never retype a plugin's or a skill's own fields into a template.** Templates carry page
-structure and the prose that has no other source — the install narrative, the README's
-notices. Anything a manifest or a frontmatter already declares is a token. The MCP
-server's name, URL, header, and raw transport come from `.mcp.json` through
-`{{MCP_SERVER}}`, `{{MCP_URL}}`, `{{MCP_HEADER}}`, and `{{MCP_TRANSPORT}}`; the per-CLI
-snippets use those tokens too. `{{MCP_TRANSPORT_LABEL}}` is its human-readable display,
-and `{{MCP_CREDENTIAL_TITLE}}` resolves the referenced `userConfig` title. Adding a
-plugin or a skill updates the pages with no edit here, the same property every CI check
-has.
+**Never retype a plugin's or a skill's own fields into a component.** Components carry
+page structure and the prose that has no other source — the install narrative, the
+README's notices. Anything a manifest or a frontmatter already declares is read by
+`web/lib/` and passed in. The MCP server's name, URL, header, and transport come from
+`.mcp.json`, the per-CLI snippets are built from those same values, and the credential's
+title resolves through the `userConfig` key its header references. Adding a plugin or a
+skill updates the pages with no edit here, the same property every CI check has.
 
 README repeats those MCP values as prose, for the channels that configure the server by
-hand. It is the one copy the generator cannot keep honest, so `guards` fails when README
+hand. It is the one copy the build cannot keep honest, so `guards` fails when README
 stops mentioning a name, URL, header, or `--transport <type>` the server declares.
 
-- Relative paths differ by depth, so every rendered asset and in-site link uses the
-  page's root value (`./` on the catalog page, `../` on a plugin page). A hard-coded
-  `./style.css` would break every plugin page. Metadata is the exception: Open Graph
-  images require an absolute `{{SITE_URL}}`, and so do the canonical link, `sitemap.xml`,
-  and `llms.txt` — all built from `{{PAGE_URL}}`, the URL each page was written to.
+- **The site's URL identity is derived, never typed.** `web/next.config.mjs` reads the
+  catalog and computes `basePath` and the absolute site URL from the repository it names,
+  then hands both to the app through `env`; `web/lib/site.ts` reads them back and is the
+  only module allowed to know those strings. A repository rename re-points every
+  canonical, every sitemap `<loc>`, and the OG image with no edit. A literal
+  `/msu-skills` anywhere else breaks a fork.
+- `trailingSlash: true` is mandatory. Without it the export writes `<plugin>.html`, and
+  Pages serves no redirect from the slash form every indexed URL uses.
+- `metadataBase` keeps its trailing slash. URL resolution drops the last non-slash
+  segment, so a base without it resolves a relative `og.png` against the host root.
+- The canonical link and `og:url` are set per page, never on the root layout: a layout
+  canonical is inherited verbatim by every route, including the 404, which then declares
+  itself a duplicate of the home page. The not-found routes carry no canonical and
+  `robots: noindex, nofollow` instead.
+- Next applies `basePath` to `next/link` and to bundled assets, but **not** to a raw
+  `href`/`src` or to a metadata icon URL. Those go through `asset()` in `web/lib/site.ts`;
+  a bare `/favicon.svg` 404s on a project Pages site.
+- `sitemap.xml` and `llms.txt` are Route Handlers with `export const dynamic =
+  'force-static'`, not `app/sitemap.ts`. The built-in convention serialises with its own
+  indentation, so byte-continuity with what the site published before is unreachable that
+  way. Both read one list of published URLs, so neither can claim a URL no route
+  generates.
 - `sitemap.xml` carries `<loc>` and nothing else: Google ignores `<priority>` and
-  `<changefreq>`, and reads `<lastmod>` only where it is consistently accurate, which
-  a build that rewrites every page cannot claim.
-- A sub-page's breadcrumb is rendered twice — visibly in the template and as
-  `BreadcrumbList` JSON-LD through `{{BREADCRUMB_JSONLD}}` — from one set of values, because
-  structured data has to represent what the page shows. The catalog page is the root and
-  gets neither.
-- `.mcp.json` says how to reach a server, never what it answers, so `mcp/index.html` reads
-  its tool names and purposes from the `## MCP Tool: <server>` table the owning plugin's
-  skills already keep for their own agent. Find no table and the build stops rather than
-  render a page that names no tool. `mcp/` is also a page path, so a plugin claiming that
-  name is refused instead of silently overwriting it.
-- Preview with `make serve` — the copy buttons need a secure context, so `localhost`
-  shows them working and a `file://` open does not. `_site/` is gitignored: the pages are
-  built on deploy and never committed.
-- The build writes `.msu-skills-site-build` into its output. A rebuild or `make clean`
-  empties only an empty directory or one carrying that exact ownership marker, so a
-  deleted plugin or skill leaves no stale page without treating somebody else's
-  `index.html` as proof of ownership. The repository and every directory above it are
-  always refused.
-- `site-build` renders on every pull request. It looks for each skill's card on *its own
-  plugin's page*, anchored on the card heading — searching the whole site would prove
-  nothing, because the catalog page's plugin card already lists every skill name.
-  `pages.yml` publishes once CI passes on `main`, so merging the release PR is what
-  republishes the site and a merge to `develop` publishes nothing. A release whose
-  guards failed publishes nothing either; deploying anyway, after a CI outage rather
-  than a real failure, is `workflow_dispatch`.
+  `<changefreq>`, and reads `<lastmod>` only where it is consistently accurate, which a
+  build that rewrites every page cannot claim. It lists real pages only, so its `<loc>`
+  count is lower than the number of exported `index.html` files — Next adds `404/` and
+  `_not-found/`, and neither is published.
+- `web/out` also holds React Server Component payload sidecars, named `__next.*.txt` and
+  `index.txt` at any depth. Anything that prunes them matches those two shapes: a blanket
+  `*.txt` deletes `llms.txt`, the one `.txt` the site publishes.
+- A sub-page's breadcrumb is rendered twice — visibly and as `BreadcrumbList` JSON-LD —
+  from one set of values, because structured data has to represent what the page shows.
+  The catalog page is the root and gets neither.
+- `.mcp.json` says how to reach a server, never what it answers, so `/mcp/` reads its tool
+  names and purposes from the `## MCP Tool: <server>` table the owning plugin's skills
+  already keep for their own agent. Find no table and the build stops rather than render a
+  page that names no tool. `/mcp/` is also a route, and a plugin named `mcp` would shadow
+  it with the App Router reporting nothing, so the data layer refuses that name.
+- Fonts are self-hosted: `next/font` downloads both families at build time and the export
+  contains no third-party request at all. Keep it at zero — the published site must load
+  nothing from a host it does not serve.
+- `web/public/og.png` is the link-preview card, the one asset that is drawn rather than
+  generated. It carries no counts and no plugin names, so only a change to the headline
+  or the wordmark makes it stale.
+- `favicon.svg` and `logo.svg` are deliberate copies of one mark, not a duplication to
+  clean up: a favicon URL is cached hard by browsers and its box is cropped for 16px
+  chrome, so the in-page wordmark has to be free to change without waiting out that cache
+  or inheriting that crop.
+- **There is no ownership marker any more, and nothing replaces it.** `next build` empties
+  `web/out` unconditionally, and that path is fixed inside `web/` rather than an argument,
+  so there is no stale page to leave behind and no way to aim a build at a directory
+  somebody else owns. What went with it is the ability to render into an arbitrary
+  directory at all — the old `OUT=` and `make clean` — and the guard that made it safe.
+- Preview with `make dev`. It serves every page, `sitemap.xml` and `llms.txt` at the same
+  paths Pages will, because the dev server applies the base path too — which also means
+  the bare host root is a 404 and the URL the dev server prints for itself leads nowhere.
+  There is deliberately no target that serves `web/out`: `next start` refuses outright
+  under `output: 'export'`, and any static server would have to re-create the base-path
+  prefix before a single asset resolved. The copy buttons need a secure context, so
+  `localhost` shows them working and a `file://` open does not.
+- `web/out/`, `web/node_modules/` and `web/.next/` are gitignored; the pages are built on
+  deploy and never committed. `web/package-lock.json` is committed — see
+  *Public-repository rules*.
+- `site-build` builds on every pull request. It looks for each skill on *its own plugin's
+  page*, anchored on the `data-skill="<name>"` attribute its card carries — searching the
+  whole site would prove nothing, because the catalog page's plugin card already lists
+  every skill name, and a class name is a styling decision that must be free to change.
+  It also fails a site-internal path that is missing the base path.
+- `setup-node` needs `cache: 'npm'` **and** `cache-dependency-path: web/package-lock.json`
+  in every job that installs: its default search looks for a lockfile at the repository
+  root, where there is none.
+- `pages.yml` publishes once CI passes on `main`, so merging the release PR is what
+  republishes the site and a merge to `develop` publishes nothing. A release whose guards
+  failed publishes nothing either; deploying anyway, after a CI outage rather than a real
+  failure, is `workflow_dispatch`.
 - This repository's Pages source is GitHub Actions. A new fork enables it once under
   Settings → Pages before its first deployment.
 - The catalog page repeats the README's legal notices verbatim. Keep the two in step, and
   do not soften them here either.
-- Two font families load from `fonts.googleapis.com`. That is the site's only third-party
-  request; keep it that way.
-- `site/og.png` is the link-preview card, the one asset that is drawn rather than
-  generated. It carries no counts and no plugin names, so only a change to the headline
-  or the wordmark makes it stale.
 
 ## Versioning and release
 
@@ -292,6 +336,11 @@ update signal — push commits without bumping it and installed users keep the c
 copy. CI's `version-bump` job fails a PR into `main` that changes a plugin without
 bumping *that* plugin, because nothing else catches it now that the hub's
 catalog-agreement check is gone.
+
+`web/package.json` carries a `version` of its own. It is not a release identity and does
+not move on a release: the site is not installed, not catalogued, and not depended on, so
+nothing reads that string. Both version guards enumerate plugins from `plugins/`, and a
+PR touching only `web/` bumps nothing.
 
 Tags are optional. Nothing in the install path reads them — `/plugin marketplace add`
 clones the default branch — though a marketplace source does accept a `ref`, so
@@ -328,3 +377,10 @@ sentence rather than update the count.
 - README carries the legal notices (API terms, model-training prohibition, credential
   handling). Do not drop or soften them when restructuring.
 - README is English. Keep committed prose in English for consistency.
+- **`web/package-lock.json` is committed, and both workflows install with `npm ci
+  --ignore-scripts`.** `ci` installs exactly what the lockfile pins instead of
+  re-resolving, so the published site is built from the dependency tree that was reviewed.
+  `--ignore-scripts` blocks every dependency's install hooks, which is what keeps a
+  transitive package from running code of its own in the Pages job — that job holds
+  `pages: write` and `id-token: write`. The app needs no install script; the export builds
+  under the flag.

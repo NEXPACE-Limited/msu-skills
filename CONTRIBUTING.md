@@ -1,8 +1,9 @@
 # Contributing
 
-A skill in this catalog is one `SKILL.md` file plus whatever it loads on demand. There is
-no build step and no manifest to generate: the file you write is the file that ships, on
-every channel.
+A skill in this catalog is one `SKILL.md` file plus whatever it loads on demand. Skills
+have no build step and no manifest to generate: the file you write is the file that ships,
+on every channel. The landing page under `web/` is a real build, but it renders your file
+rather than standing in for it.
 
 This page is the contributor's half of the procedure. `AGENTS.md` holds the maintainer's
 half — release machinery, the landing page, catalog rules — and you should not need it.
@@ -79,8 +80,10 @@ ask-the-user tool does not.
 
 ## Before you open the pull request
 
-`make check` runs the commands CI runs. Three things about it are worth knowing before it
-costs you an afternoon:
+`make check` runs the commands CI runs. It needs Node and npm — `npx skills add` is on the
+list, and so is the landing page's Next.js build, which reinstalls `web/`'s dependencies
+with `npm ci` every run. Three things about it are worth knowing before it costs you an
+afternoon:
 
 - **Commit first.** The suite builds an archive from `HEAD` and compares it against your
   working tree, so an uncommitted skill fails with `remote installer missed …`. Staging is
@@ -96,6 +99,10 @@ costs you an afternoon:
 For something faster than the full suite, `claude plugin validate plugins/<plugin>` and
 `npx skills add . -l` cover the manifest and discovery halves — subject to the second
 point above.
+
+To look at the card your skill gets on its plugin's page, run `make dev`. Open the address
+it reports plus the site's own path — the whole site sits under a base path, so the bare
+host root is a 404.
 
 ## Opening the pull request
 

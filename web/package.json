@@ -1,0 +1,26 @@
+{
+  "name": "msu-skills-web",
+  "private": true,
+  "version": "0.0.0",
+  "description": "The landing site. Its version is not a release identity — plugins version independently in their own plugin.json.",
+  "engines": {
+    "node": ">=20.9"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cmdk": "^1.1.1",
+    "next": "^16.3.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "typescript": "^7.0.2"
+  }
+}
