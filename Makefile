@@ -1,34 +1,44 @@
 # Convenience wrappers, not a build system. Skills are still shipped verbatim and need no
-# build; the only generated artifact is the landing page. Every target below is a command
-# you can also type by hand, and CI runs those commands directly rather than calling make.
+# build; the only generated artifact is the landing page, a Next.js app under web/ that
+# static-exports to web/out. Every target below is a command you can also type by hand,
+# and CI runs those commands directly rather than calling make.
 
-PORT ?= 8731
-OUT  ?= _site
-
-BROWSER := $(shell command -v open 2>/dev/null || command -v xdg-open 2>/dev/null)
+# Derived exactly the way web/next.config.mjs derives basePath — the repository a plugin
+# declares, falling back to owner + catalog name. Typing the name here would be a second
+# source that can drift from the one the site is actually built against.
+REPO := $(shell jq -r '(.plugins[0].repository // (.owner.url + "/" + .name)) | sub("\\.git$$";"") | split("/") | last' .claude-plugin/marketplace.json)
 
 .DEFAULT_GOAL := help
-.PHONY: help site serve open clean check
+.PHONY: help dev site clean check
 
 help: ## List the targets
 	@grep -hE '^[a-z-]+:.*## ' $(MAKEFILE_LIST) \
-		| awk -F':.*## ' '{ printf "  make %-8s %s\n", $$1, $$2 }'
+		| awk -F':.*## ' '{ printf "  make %-7s %s\n", $$1, $$2 }'
 	@echo
-	@echo '  OUT=$(OUT)  PORT=$(PORT)   — override either: make serve PORT=3000'
+	@echo '  the site lives under /$(REPO)/ — the bare host root is not it'
 
-site: ## Render the landing page
-	node scripts/build-site.mjs "$(OUT)"
+# There is no `serve` target. MEASURED: `next start` refuses outright under
+# `output: 'export'` and points at a third-party static server, and any static server would
+# have to re-create the base-path prefix under a second toolchain to serve web/out
+# faithfully. `next dev` already serves every page, sitemap.xml and llms.txt at the same
+# URLs Pages will, over localhost — a secure context, which the copy buttons need and a
+# `file://` open does not provide. What it cannot show is the exported bytes, and
+# ci.yml's site-build job asserts those on every pull request.
+# No --port. MEASURED: `next dev` with an explicit port dies on EADDRINUSE, while with none
+# it takes 3000 and, when something already holds it, says so and moves to the next free
+# one. Passing the default explicitly would only turn that recovery into a crash.
+dev: ## Run the site locally, with hot reload
+	@test -n "$(REPO)" || { echo "could not read the repository name from .claude-plugin/marketplace.json (is jq installed?)" >&2; exit 1; }
+	@echo "→ http://localhost:3000/$(REPO)/   (Next reports the port it actually took)"
+	npm --prefix web run dev
 
-serve: site ## Render it, then serve it over http
-	@echo "→ http://localhost:$(PORT)   (Ctrl+C to stop)"
-	python3 -m http.server "$(PORT)" -d "$(OUT)"
+site: ## Export the site into web/out, the way CI and the deploy do
+	npm --prefix web run build
 
-open: site ## Render it, then open it in a browser
-	@test -n "$(BROWSER)" || { echo "no open/xdg-open on PATH; use make serve" >&2; exit 1; }
-	$(BROWSER) "$(OUT)/index.html"
-
-clean: ## Delete the rendered page
-	node scripts/build-site.mjs --clean "$(OUT)"
+# A literal rm. The old guarded clean existed because the output directory was an argument
+# that could name someone else's files; next build writes one fixed path inside web/.
+clean: ## Delete the export and the Next build cache
+	rm -rf web/out web/.next
 
 check: ## Run the commands CI runs (CI adds a guards job on top)
 	claude plugin validate .
@@ -47,4 +57,5 @@ check: ## Run the commands CI runs (CI adds a guards job on top)
 	done
 	bash scripts/test-remote-installer.sh
 	bash scripts/check-endpoints.sh
-	@probe=$$(mktemp -d) && node scripts/build-site.mjs "$$probe" && rm -rf "$$probe"
+	npm --prefix web ci --ignore-scripts
+	npm --prefix web run build

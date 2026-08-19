@@ -219,7 +219,7 @@ plugins/game-tools/               # the game-tools plugin — no manifest key, n
   .claude-plugin/plugin.json
   skills/
 install.sh                        # manual installer for Codex / Gemini / Kimi
-site/, scripts/build-site.mjs     # the landing page, generated from the files above
+web/                              # the landing page — a Next.js app built from the files above
 ```
 
 Each plugin owns a directory under `plugins/` so that its skills, MCP servers,
