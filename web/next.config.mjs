@@ -21,7 +21,20 @@ const siteUrl = `https://${owner.toLowerCase()}.github.io/${repo}/`
 
 /** @type {import('next').NextConfig} */
 export default {
-  output: 'export',
+  // Production only, and the conditional is load-bearing rather than tidy. MEASURED in
+  // next/dist/server/dev/next-dev-server.js: when `output` is 'export', the DEV server
+  // throws `Page "/[plugin]/page" is missing param …` for any path that matches a dynamic
+  // route but was not returned by generateStaticParams — before the component runs, so
+  // notFound() never fires and not-found.tsx is unreachable. The guard is spelled
+  // `output === 'export'` and consults nothing else, which is why `dynamicParams = false`
+  // does not lift it. Withholding the value in dev is what lets an unknown path fall
+  // through to the route, hit notFound(), and render the 404 page the way a static host
+  // serves out/404.html for a path with no file behind it.
+  //
+  // The export itself is unaffected: `next build` sets NODE_ENV to production, so the
+  // build that CI runs and Pages publishes always has output: 'export'. Nothing about the
+  // exported bytes is decided here.
+  ...(process.env.NODE_ENV === 'development' ? {} : { output: 'export' }),
   // Without this the export writes out/msu.html, and GitHub Pages then serves
   // /msu-skills/msu with no redirect from the slash form every indexed URL uses.
   trailingSlash: true,
