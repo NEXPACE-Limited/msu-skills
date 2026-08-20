@@ -49,6 +49,99 @@
 
   --pad: 22px;
   --r: 14px;
+
+  /* The sticky bar's height, and the only place it is stated. .topbar .wrap takes it as
+     min-height and scroll-padding-top is computed from it, so a taller bar cannot start
+     hiding the target of an anchor jump. */
+  --topbar-h: 62px;
+
+  /* ---- motion ------------------------------------------------------------
+     One gesture: a coloured field unfurls from an anchored edge. Every duration
+     below is that gesture at a measured width, and the ratios are the point —
+     watch the hero once and you have been taught how every coloured thing on
+     this site arrives.
+
+     Widths measured off this file: .skill-name .dot is 12px, .petal-row i is
+     46px, .cmd .cp is 48px, .colorhead is full bleed. The two that matter are
+     46 and 48 — the hero bar and the copy button are the same object at the
+     same size, which is what makes the signature legible as a return.
+
+     These are durations and curves, not colours, so they are correct in all
+     three theme states and must never be redefined inside either dark block.
+     -------------------------------------------------------------------- */
+  --t-press:  200ms;  /* 48px copy cell. A click acknowledgement has to land inside the
+                         ~250ms a press still feels connected to its result. */
+  --t-unfurl: 420ms;  /* 46px hero bar — 110px/s. Below ~350ms --e-snap's overshoot stops
+                         reading as a bounce and starts reading as a jitter. */
+  --t-flood:  460ms;  /* full-bleed page head, ~1440px — 3100px/s, deliberately 28x faster
+                         per pixel than the hero bar. The big gesture is the one that must
+                         not make anyone wait; it fires on every sub-page arrival. */
+  --t-draw:   240ms;  /* the 21.94-unit check stroke in CheckIcon's single path */
+  --t-fast:   120ms;  /* hover and press swaps. Under ~90ms a colour swap is a flicker. */
+  --step:      80ms;  /* petal to petal. 3 x 80 = 240ms spread, under the ~300ms at which a
+                         sequence stops reading as one event. */
+
+  --e-unfurl: cubic-bezier(.22,.86,.28,1); /* the one curve every unfurl runs on. Two
+                                              elements on different curves are not the
+                                              same gesture, which is the whole claim. */
+  --e-snap:   cubic-bezier(.2,1.2,.32,1);  /* ~6% overshoot. Hero petals and the theme
+                                              press only — the mark is the one thing here
+                                              allowed to bounce. */
+
+  /* ---- the scroll dimension ----------------------------------------------
+     A scroll-driven range is measured in pixels of scroll, not milliseconds, so
+     none of the durations above can express one. These two are those durations
+     restated in the other unit — derived, not picked.
+
+     LENGTHS, NEVER PERCENTAGES. A percentage in animation-range resolves against
+     the named range's own length, and the length of `entry` is THE SUBJECT'S OWN
+     HEIGHT — entry runs from the subject's top edge touching the scrollport's
+     bottom to its bottom edge clearing that same line, a scroll of exactly the
+     subject's height. For view() on a pseudo-element the subject is the PSEUDO'S
+     box. MEASURED at 375x780 on the catalog page's fourth skill row: the shipped
+     `entry 6% entry 46%` took .skill::before from scaleX(0) to scaleX(1) between
+     0px and 1px of scroll, and held there for the next 7px. It has never drawn;
+     it switches. Same for .channel::after (1px subject, 0.5px of scroll) and
+     .skill-name .dot (12px subject, 4.8px). A length off `cover` is the same
+     distance for every subject, which is what lets ONE number govern a 1px rule,
+     a 12px dot, a 62px label and a 376px table. MEASURED with the same rig:
+     `cover 0px cover 200px` sweeps scaleX .989 -> 0 linearly across exactly 200px
+     on a 19px subject, then holds at 0 through +260px and beyond.
+
+     `cover` and not `entry`: both begin at the same instant, but cover's length
+     is viewport plus subject and is therefore always comfortably longer than the
+     offset, so the offset can never run off the end of the range it names.
+     -------------------------------------------------------------------- */
+  --reveal:     200px;  /* --t-unfurl at ~475px/s, a deliberate read-scroll; across a real
+                           300-800px/s it resolves between 250ms and 670ms, which straddles
+                           the durations every load-time gesture already runs at. It is also
+                           the reversal budget: a reveal completes with its subject 200px
+                           above the fold (y=580 on a 780px phone, y=700 on a 900px window),
+                           so un-covering only ever runs backwards in the bottom quarter of
+                           the screen. Raise it and reversals happen in the reading zone;
+                           lower it and the reveal finishes before it is properly on screen,
+                           which is how the three rules above ended up at fractions of a
+                           pixel. The floor is ~180px. */
+  --reveal-lag:  40px;  /* --step at that velocity: the offset between the two cells of a
+                           2-up row. A shifted RANGE, never a delay, so it is tied to where
+                           the cell is and needs no per-index table as the catalog grows. */
+  --rise:        28px;  /* How far type rises into place. Was 14px, which read as too slight
+                           to notice on a 19px kicker at ordinary scroll speed. Twice that is
+                           clearly a movement without becoming a slide: at 28px a 40px display
+                           heading still travels well under one line box, so no line ever
+                           appears to cross another. Past ~36px the movement starts competing
+                           with the reading it is there to introduce. */
+
+  --e-rise:   cubic-bezier(.4,0,.25,1);  /* The reveal's own curve, and NOT --e-unfurl.
+                           MEASURED: --e-unfurl is a hard decelerator that reaches .74 output
+                           at a quarter of its input, so on a scroll timeline an element was
+                           already three-quarters opaque while still at the bottom edge of the
+                           screen — the reveal was over before it had arrived anywhere worth
+                           looking. MEASURED on a live view() timeline, this one is at .21
+                           output a quarter of the way through and .75 at the half, so the
+                           transition is spent where the reader is looking and then lands soft
+                           on the same 1 endpoint. Cost, stated plainly: type sits below its
+                           measured contrast for longer than the old curve left it there. */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -103,7 +196,15 @@
 /* ---- base ---------------------------------------------------------------- */
 *, *::before, *::after { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; }
+html {
+  -webkit-text-size-adjust: 100%;
+  /* The bar is sticky, so an anchor jump would otherwise land its target underneath it.
+     MEASURED against the three targets that exist — #main, #plugins and #skills — 14px
+     past the bar's own height puts the heading clear of the separator rather than flush
+     against it. This is a property of the scroll container, so it also governs the jump
+     the skip link makes and the one find-in-page makes. */
+  scroll-padding-top: calc(var(--topbar-h) + 14px);
+}
 
 body {
   margin: 0;
@@ -129,7 +230,30 @@ a { color: var(--link); }
 a.panel { color: var(--on-color); }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Not softenable, and not only for CSS reasons. cmdk's dialog unmounts through Radix
+     Presence, which reads getComputedStyle(node).animationName on close and sends UNMOUNT
+     immediately when it is 'none'. MEASURED in @radix-ui/react-presence: the branch is
+     `currentAnimationName === "none" || styles?.display === "none"`. Weaken this and a
+     reduced-motion reader's palette waits for an animationend it will never get, and
+     hangs open. */
   *, *::before, *::after { transition: none !important; animation: none !important; }
+
+  /* animation-range is NOT a sub-property of the `animation` shorthand, so the line above
+     leaves it set; animation-timeline is reset-only, which a compliant engine honours and
+     an older one may not. Both are pinned so a killed animation cannot leave a live view()
+     timeline attached for the compositor to keep sampling.
+
+     This is the backstop, not the mechanism. Every scroll-driven rule in this file is
+     fenced inside `@media (prefers-reduced-motion: no-preference)` nested in
+     `@supports (animation-timeline: view())`, so a reduced-motion reader never receives a
+     hidden initial state and nothing has to be un-done. This block exists for a rule added
+     later that forgets the fence. */
+  *, *::before, *::after { animation-timeline: auto !important; animation-range: normal !important; }
+}
+
+/* A printed page must be the resting state, and the resting state is already correct. */
+@media print {
+  *, *::before, *::after { animation: none !important; }
 }
 
 /* ---- assistive-only text ------------------------------------------------- */
@@ -155,8 +279,31 @@ a.panel { color: var(--on-color); }
 }
 
 /* ---- topbar -------------------------------------------------------------- */
-.topbar { border-bottom: 1px solid var(--line); background: var(--canvas); }
-.topbar .wrap { display: flex; align-items: center; gap: 14px; min-height: 62px; }
+/* Sticky, and opaque on purpose. A translucent bar would put the nav's --ink-3 over
+   whatever content happened to be under it, which is an unmeasured pair on every scroll
+   position; --canvas keeps the one measurement this file already carries for it.
+
+   z-index 40 places it above the page and below everything that must outrank it: the
+   palette veil (60), the palette (61) and the skip link (80). It does not need to
+   outrank .colorhead::before or .cmd .cp::before — the first is sealed inside its own
+   `isolation: isolate`, and the second is a z-index:1 child of a z-index:auto parent,
+   so both resolve below 40 rather than beside it.
+
+   The rule that used to be this element's border-bottom is .topbar::before now, so it
+   can be drawn. The bar loses the 1px that border added to its own height; nothing else
+   moves, and --topbar-h is what the height is derived from either way. */
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  background: var(--canvas);
+}
+.topbar .wrap { display: flex; align-items: center; gap: 14px; min-height: var(--topbar-h); }
+/* The separator. Its resting state is a fully drawn --line rule, which is exactly the
+   border it replaces, so a reduced-motion reader and a browser without scroll timelines
+   see today's bar unchanged. */
+.topbar::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+  background: var(--line); pointer-events: none;
+}
 .mark { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
 .mark svg { display: block; flex: none; }
 .mark b { font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: -.03em; }
@@ -321,7 +468,10 @@ a.panel { color: var(--on-color); }
 .cmd .cp:hover { background: rgba(255,255,255,.09); color: var(--code-ink); }
 .cmd .cp:focus-visible { outline: 2px solid var(--mint); outline-offset: -3px; }
 .cmd .cp[data-state="done"] { color: var(--mint); }
-.cmd .cp[data-state="warn"] { color: var(--pink); }
+/* CopyButton declares its failure state as 'blocked' (CopyButton.tsx:6) and emits it
+   verbatim, so the `warn` this rule used to name never matched — the copy-blocked state
+   has been shipping with no colour at all. */
+.cmd .cp[data-state="blocked"] { color: var(--pink); }
 .cmd + .cmd { margin-top: 9px; }
 /* The hero carries all three install channels. The label is what tells a reader which
    command is theirs — without it three stacked blocks read as a sequence to run in order. */
@@ -349,7 +499,6 @@ a.panel { color: var(--on-color); }
   color: var(--on-color);
   text-decoration: none;
 }
-.panel.is-blue { --fill: var(--blue); }
 .panel h3 {
   margin: 0;
   font-family: var(--mono);
@@ -368,10 +517,21 @@ a.panel { color: var(--on-color); }
 
 /* ---- skill entries: content first, big and black ------------------------- */
 .skills { display: grid; gap: 0; }
+/* The 1px rule that ruled this row off is a pseudo-element now, so it can be drawn.
+   Absolute, not static: .skill is display:grid and a static pseudo would insert a phantom
+   cell into the `minmax(0,30ch) minmax(0,1fr)` template at >=900px. The row loses the 1px
+   the border added to its own height; across the seven rows on the catalog page that is 7px
+   of total page height and nothing else moves. .skill:last-child keeps its real
+   border-bottom — that is the list's closing edge, not a row rule, and edges stay still. */
 .skill {
+  position: relative;
   display: grid; gap: 14px;
   padding-block: clamp(26px, 3vw, 40px);
-  border-top: 1px solid var(--line);
+}
+.skill::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+  background: var(--line);
+  transform-origin: left center;
 }
 .skill:last-child { border-bottom: 1px solid var(--line); }
 @media (min-width: 900px) { .skill { grid-template-columns: minmax(0, 30ch) minmax(0, 1fr); gap: 44px; } }
@@ -418,11 +578,19 @@ details.more > summary + .skill-say { margin-top: 14px; }
 
 /* ---- channels: one per row, so a 94-character curl gets the full width ----- */
 .channels { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+/* Same move as .skill, and for the same reason: .channel is display:grid, so the rule has
+   to be an absolutely positioned pseudo or it becomes a cell in the 27ch/1fr template at
+   >=860px. .channels keeps its real border-top — a container edge. */
 .channel {
+  position: relative;
   display: grid; gap: 14px;
   padding-block: clamp(24px, 2.8vw, 34px);
-  border-bottom: 1px solid var(--line);
   align-items: start;
+}
+.channel::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+  background: var(--line);
+  transform-origin: left center;
 }
 @media (min-width: 860px) {
   .channel { grid-template-columns: minmax(0, 27ch) minmax(0, 1fr); gap: 48px; }
@@ -467,7 +635,13 @@ details.more > summary + .skill-say { margin-top: 14px; }
   background: var(--fill); color: var(--on-color);
   padding-block: clamp(40px, 6vw, 84px);
 }
+/* headClassFor() returns four class names; only two were declared. .colorhead's own --fill
+   defaults to blue, so a third plugin's page head rendered BLUE where its panel and its
+   skill dots rendered pink. Never hit, because the catalog ships two plugins — declaring
+   all four is what keeps the head agreeing with hueFor(). */
 .colorhead.is-mint { --fill: var(--mint); }
+.colorhead.is-blue { --fill: var(--blue); }
+.colorhead.is-pink { --fill: var(--pink); }
 .colorhead.is-purple { --fill: var(--purple); }
 .colorhead .crumbs, .colorhead .crumbs a, .colorhead .kicker { color: rgba(13,18,16,.72); }
 .colorhead .crumbs span[aria-current] { color: var(--on-color); }
@@ -534,3 +708,475 @@ details.more > summary + .skill-say { margin-top: 14px; }
 /* ---- focus --------------------------------------------------------------- */
 a:focus-visible, button:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; border-radius: 3px; }
 .colorhead a:focus-visible { outline-color: var(--ink); }
+
+/* ===========================================================================
+   motion — two gestures: colour unfurls, ink rises
+
+   COLOUR UNFURLS. A coloured field grows from an anchored edge, on --e-unfurl.
+   The same keyframe runs at 1px (a row's rule), 12px (a skill's dot), 46px (a
+   hero petal), 48px (the copy button) and full bleed (a page head on arrival).
+   That is the mark's gesture, and everything it touches is a rectangle.
+
+   INK RISES. Type is not a coloured field and does not pretend to be: it fades
+   up into place over --rise, on the same curve, driven by scroll. See the two
+   scroll sections below, and the still list at the bottom.
+
+   The two are told apart by WHAT MOVES, not by where it sits, so neither has to
+   know about the other and no box carries both. An earlier version of this file
+   claimed a single gesture and revealed prose by retracting a canvas-coloured
+   cover over it; that kept every frame at a measured contrast, and it was
+   replaced deliberately, twice over: first for the fade, then again when the fade
+   was strengthened. A fade renders type below its measured contrast for as long as
+   it runs, and --e-rise deliberately spends MORE of the range visibly transitioning
+   than --e-unfurl did — that is the whole point of it and it is the cost of the
+   gesture, not a defect in it. What is guaranteed is the endpoint: nothing ever
+   RESOLVES to less than its measured value, because every base rule is opacity 1
+   and no keyframe here declares a `to`.
+
+   Two structural rules are what let the guard above stay untouched and let a
+   reader with JavaScript off see the finished page, with no marker stamped on
+   <html> and no exception written into the guard:
+
+   1. THE BASE RULE IS ALWAYS THE FINISHED STATE. Every @keyframes block below
+      declares only a `from`; the implicit `to` is whatever the base rule says.
+      No `animation-fill-mode: forwards` appears anywhere in this file. So
+      `animation: none !important` renders exactly the page that ships today.
+      This is also what makes `both` safe on every scroll rule: the forwards half
+      of `both` fills to the base rule. A keyframe that ever gains a `to` turns
+      every one of them into a permanent override.
+   2. ANY HIDDEN INITIAL STATE LIVES INSIDE THE FENCE — @supports
+      (animation-timeline: view()) nested in @media (prefers-reduced-motion:
+      no-preference). A reduced-motion reader never receives it, and a browser
+      without scroll timelines skips the block and gets the finished page.
+      THAT IS THE PATH MOST READERS TAKE, so the fenced rules are not an edge case
+      to be waved through. VERIFIED against mdn/browser-compat-data (checked
+      2026-08): animation-timeline is Chrome 115+ and Safari/iOS Safari 26+, while
+      Firefox is `version_added: "preview"` — not shipped in any stable release,
+      still behind layout.css.scroll-driven-animations.enabled. So Chromium and
+      Safari readers are inside the fence; Firefox stable falls through it to the
+      finished page, as does a reduced-motion reader and anything older. A range
+      that only works on paper is therefore a bug for most readers rather than a
+      rounding error — which is exactly how three rules here shipped resolving in
+      under a pixel of scroll and nobody saw them fail.
+
+   There is no IntersectionObserver, no scroll listener, no rAF loop and no
+   class toggled from script anywhere in this system, which is why THEME_SCRIPT
+   in app/layout.tsx is untouched — nothing here needs to know whether JS ran.
+   ========================================================================= */
+
+/* Every one of these is a `from` only. The `to` is the element's own base rule,
+   which is why killing the animation lands on the correct finished state. */
+@keyframes unfurl-x    { from { transform: scaleX(0); } }
+
+/* .06 of 46px is a 2.8px stub, so a petal grows out of the mark's origin rather
+   than materialising. Exact zero reads as a glitch at this size. */
+@keyframes unfurl-stub { from { transform: scaleX(.06); } }
+
+/* The canvas-coloured cover retracting off the right edge — the same gesture seen
+   from the other side, so the field it uncovers appears to unfurl from the left.
+   This is how a coloured field arrives without any frame rendering on-colour ink
+   on canvas. */
+@keyframes retract-x   { from { transform: scaleX(1); } }
+
+@keyframes draw-check  { from { stroke-dashoffset: 22; } }
+@keyframes ink-gate    { from { opacity: 0; } }
+@keyframes fade-in     { from { opacity: 0; } }
+@keyframes pal-open    { from { opacity: 0; transform: translateY(-8px) scale(.985); } }
+
+/* ---- hero petals (load) --------------------------------------------------- */
+/* The source of the gesture, and the only place on the site with an overshoot.
+   .petal-row is aria-hidden and carries no information a reader could miss, which
+   is what entitles it to the loudest load-time move. Its order is hueFor()'s order,
+   so bar N is plugin N's colour — a fact the page states nowhere else. */
+.petal-row i { transform-origin: left center; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* `backwards` is required, not decorative: without it petal 4 renders at full
+     length for 240ms and then snaps back to the stub when its delay expires. */
+  .petal-row i { animation: unfurl-stub var(--t-unfurl) var(--e-snap) backwards; }
+  /* An nth-child ladder here is a fact, not a table that rots: favicon.svg has four
+     lobes and always will. Anywhere the count comes from the catalog instead, the
+     stagger is a shifted animation-range — see .panel below. */
+  .petal-row i:nth-child(2) { animation-delay: var(--step); }
+  .petal-row i:nth-child(3) { animation-delay: calc(var(--step) * 2); }
+  .petal-row i:nth-child(4) { animation-delay: calc(var(--step) * 3); }
+}
+
+/* ---- the coloured page head (arrival) ------------------------------------- */
+/* The cover is ABOVE the content, not behind it. A canvas-coloured layer behind the
+   type would leave --on-color (#0d1210) sitting on --canvas (#0a0d0c in dark, about
+   1.05:1) for the whole flood, and the head's breadcrumb, kicker, tags and lede are
+   all drawn in that ink. Opaque and on top means every frame is either bare canvas
+   or the finished head — no pair on screen was ever unmeasured.
+
+   .wrap is a static in-flow div with no z-index, so it paints below a positioned
+   z-index:1 pseudo automatically and needs no rule of its own. isolation keeps the
+   cover from escaping the section and reaching the topbar. */
+.colorhead { position: relative; isolation: isolate; }
+.colorhead::before {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: var(--canvas);
+  /* Resting state is retracted and invisible. The keyframe holds the only visible
+     state, so the guard leaves a fully painted coloured head. */
+  transform: scaleX(0); transform-origin: right center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Fires on mount, so the App Router replays it on every client-side arrival at
+     /<plugin>/, /<plugin>/<skill>/ and /mcp/. That is the whole page transition —
+     there is no overlay, no cross-fade and no View Transition, which is why this
+     system costs zero bytes of client JavaScript. */
+  .colorhead::before { animation: retract-x var(--t-flood) var(--e-unfurl) backwards; }
+}
+
+/* ---- the sticky bar (scroll) ----------------------------------------------
+   The bar does not move, and that is the point of it — a header that hides and
+   returns needs to know the scroll DIRECTION, and a scroll() timeline is a
+   function of POSITION only. Direction is not expressible in CSS, so a
+   hide-on-down/show-on-up bar costs a scroll listener; this one costs nothing and
+   is never absent when a reader reaches for it.
+
+   What animates instead is what the bar has to SAY, and it has exactly two things
+   to say, both of which are functions of position and therefore free:
+
+   1. WHETHER THERE IS ANYTHING BEHIND IT. At the top of a page the bar sits on the
+      same --canvas as the hero and a rule between them separates nothing. Once the
+      page has scrolled, content is passing underneath and the bar has to declare an
+      edge. So the separator draws itself over the first 72px — measured as the point
+      where the hero's first line has just gone under, on every page type at both
+      375x780 and 1440x900. Its resting state is the drawn rule, so this reads as an
+      omission at the top rather than as an addition on scroll.
+
+   2. HOW FAR THROUGH THE PAGE THE READER IS. The catalog page is ~5300px; the bar is
+      the only element on screen the whole way down, so it is the only honest place to
+      put that. It is the site's own gesture at a new scale — a coloured field
+      unfurling from an anchored edge, on the same `unfurl-x` the hero petals, the row
+      rules and the copy cell all run. No new keyframe.
+
+   THE FILL IS DECLARED ENTIRELY INSIDE THE FENCE, content and all. A progress
+   indicator whose animation has been killed is not a quiet progress indicator, it is
+   a full-width mint rule permanently claiming the reader is at the bottom. So a
+   reduced-motion reader, and a browser without scroll timelines, is handed a
+   stylesheet in which the pseudo was never generated — not one where it is generated
+   and then lies. The separator is the opposite case and is declared outside: its
+   resting state is already correct.
+   ------------------------------------------------------------------------- */
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* `fade-in` is the keyframe the palette veil already uses: `from { opacity: 0 }`,
+       no `to`, so the forwards half of `both` fills to the base rule above — the drawn
+       rule. linear, like every scroll-linked rule in this file. */
+    .topbar::before {
+      animation: fade-in linear both;
+      animation-timeline: scroll();
+      animation-range: 0 72px;
+    }
+
+    /* 2px, not 1px: this one is read rather than merely seen, and it sits at the very
+       bottom edge where a single device pixel is the first thing a fractional DPR
+       rounds away. It overlaps the 1px separator underneath it, which is what makes
+       the pair read as a track and a fill rather than as two rules. */
+    .topbar::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+      background: var(--mint); pointer-events: none;
+      transform-origin: left center;
+      /* No animation-range: the default range of a scroll() timeline is the scroller's
+         whole length, which is exactly what a page-progress indicator wants. `both` is
+         what pins it at full width on a page too short to scroll — scaleX(1) under a
+         bar that never moves, on a document with nothing left to read, which is true. */
+      animation: unfurl-x linear both;
+      animation-timeline: scroll();
+    }
+  }
+}
+
+/* ---- rules that draw (scroll) ---------------------------------------------
+   The two 1px rules that separate one row from the next. They are NOT inside any
+   block that fades below, which is the whole reason they keep the unfurl: a rule
+   drawing itself under type that is rising into place reads as the page being
+   built, where a rule that faded with its own row would be invisible — masked by
+   the very opacity it shared.
+
+   MEASURED, and this is why both were rewritten off percentages: view() takes the
+   element carrying the animation as its own subject, and for a pseudo that is the
+   PSEUDO's box. The length of `entry` is the subject's own height, so on a 1px rule
+   `entry 6% entry 46%` was 0.4px of scroll — it never drew, it switched — and the
+   same held for .channel::after at 0.5px. A length off `cover` is the same distance
+   for every subject, which is what lets one number govern a 1px rule and a 300px
+   card alike.
+   ------------------------------------------------------------------------- */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* No stagger between rows: full-width rows enter the viewport one at a time, so
+       a stagger between them would encode nothing the scroll itself does not say.
+       linear on every scroll-linked rule — an eased curve on a scroll timeline
+       fights the reader's own scroll velocity, and a rule drawing at a constant
+       rate is what a straight line looks like. */
+    .skill::before, .channel::after {
+      animation: unfurl-x linear both;
+      animation-timeline: view();
+      /* No duration: on a view() timeline `animation-duration: auto` fills the
+         range, and the shorthand resets duration to auto rather than 0s. `both` is
+         what makes a row already in the viewport at load — or landed on by an
+         anchor jump — resolve to finished rather than replaying. */
+      animation-range: cover 0px cover var(--reveal);
+    }
+  }
+}
+
+/* ---- ink that rises (scroll) ----------------------------------------------
+   COLOUR UNFURLS; INK RISES. That is the rule separating this site's two gestures,
+   and it is worth stating plainly because this file spent a version claiming there
+   was only one. A coloured field — the mark, the page head on arrival, the copy
+   cell on press, a row's rule — unfurls from an anchored edge. Type does not: it
+   fades up into place. The two are told apart by what is moving, not by where it
+   sits, so neither has to know about the other.
+
+   ONE ANIMATION, ONE RANGE, ONE CURVE. Opacity and a --rise translate resolve
+   together on --e-rise, which is the reveal's own curve and not the mark's. The
+   first version of this ran on --e-unfurl and was reported as too weak to notice;
+   MEASURED, that curve was at .74 output a quarter of the way through its input, so
+   an element was three-quarters opaque while still sitting at the bottom edge of
+   the screen and the movement was over before it reached anywhere the reader was
+   looking. --e-rise holds .21 at a quarter and .75 at the half — both MEASURED on the live
+   timeline, not read off the curve — which puts the transition in the reading zone,
+   and --rise doubled to 28px so there is something to see when it gets there. Both changes lengthen the window in which a sentence
+   renders below its measured contrast. That window is the cost of choosing a fade
+   over the cover this replaced; it is not removable, only movable. The endpoint is
+   what is guaranteed: the base rule is opacity 1 and no keyframe declares a `to`.
+
+   THE STAGGER IS THE PAGE'S OWN GEOMETRY. There is not one animation-delay below.
+   A band's top padding is 48-104px, so a section rule leads its kicker by that much
+   scroll; a kicker's line box plus its margin is what its heading lags by; a skill
+   page's aside blocks sit ~65px apart and cascade on their own. The only nth-child
+   is a two-column grid restating its own column count. Add a plugin, a skill or a
+   tool and the cascade extends itself with no edit here.
+
+   WHAT IT REVERSES INTO. There is no CSS-only play-once and this does not pretend
+   there is — view() scrubs against scroll POSITION. The mitigation is the range,
+   and it is why --reveal is a LENGTH: the completion point is then a fixed screen
+   position, independent of the viewport's height and of the element's own —
+
+       element top at completion  =  100vh - var(--reveal)
+
+   y=580 on a 780px phone, y=700 on a 900px window. A reveal finishes while its
+   subject is still in the bottom quarter of the screen and stays finished for the
+   rest of `cover`, so un-fading only ever runs backwards down there, in the
+   direction the reader is already leaving.
+
+   WHAT IT NEEDS FROM THE PAGE. A rise needs var(--reveal) of scrollable document
+   below its subject's top edge or it can never finish. MEASURED at 375x780 and
+   1440x900 across every exported page, the tightest tail is the last .aside block
+   on a skill page at 257px against a 200px requirement. Anything placed in the last
+   200px of a document must not be given one.
+   ------------------------------------------------------------------------- */
+@keyframes fade-rise { from { opacity: 0; transform: translateY(var(--rise)); } }
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+
+    /* THE ONE RULE. Everything after it only chooses a different box or shifts the
+       range. Type only — a coloured field is never faded, it unfurls. */
+    .band :is(.kicker, .h-lg, .lede, .cmd-note),
+    .panel,
+    .skill-id, .skill-body,
+    .channel > div:first-child, .channel .cmds,
+    .notes li,
+    .tool,
+    .kv dl,
+    .aside > div {
+      animation: fade-rise var(--e-rise) both;
+      animation-timeline: view();
+      animation-range: cover 0px cover var(--reveal);
+    }
+
+    /* The second cell of a 2-up row: a shifted RANGE, never a delay, so it is tied to
+       where the cell sits. Below each grid's breakpoint the cells stack and enter
+       separately, where the offset simply adds to the gap they already have — which
+       is why no media query is needed to undo it. */
+    .skill-body,
+    .channel .cmds,
+    .panel:nth-child(even),
+    .tools .tool:nth-child(even) {
+      animation-range: cover var(--reveal-lag)
+                       cover calc(var(--reveal) + var(--reveal-lag));
+    }
+
+    /* ---- two states that must never be caught mid-rise ----------------------
+       Dropping the animation name lands on the base rule, which IS the finished
+       state — invariant 1 being useful rather than merely observed.
+
+       FOCUS. Reaching an element normally reveals it: an anchor jump, find-in-page
+       and Tab all scroll the target into view, past the range end, and `both` holds
+       it there. The hole is Tab to a control ALREADY inside the bottom 200px, which
+       the browser will not scroll — its ring would be drawn at partial opacity, and
+       a focus ring is the one thing here that must never be half-drawn. MEASURED
+       with a dispatched Tab against the cover this replaced: it sat at .75 and went
+       to finished with scrollY unchanged, which is the case this rule exists for.
+
+       DISCLOSURE. <details> opens without scrolling, so a row still inside its own
+       range renders the newly disclosed paragraph at whatever opacity the row has —
+       MEASURED at 0.23 — and leaves it there until the reader scrolls. A disclosed
+       paragraph is text the reader just asked for; it resolves to full opacity the
+       instant it exists. */
+    :is(.band :is(.kicker, .h-lg, .lede, .cmd-note),
+        .panel, .skill-id, .skill-body,
+        .channel > div:first-child, .channel .cmds,
+        .notes li, .tool, .kv dl, .aside > div):has(:focus-visible),
+    .skill-body:has(details[open]) { animation-name: none; }
+  }
+}
+
+/* No will-change anywhere above, and that is a decision. A view() timeline never goes
+   inactive, so a promotion here is never released for the life of the page; declaring
+   will-change on the ~25 risers the catalog page carries would pin 25 layers on a phone
+   to buy nothing Chrome does not already do for a scroll-driven transform. */
+
+/* ---- THE HANDOFF (press) — the signature ---------------------------------- */
+/* .cmd .cp is 48px wide; .petal-row i is 46px. This is the hero petal reappearing at
+   1:1 at the moment the command leaves the page — the site's single job completing,
+   in the site's single gesture. The one loud moment, and it is on a deliberate click:
+   never on load, never on scroll, never on hover. */
+.cmd .cp { position: relative; }
+.cmd .cp > svg { position: relative; z-index: 1; }
+.cmd .cp::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: var(--mint);
+  transform: scaleX(0); transform-origin: left center;
+}
+/* The resting state of a done button IS the flooded cell, so `animation: none`
+   leaves a complete acknowledgement rather than a blank one. */
+.cmd .cp[data-state="done"]::before { transform: scaleX(1); }
+
+/* Ties with `.cmd .cp[data-state="done"] { color: var(--mint) }` above at 0-3-0 and
+   wins on source order — it must stay below it. #0d1210 on mint measures 12.62:1
+   light / 8.01:1 dark, the pairing this file's header already carries. The icon is
+   never on-colour except while the mint is under it. */
+.cmd .cp[data-state="done"] { color: var(--on-color); }
+/* 0-4-0, out-specifies the 0-3-0 focus ring above. That ring is 2px solid var(--mint)
+   at outline-offset: -3px — drawn INSIDE the box, so over the flooded cell it would
+   be mint on mint and disappear at exactly the moment the button is in use. */
+.cmd .cp[data-state="done"]:focus-visible { outline-color: var(--on-color); }
+/* 21.94 user units, measured off CheckIcon's single path `m4.5 12.5 5 5 10-11` in a
+   24-unit viewBox (7.071 + 14.866). Resting offset 0 is a complete check. */
+.cmd .cp[data-state="done"] svg path { stroke-dasharray: 22; stroke-dashoffset: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .cmd .cp[data-state="done"]::before {
+    animation: unfurl-x var(--t-press) var(--e-unfurl) backwards;
+  }
+  /* The icon is held at 0 until the cell is fully mint, then snaps in —
+     steps(1, end), never a fade. This is what keeps every frame measured: before
+     200ms there is no ink on screen at all; after it there is #0d1210 on mint. An
+     icon fading in over a moving front would sit at 1:1 on the covered half. */
+  .cmd .cp[data-state="done"] svg {
+    animation: ink-gate var(--t-press) steps(1, end) backwards;
+  }
+  .cmd .cp[data-state="done"] svg path {
+    animation: draw-check var(--t-draw) var(--e-unfurl) var(--t-press) backwards;
+  }
+}
+
+/* [data-state="blocked"] gets no gesture at all. Failure and success must not share a
+   vocabulary, and a flourish on a failure is a lie about what happened. */
+
+/* ---- command palette (state change) --------------------------------------- */
+/* Radix Dialog locks body scroll through react-remove-scroll when the palette opens.
+   On a platform with a classic scrollbar the page shifts horizontally at that
+   instant; today nothing else moves so it passes as a glitch, and next to a 200ms
+   panel entrance it would read as part of the animation. Reserving the gutter is the
+   only fix that does not measure the scrollbar in script. */
+html { scrollbar-gutter: stable; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Scoped to [data-state="open"], and NOT declared on .pal itself. MEASURED in
+     @radix-ui/react-presence: unmount is suspended while
+     getComputedStyle(node).animationName is not 'none', so an unscoped animation-name
+     would leave the palette waiting on an animationend that never fires on close — it
+     would never disappear. Closing is instant on purpose: cmdk unmounts, and a dialog
+     you have already dismissed should not linger. */
+  .pal-veil[data-state="open"] { animation: fade-in 130ms linear backwards; }
+  .pal[data-state="open"] { animation: pal-open 200ms var(--e-unfurl) backwards; }
+}
+
+/* .pal-item[aria-selected="true"] stays at 0ms. A selection that lerps smears under
+   held arrow keys and is the loudest way a web page gives away that it is imitating a
+   CLI. The row snaps; nothing in it animates. */
+
+/* ---- hover and press ------------------------------------------------------ */
+/* transition-property is enumerated everywhere, never `all`. outline and
+   outline-offset appear in none of these lists: a focus ring that lags the key that
+   summoned it is worse than no transition at all. */
+.topnav a {
+  transition: color var(--t-fast) var(--e-unfurl),
+              background-color var(--t-fast) var(--e-unfurl);
+}
+.find, .theme {
+  transition: color var(--t-fast) var(--e-unfurl),
+              border-color var(--t-fast) var(--e-unfurl);
+}
+
+/* Press-driven, so it needs no mount hook, no key prop and no state — the icon has
+   already been swapped by the time the button springs back. The 44x44 target lives on
+   .theme::after and is not scaled, so the target never shrinks under a finger. */
+.theme svg { transition: transform var(--t-fast) var(--e-snap); }
+.theme:active svg { transform: rotate(-24deg) scale(.92); }
+
+@media (hover: hover) and (pointer: fine) {
+  /* The arrow travels; the panel does not lift, scale, tint or shadow. A field of
+     brand colour is a plugin's identity, and moving it on hover would be a claim about
+     the plugin. It also means nothing shifts under the pointer between hover and
+     click. The existing text-decoration-thickness swap stays instant — a lerped
+     underline thickness renders blurry mid-transition. */
+  .panel .go { transition: transform 170ms var(--e-unfurl); }
+  .panel:hover .go { transform: translateX(3px); }
+}
+
+/* ---- what deliberately does not move --------------------------------------
+   Still by rule rather than by omission.
+
+   THE ENTIRE HERO — the headline, its lede, all three install commands and their
+   labels, the note, the counts. The first screen must be complete the instant it
+   paints, and this site's single job is to hand over an install command; that
+   command is never faded at any scroll position. The hero's one event stays the
+   petal row on load. This is also why the riser set is scoped to .band: the hero
+   is .hero, so the exclusion is structural rather than a list of exceptions that
+   would have to be kept in step.
+
+   EVERY .colorhead's CONTENTS — breadcrumb, kicker, h1, tags, .head-cmd. They
+   already arrive inside the page-head unfurl, and each region gets exactly one
+   trigger.
+
+   EVERY COMMAND STRING. .cmd has no rule of its own anywhere in this file. A
+   .cmds column rises as a block on a channel row, but the text inside a .cmd is
+   never the subject of an animation, and .cmd pre is never faded on its own.
+
+   THE MARK AND THE CHROME — .foot, .crumbs, .raw, and every .tag. A tag is scanned
+   rather than read: the invoke string, the `needs <server>` badge and the file
+   count are what a reader flicks back up to check, and a return glance wants a
+   fixed landmark. They ride their column and get nothing of their own.
+
+   .topbar IS NOT ON THIS LIST ANY MORE, and the distinction is the point: the bar
+   itself never moves — it is sticky, and a header that slid or resized would be
+   the one element on screen a reader cannot rely on. What animates is the two
+   things it has to SAY, both functions of scroll position: its separator, and the
+   progress fill. Nothing inside it moves, and its background stays opaque.
+
+   THE THEME CHANGE ITSELF, and the palette's selected row. A theme switch is an
+   instruction, not a transition, and a full-page colour interpolation would be
+   the most expensive animation on the site in service of nothing — every
+   intermediate frame an unmeasured contrast pair. A selection that lerps smears
+   under held arrow keys.
+
+   THE FIVE LEGAL NOTICES ARE NOT SOFTENED. Each rises like any other prose, at
+   full --ink by the end of the first third of its range, and what stays fixed is
+   everything AGENTS.md governs about them: the wording is verbatim, and nothing
+   here abbreviates, reorders or de-emphasises it.
+
+   TWO THINGS THAT COULD RISE AND DO NOT: .say-big, the skill page's opening
+   sentence, and the inline-styled prose under it. The first is the one sentence a
+   reader arrived from search to read and it is complete on paint. The second has
+   no class at all, and `.two > div > p:not([class])` is a selector that rots the
+   moment anyone gives those elements one — admitting them is a className in
+   app/[plugin]/[skill]/page.tsx first, not a selector here.
+   ========================================================================= */
