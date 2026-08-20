@@ -5,5 +5,16 @@
 # Written by the skills-discovery check; also appears when running it by hand
 discovery.log
 
-# Rendered by scripts/build-site.mjs. The page is built on deploy, never committed
-_site/
+# The site app. Its dependencies, its build cache, and its export output — the pages are
+# built on deploy, never committed. web/package-lock.json IS committed: npm ci needs it,
+# and setup-node's cache key is derived from it.
+web/node_modules/
+web/.next/
+web/out/
+web/tsconfig.tsbuildinfo
+
+# Written by `next dev` on every run (next/dist/server/lib/generate-agent-files.js). Its
+# subject is the Next.js version, not this repository, and AGENTS.md at the root is the
+# governing document here — a second generated pair under web/ would only compete with it.
+web/AGENTS.md
+web/CLAUDE.md
