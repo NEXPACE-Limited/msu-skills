@@ -27,29 +27,31 @@ export default async function NotFound() {
           <p className="kicker">404</p>
           <h1 className="h-xl">No page at this address.</h1>
           <p className="lede">
-            A renamed skill, a retired plugin, or a hand-typed path all land here. Both
-            routes below are generated from the catalog, so they lead to what is published
+            A renamed skill, a retired plugin, or a hand-typed path all land here. The
+            route below is generated from the catalog, so it leads to what is published
             today.
           </p>
           <div className="panels">
+            {/* The heading stays derived — it is the catalog's own identity and names where
+                "Home →" goes. The sentence under it is deliberately NOT catalog.description.
+                That field is scoped to one plugin's subject ("common skills and shared
+                modules") and reads as a plugin card here, next to a card that is genuinely
+                about the whole catalog. This is component prose with no other source, the
+                same standing as the blurb on the card beside it — not a manifest field
+                retyped, which is the thing AGENTS.md forbids. It names no plugin and counts
+                nothing, so a third plugin does not date it; the counts below are derived.
+                If marketplace.json's description is ever widened to cover the catalog, this
+                becomes a duplicate and should go back to {catalog.description}. */}
             <Link className="panel" href="/">
               <h3>{catalog.name}</h3>
-              <p>{catalog.description}</p>
+              <p>
+                The catalog page — every plugin it publishes, the install command for
+                whichever agent you run, and the terms that travel with them.
+              </p>
               <div className="meta">
                 <span>{plural(plugins.length, 'plugin')}</span>
                 <span>{plural(skillCount, 'skill')}</span>
                 <span className="go">Home →</span>
-              </div>
-            </Link>
-            <Link className="panel is-blue" href="/#skills">
-              <h3>All skills</h3>
-              <p>
-                Every skill in the catalog, each shown with the description its agent reads
-                to decide whether to load it.
-              </p>
-              <div className="meta">
-                <span>{plural(skillCount, 'skill')}</span>
-                <span className="go">Open →</span>
               </div>
             </Link>
           </div>
