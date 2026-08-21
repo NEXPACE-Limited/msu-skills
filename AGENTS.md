@@ -282,43 +282,32 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
   `.colorhead::before`, which is sealed by its own `isolation: isolate`. The background
   stays fully opaque — a translucent bar would render the nav over arbitrary page content
   at an unmeasured contrast on every scroll position.
-- **The motion system is CSS only, and three invariants are what let it stay that way.** It
-  adds no dependency, no client JavaScript and no marker on `<html>`; the section at the end
-  of `globals.css` states all three in full. First, every `@keyframes` declares only a
-  `from`, so the base rule is always the finished state and `animation: none` renders the
-  page that ships — `animation-fill-mode: forwards` must never appear in the file, and that
-  rule alone is what makes the `both` on every scroll-driven rule safe. Second, any hidden
-  initial state lives inside `@supports (animation-timeline: view())` nested in
-  `@media (prefers-reduced-motion: no-preference)`; a rule that forgets the fence hides
-  content permanently. What is inside that fence is what most readers see — VERIFIED against
-  mdn/browser-compat-data (2026-08), `animation-timeline` is Chrome 115+ and Safari/iOS
-  Safari 26+, while Firefox is `version_added: "preview"` and has shipped it in no stable
-  release — so a fenced rule that only works on paper is a bug for the majority, not an edge
-  case. Third, **a scroll range is an absolute length off `cover`, never a percentage of
-  `entry`**: an `entry` percentage resolves against the subject's own height, and for a
-  pseudo-element that is the pseudo's box — which is how three shipped rules on 1px and 12px
-  marks came to span fractions of a pixel of scroll and never draw. One consequence is a
-  layout constraint rather than a CSS one: a reveal needs `--reveal` (200px) of scrollable
-  document below its subject's top edge or it can never finish, so nothing in the last 200px
-  of a document may carry one. There are two gestures and one rule separating them:
-  **colour unfurls, ink rises.** A coloured field — the mark, a page head on arrival, the copy
-  cell on press, a row's 1px rule — grows from an anchored edge; type instead fades up into
-  place on scroll. They are told apart by what moves, so no box carries both. A fade renders
-  type below its measured contrast for as long as it runs, and the reveal's curve (`--e-rise`,
-  not the mark's `--e-unfurl`) deliberately spends most of the range visibly transitioning so
-  the movement lands where the reader is looking — that window is the cost of choosing a fade,
-  and it is movable but not removable. What is guaranteed is the endpoint: nothing ever
-  *resolves* to less than its measured value, because every base rule is opacity 1 and no
-  keyframe declares a `to`. Two states get the animation
-  dropped rather than tuned, both landing on that base rule: an element containing
-  `:focus-visible`, because the browser will not scroll to a control already on screen and a
-  focus ring must never be half-drawn; and `.skill-body:has(details[open])`, because a
-  disclosure does not scroll and would otherwise strand the newly revealed paragraph at
-  partial opacity. Together the first two are also why the `prefers-reduced-motion` guard
-  keeps its blanket `!important` — which is separately load-bearing, because Radix Presence
-  unmounts cmdk's dialog only when the computed `animationName` is `none`, so weakening it
-  leaves the palette hanging open. A palette entrance is therefore scoped to
-  `[data-state="open"]`, never declared on `.pal` itself.
+- **The motion system is CSS only.** It adds no dependency, no client JavaScript and no
+  marker on `<html>`. Three invariants hold it there. The section at the end of
+  `globals.css` states each one in full with the measurements behind it and is the
+  authority; this list carries the names so a reviewer knows what to check.
+  1. Every `@keyframes` declares only a `from`, so the base rule is the finished state and
+     `animation: none` renders the page that ships. `animation-fill-mode: forwards` must
+     never appear in the file.
+  2. Any hidden initial state sits inside `@media (prefers-reduced-motion: no-preference)`
+     nested in an `@supports` test for the timeline that rule uses. Most readers are inside
+     that fence and Firefox stable is outside it, so a rule that forgets the fence hides
+     content from the majority rather than from an edge case.
+  3. A scroll range is an absolute length off `cover`, never a percentage of `entry`, which
+     resolves against the subject's own height. This one carries a layout constraint:
+     a reveal needs `--reveal` (200px) of scrollable document below its subject's top edge,
+     so nothing in the last 200px of a document may carry one.
+
+  Two gestures divide the work — colour unfurls, ink rises. A coloured field grows from an
+  anchored edge; type fades up into place on scroll. They are told apart by what moves, so
+  no box carries both. Every base rule is opacity 1 and no keyframe declares a `to`, so a
+  fade's endpoint is always the measured value. Two states drop the animation onto that base
+  rule rather than tune it: an element containing `:focus-visible`, because a focus ring must
+  never be half-drawn, and `.skill-body:has(details[open])`, because a disclosure does not
+  scroll. That is also why the `prefers-reduced-motion` guard keeps its blanket `!important`
+  — Radix Presence unmounts cmdk's dialog only when the computed `animationName` is `none`,
+  so weakening it leaves the palette hanging open, and a palette entrance is scoped to
+  `[data-state="open"]` rather than declared on `.pal` itself.
 - `web/public/og.png` is the link-preview card, the one asset that is drawn rather than
   generated. It carries no counts and no plugin names, so only a change to the headline
   or the wordmark makes it stale.

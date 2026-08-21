@@ -61,10 +61,12 @@
      watch the hero once and you have been taught how every coloured thing on
      this site arrives.
 
-     Widths measured off this file: .skill-name .dot is 12px, .petal-row i is
-     46px, .cmd .cp is 48px, .colorhead is full bleed. The two that matter are
-     46 and 48 — the hero bar and the copy button are the same object at the
-     same size, which is what makes the signature legible as a return.
+     Widths measured off this file: .petal-row i is 46px, .cmd .cp is 48px,
+     .colorhead is full bleed. The two that matter are 46 and 48 — the hero bar
+     and the copy button are the same gesture at a near-matched width, which is
+     what makes the signature legible as a return. They are not the same box and
+     do not run the same animation: the petal is a 10px-tall pill on --e-snap
+     over --t-unfurl, the cell a 44px-min square on --e-unfurl over --t-press.
 
      These are durations and curves, not colours, so they are correct in all
      three theme states and must never be redefined inside either dark block.
@@ -98,13 +100,14 @@
      HEIGHT — entry runs from the subject's top edge touching the scrollport's
      bottom to its bottom edge clearing that same line, a scroll of exactly the
      subject's height. For view() on a pseudo-element the subject is the PSEUDO'S
-     box. MEASURED at 375x780 on the catalog page's fourth skill row: the shipped
-     `entry 6% entry 46%` took .skill::before from scaleX(0) to scaleX(1) between
-     0px and 1px of scroll, and held there for the next 7px. It has never drawn;
-     it switches. Same for .channel::after (1px subject, 0.5px of scroll) and
-     .skill-name .dot (12px subject, 4.8px). A length off `cover` is the same
-     distance for every subject, which is what lets ONE number govern a 1px rule,
-     a 12px dot, a 62px label and a 376px table. MEASURED with the same rig:
+     box. MEASURED at 375x780 on the catalog page's fourth skill row: an earlier
+     revision of this change wrote `entry 6% entry 46%`, which took .skill::before
+     from scaleX(0) to scaleX(1) between 0px and 1px of scroll and held there for
+     the next 7px. It drew nothing; it switched. Same for .channel::after (1px
+     subject, 0.5px of scroll). Neither reached a release — both were measured and
+     rewritten inside this change. A length off `cover` is the same distance for
+     every subject, which is what lets ONE number govern a 1px rule, a 62px label
+     and a 376px table. MEASURED with the same rig:
      `cover 0px cover 200px` sweeps scaleX .989 -> 0 linearly across exactly 200px
      on a 19px subject, then holds at 0 through +260px and beyond.
 
@@ -244,14 +247,19 @@ a.panel { color: var(--on-color); }
      timeline attached for the compositor to keep sampling.
 
      This is the backstop, not the mechanism. Every scroll-driven rule in this file is
-     fenced inside `@media (prefers-reduced-motion: no-preference)` nested in
-     `@supports (animation-timeline: view())`, so a reduced-motion reader never receives a
-     hidden initial state and nothing has to be un-done. This block exists for a rule added
-     later that forgets the fence. */
+     fenced inside `@media (prefers-reduced-motion: no-preference)` nested in an `@supports`
+     test for the timeline that rule uses — `animation-timeline: view()` for the risers and
+     the marks, `scroll()` for the topbar's separator and progress fill — so a reduced-motion
+     reader never receives a hidden initial state and nothing has to be un-done. This block
+     exists for a rule added later that forgets the fence. */
   *, *::before, *::after { animation-timeline: auto !important; animation-range: normal !important; }
 }
 
-/* A printed page must be the resting state, and the resting state is already correct. */
+/* A printed page must be the resting state, and invariant 1 already makes the base rule
+   that state, so dropping every animation is the whole fix. This is a block of its own
+   rather than a second selector on the reduced-motion query above: print resolves
+   `prefers-reduced-motion` as no-preference, so a reader who never expressed a motion
+   preference would otherwise print pages carrying hidden initial states. */
 @media print {
   *, *::before, *::after { animation: none !important; }
 }
@@ -976,7 +984,13 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--link); outline-
   @media (prefers-reduced-motion: no-preference) {
 
     /* THE ONE RULE. Everything after it only chooses a different box or shifts the
-       range. Type only — a coloured field is never faded, it unfurls. */
+       range. Type only, in this sense: no coloured field is ever the SUBJECT of a
+       fade. A field either unfurls under a rule of its own, or it has no rule and
+       arrives inside the container that rises. .skill-name .dot is the case worth
+       naming — a 12px coloured field with no rule anywhere in this file, which
+       reaches full opacity as part of .skill-id. Giving it one would not change
+       that: a parent's opacity applies to the whole subtree, so the dot would fade
+       and unfurl at once, which is the one thing the two gestures forbid. */
     .band :is(.kicker, .h-lg, .lede, .cmd-note),
     .band .panel,
     .skill-id, .skill-body,

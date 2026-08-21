@@ -35,9 +35,8 @@ export default async function NotFound() {
             {/* The heading stays derived — it is the catalog's own identity and names where
                 "Home →" goes. The sentence under it is deliberately NOT catalog.description.
                 That field is scoped to one plugin's subject ("common skills and shared
-                modules") and reads as a plugin card here, next to a card that is genuinely
-                about the whole catalog. This is component prose with no other source, the
-                same standing as the blurb on the card beside it — not a manifest field
+                modules"), so it would describe this card as a plugin rather than as the
+                catalog. This is component prose with no other source, not a manifest field
                 retyped, which is the thing AGENTS.md forbids. It names no plugin and counts
                 nothing, so a third plugin does not date it; the counts below are derived.
                 If marketplace.json's description is ever widened to cover the catalog, this
