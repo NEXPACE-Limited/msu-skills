@@ -139,11 +139,7 @@ export default async function CatalogPage() {
         </div>
       </section>
 
-      {/* The catalog's other deep link, and the sibling of /#plugins that the topbar uses.
-          Nothing in this repository links to it today — the 404 page's second card did and
-          was removed — but it is the only stable address for the skills list, and the
-          section already carries the heading that names it. */}
-      <section className="band" id="skills">
+      <section className="band">
         <div className="wrap">
           <p className="kicker">All skills · {skillCount}</p>
           <h2 className="h-lg">What each one does</h2>

@@ -199,7 +199,7 @@
 html {
   -webkit-text-size-adjust: 100%;
   /* The bar is sticky, so an anchor jump would otherwise land its target underneath it.
-     MEASURED against the three targets that exist — #main, #plugins and #skills — 14px
+     MEASURED against the two targets that exist — #main and #plugins — 14px
      past the bar's own height puts the heading clear of the separator rather than flush
      against it. This is a property of the scroll container, so it also governs the jump
      the skip link makes and the one find-in-page makes. */
@@ -978,7 +978,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--link); outline-
     /* THE ONE RULE. Everything after it only chooses a different box or shifts the
        range. Type only — a coloured field is never faded, it unfurls. */
     .band :is(.kicker, .h-lg, .lede, .cmd-note),
-    .panel,
+    .band .panel,
     .skill-id, .skill-body,
     .channel > div:first-child, .channel .cmds,
     .notes li,
@@ -996,7 +996,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--link); outline-
        is why no media query is needed to undo it. */
     .skill-body,
     .channel .cmds,
-    .panel:nth-child(even),
+    .band .panel:nth-child(even),
     .tools .tool:nth-child(even) {
       animation-range: cover var(--reveal-lag)
                        cover calc(var(--reveal) + var(--reveal-lag));
@@ -1020,7 +1020,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--link); outline-
        paragraph is text the reader just asked for; it resolves to full opacity the
        instant it exists. */
     :is(.band :is(.kicker, .h-lg, .lede, .cmd-note),
-        .panel, .skill-id, .skill-body,
+        .band .panel, .skill-id, .skill-body,
         .channel > div:first-child, .channel .cmds,
         .notes li, .tool, .kv dl, .aside > div):has(:focus-visible),
     .skill-body:has(details[open]) { animation-name: none; }
@@ -1139,9 +1139,10 @@ html { scrollbar-gutter: stable; }
    labels, the note, the counts. The first screen must be complete the instant it
    paints, and this site's single job is to hand over an install command; that
    command is never faded at any scroll position. The hero's one event stays the
-   petal row on load. This is also why the riser set is scoped to .band: the hero
-   is .hero, so the exclusion is structural rather than a list of exceptions that
-   would have to be kept in step.
+   petal row on load. This is also why every riser selector is scoped to .band,
+   .panel included — the 404's card is a .panel inside .hero, so an unscoped .panel
+   would have made that one card the exception. The hero is .hero, so the exclusion
+   is structural rather than a list of exceptions that would have to be kept in step.
 
    EVERY .colorhead's CONTENTS — breadcrumb, kicker, h1, tags, .head-cmd. They
    already arrive inside the page-head unfurl, and each region gets exactly one

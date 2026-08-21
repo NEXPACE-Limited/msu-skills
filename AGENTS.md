@@ -275,8 +275,8 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
 - **The top bar is sticky, and two things depend on its height.** `--topbar-h` in
   `globals.css` is the only place that height is stated: `.topbar .wrap` takes it as
   `min-height`, and `html { scroll-padding-top }` is computed from it so an anchor jump
-  never lands its target underneath the bar — which governs `#main` (the skip link),
-  `#plugins` and `#skills` alike. Change the bar's height there and nowhere else. Its
+  never lands its target underneath the bar — which governs `#main` (the skip link) and
+  `#plugins`. Change the bar's height there and nowhere else. Its
   `z-index: 40` sits in a fixed budget: above the page, below the palette veil (60), the
   palette (61) and the skip link (80); it deliberately does not need to outrank
   `.colorhead::before`, which is sealed by its own `isolation: isolate`. The background
