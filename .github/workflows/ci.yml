@@ -9,7 +9,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, develop]
 
 permissions:
   contents: read
@@ -98,6 +98,76 @@ jobs:
         # Uses a local archive behind a fake curl adapter: PRs test the remote-install
         # interface without depending on GitHub availability or the state of main.
         run: bash scripts/test-remote-installer.sh
+      - name: The MCP registration branch parses every shipped server definition
+        # Every other invocation here passes --target, which exits before the MCP
+        # section — leaving the one path external CLI users rely on untested. This
+        # runs it against a fake HOME (the codex branch prints its snippet without
+        # any CLI binary or key) and pins the sed-parsed server name and url to
+        # jq's read of the same file — to_entries, not keys, because keys sorts
+        # and the installer reads the first server in file order. A reformat the
+        # line parser cannot follow fails this PR instead of silently registering
+        # a wrong server.
+        run: |
+          fake="$RUNNER_TEMP/mcp-probe-home"
+          mkdir -p "$fake/.codex"
+          count=0
+          for mcp_file in plugins/*/.mcp.json; do
+            [ -f "$mcp_file" ] || continue
+            plugin="$(basename "$(dirname "$mcp_file")")"
+            expected="$(jq -r '.mcpServers | to_entries[0].key' "$mcp_file")"
+            expected_url="$(jq -r '.mcpServers | to_entries[0].value.url' "$mcp_file")"
+            out="$(HOME="$fake" bash install.sh --plugin "$plugin")"
+            if ! printf '%s\n' "$out" | grep -F "[mcp_servers.$expected]" >/dev/null; then
+              echo "::error::install.sh derived a wrong MCP server name for $plugin (expected '$expected')"
+              printf '%s\n' "$out"
+              exit 1
+            fi
+            if ! printf '%s\n' "$out" | grep -F "url = \"$expected_url\"" >/dev/null; then
+              echo "::error::install.sh derived a wrong MCP url for $plugin (expected '$expected_url')"
+              printf '%s\n' "$out"
+              exit 1
+            fi
+            count=$((count + 1))
+            echo "$plugin: MCP name '$expected' and url ok"
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "no plugin ships an .mcp.json — nothing to check"
+          fi
+      - name: An unreadable MCP definition stops the run before any skill is copied
+        # The other half of the preflight guarantee: a definition the line parser
+        # cannot read (a minified rendering is exactly that) must fail the run
+        # before the copy loop — it used to fail after "✅ Installed" had printed.
+        run: |
+          src="$RUNNER_TEMP/mcp-negative-src"
+          fake="$RUNNER_TEMP/mcp-negative-home"
+          mkdir -p "$fake/.codex"
+          cp -R . "$src"
+          mcp_file=""
+          for candidate in "$src"/plugins/*/.mcp.json; do
+            if [ -f "$candidate" ]; then mcp_file="$candidate"; break; fi
+          done
+          if [ -z "$mcp_file" ]; then
+            echo "no plugin ships an .mcp.json — nothing to check"
+            exit 0
+          fi
+          plugin="$(basename "$(dirname "$mcp_file")")"
+          jq -c . "$mcp_file" > "$mcp_file.tmp"
+          mv "$mcp_file.tmp" "$mcp_file"
+          if out="$(HOME="$fake" bash "$src/install.sh" --plugin "$plugin" 2>&1)"; then
+            echo "::error::install.sh succeeded although $plugin's .mcp.json is unreadable to its parser"
+            printf '%s\n' "$out"
+            exit 1
+          fi
+          if ! printf '%s\n' "$out" | grep -F "Could not read the MCP" >/dev/null; then
+            echo "::error::install.sh failed for a reason other than the unreadable .mcp.json"
+            printf '%s\n' "$out"
+            exit 1
+          fi
+          if [ -e "$fake/.codex/skills" ]; then
+            echo "::error::skills were copied before the unreadable .mcp.json stopped the run"
+            exit 1
+          fi
+          echo "$plugin: minified .mcp.json stops the run before the copy loop"
 
   skills-discovery:
     runs-on: ubuntu-latest
@@ -109,8 +179,10 @@ jobs:
       - name: List skills the skills CLI discovers
         run: npx --yes skills add . -l | tee discovery.log
       - name: Every skill was discovered
-        # The skills CLI globs SKILL.md recursively, so it sees every plugin's skills
-        # from the repository root. That is the documented behaviour of that channel.
+        # The skills CLI is not a recursive glob: with .claude-plugin/marketplace.json
+        # present it scans exactly the plugins that catalog lists, so a plugin with no
+        # catalog entry is invisible on that channel. This step enumerates plugins from
+        # the filesystem instead, which is what catches the missing entry.
         run: |
           count=0
           for dir in plugins/*/skills/*/; do
@@ -129,110 +201,194 @@ jobs:
           echo "$count skill(s) discovered"
 
   site-build:
-    # The landing page is generated from the catalog and every SKILL.md frontmatter. A
-    # manifest or frontmatter change that breaks the generator fails here, on the PR,
-    # rather than in the Pages deploy that runs after the merge.
+    # The landing site is a Next.js static export under web/, rendered from the catalog,
+    # every plugin.json and .mcp.json, and every SKILL.md frontmatter. A manifest or
+    # frontmatter change that breaks it fails here, on the PR, rather than in the Pages
+    # deploy that runs after the merge. The job name is a required status check on main;
+    # renaming it leaves that branch waiting on a check that never runs.
+    #
+    # The generator's ownership-marker assertions stood here and are gone with the
+    # generator: `next build` wipes web/out unconditionally, and web/out is a fixed path
+    # inside web/ rather than an argument, so there is no stale output to detect and no
+    # way to aim the build at a directory somebody else owns. `make clean` went with them.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: npm
+          # setup-node searches the repository root for a lockfile and finds none. The
+          # site's is the only one in the tree, and without this the cache never hits.
+          cache-dependency-path: web/package-lock.json
+      - name: Install the site's dependencies
+        working-directory: ./web
+        # --ignore-scripts: nothing here needs an install hook, and this is the only job
+        # that would otherwise run a dependency's.
+        run: npm ci --ignore-scripts
       - name: The pages render
-        run: node scripts/build-site.mjs "$RUNNER_TEMP/site"
-      - name: Output cleanup is ownership-checked
-        # index.html alone is not proof that a directory belongs to this generator. A
-        # dedicated marker permits stale-output cleanup; an unmarked site must survive.
+        working-directory: ./web
+        run: npm run build
+
+      - name: Derive the site's URL identity from the catalog
+        # next.config.mjs derives basePath and the site URL from marketplace.json rather
+        # than stating them, so renaming the repository re-points every path with no edit
+        # to the app. The checks below derive the same two values the same way: a literal
+        # here would keep passing after that rename while asserting nothing.
         run: |
-          site="$RUNNER_TEMP/site"
-          marker="$site/.msu-skills-site-build"
-          if [ ! -f "$marker" ]; then
-            echo "::error::the generated site has no ownership marker"
-            exit 1
-          fi
+          repo_url="$(jq -r '(.plugins[0].repository // (.owner.url + "/" + .name)) | sub("\\.git$"; "")' .claude-plugin/marketplace.json)"
+          repo="${repo_url##*/}"
+          owner="${repo_url%/*}"
+          owner="${owner##*/}"
+          {
+            echo "OUT=$GITHUB_WORKSPACE/web/out"
+            echo "BASE_PATH=/$repo"
+            echo "SITE_URL=https://$(echo "$owner" | tr '[:upper:]' '[:lower:]').github.io/$repo/"
+          } >> "$GITHUB_ENV"
 
-          touch "$site/stale-page.html"
-          node scripts/build-site.mjs "$site"
-          if [ -e "$site/stale-page.html" ]; then
-            echo "::error::a marked rebuild left stale output behind"
-            exit 1
-          fi
-
-          unowned="$RUNNER_TEMP/not-a-build"
-          mkdir "$unowned"
-          touch "$unowned/index.html" "$unowned/user-data.txt"
-          if node scripts/build-site.mjs "$unowned"; then
-            echo "::error::the generator emptied an unmarked directory"
-            exit 1
-          fi
-          if [ ! -f "$unowned/user-data.txt" ]; then
-            echo "::error::the generator deleted a file from an unmarked directory"
-            exit 1
-          fi
-
-          printf 'not this generator\n' > "$unowned/.msu-skills-site-build"
-          if node scripts/build-site.mjs "$unowned"; then
-            echo "::error::the generator trusted an invalid ownership marker"
-            exit 1
-          fi
-          if [ ! -f "$unowned/user-data.txt" ]; then
-            echo "::error::the generator deleted a file beside an invalid marker"
-            exit 1
-          fi
-          if make clean OUT="$unowned"; then
-            echo "::error::make clean emptied an unmarked directory"
-            exit 1
-          fi
-          if [ ! -f "$unowned/user-data.txt" ]; then
-            echo "::error::make clean deleted a file from an unmarked directory"
-            exit 1
-          fi
-
-          clean_probe="$RUNNER_TEMP/clean-probe"
-          node scripts/build-site.mjs "$clean_probe"
-          make clean OUT="$clean_probe"
-          if [ -e "$clean_probe" ]; then
-            echo "::error::make clean did not remove a marked build"
-            exit 1
-          fi
       - name: Every plugin has a linked page, and every skill has a card on it
         # Searching the whole site would prove nothing: the catalog page's plugin card
         # already lists every skill name, so a plugin page could lose all of its cards and
         # still match. Each skill is looked for on its own plugin's page, anchored on the
-        # card heading so a name in a chip cannot satisfy it.
+        # data-skill attribute the card carries — the class names around it are a styling
+        # decision that changes without meaning anything.
         run: |
-          site="$RUNNER_TEMP/site"
-          count=0
+          plugins=0
+          skills=0
           for dir in plugins/*/; do
             manifest="$dir/.claude-plugin/plugin.json"
             [ -f "$manifest" ] || continue
             plugin="$(jq -r '.name' "$manifest")"
-            page="$site/$plugin/index.html"
+            page="$OUT/$plugin/index.html"
 
             if [ ! -f "$page" ]; then
               echo "::error::plugin '$plugin' has no page at $plugin/index.html"
               exit 1
             fi
-            if ! grep -Fq "href=\"./$plugin/\"" "$site/index.html"; then
+            if ! grep -Fq "href=\"$BASE_PATH/$plugin/\"" "$OUT/index.html"; then
               echo "::error::the catalog page does not link to $plugin/"
               exit 1
             fi
+            plugins=$((plugins + 1))
 
             for skill in "$dir"skills/*/; do
               [ -f "$skill/SKILL.md" ] || continue
               name="$(basename "$skill")"
-              if ! grep -Fq "class=\"skill-name\">$name<" "$page"; then
+              if [ ! -f "$OUT/$plugin/$name/index.html" ]; then
+                echo "::error::$name has no page at $plugin/$name/index.html"
+                exit 1
+              fi
+              if ! grep -Fq "data-skill=\"$name\"" "$page"; then
                 echo "::error::$name has no card on $plugin/index.html"
                 exit 1
               fi
-              count=$((count + 1))
+              skills=$((skills + 1))
             done
           done
-          if [ "$count" -eq 0 ]; then
+          if [ "$skills" -eq 0 ]; then
             echo "::error::no SKILL.md under plugins/*/skills/"
             exit 1
           fi
-          echo "$count skill(s) carded on their own plugin's page"
+          echo "$plugins plugin page(s), $skills skill(s) carded on their own plugin's page"
+
+      - name: The feeds list every published page
+        # Both feeds come from route handlers, not from the export walker, so a page can
+        # be added without either noticing. The expected count is 2 + plugins + skills —
+        # the catalog page and the MCP page, plus one per plugin and one per skill — and
+        # deliberately not the number of index.html files: Next also writes 404/ and
+        # _not-found/, which the site does not publish.
+        run: |
+          shopt -s nullglob
+          plugins=0
+          skills=0
+          for manifest in plugins/*/.claude-plugin/plugin.json; do plugins=$((plugins + 1)); done
+          for file in plugins/*/skills/*/SKILL.md; do skills=$((skills + 1)); done
+          if [ "$skills" -eq 0 ]; then
+            echo "::error::no SKILL.md under plugins/*/skills/"
+            exit 1
+          fi
+          expected=$((2 + plugins + skills))
+
+          if [ ! -f "$OUT/sitemap.xml" ]; then
+            echo "::error::sitemap.xml was not exported"
+            exit 1
+          fi
+          locs="$(grep -o '<loc>' "$OUT/sitemap.xml" | wc -l | tr -d ' ' || true)"
+          if [ "$locs" != "$expected" ]; then
+            echo "::error::sitemap.xml lists $locs URL(s); expected $expected (catalog + mcp + $plugins plugin(s) + $skills skill(s))"
+            exit 1
+          fi
+          stray="$(grep -o '<loc>[^<]*</loc>' "$OUT/sitemap.xml" \
+            | sed -e 's|<loc>||' -e 's|</loc>||' \
+            | awk -v url="$SITE_URL" 'index($0, url) != 1' || true)"
+          if [ -n "$stray" ]; then
+            echo "::error::sitemap.xml lists URL(s) outside $SITE_URL: $(echo "$stray" | tr '\n' ' ')"
+            exit 1
+          fi
+          if [ ! -s "$OUT/llms.txt" ]; then
+            echo "::error::llms.txt is missing or empty"
+            exit 1
+          fi
+          echo "sitemap.xml lists $locs URL(s) under $SITE_URL; llms.txt is non-empty"
+
+      - name: Every published page states its canonical, and Next's two state none
+        # A static export cannot infer its own public URL, so the canonical is written by
+        # the app and is the one tag no page emits by accident — a second one, or one
+        # pointing off-site, splits the indexed page from itself. 404/ and _not-found/ are
+        # Next's own output rather than pages this site publishes: they carry a noindex
+        # robots meta and no canonical, or an error page competes for a real page's URL.
+        run: |
+          published=0
+          while IFS= read -r page; do
+            rel="${page#"$OUT/"}"
+            found="$(grep -oE '<link[^>]*rel="canonical"[^>]*>' "$page" | wc -l | tr -d ' ' || true)"
+            case "$rel" in
+              404/index.html|_not-found/index.html)
+                if [ "$found" != "0" ]; then
+                  echo "::error::$rel states a canonical; it is not a published page"
+                  exit 1
+                fi
+                if ! grep -Fq 'name="robots" content="noindex' "$page"; then
+                  echo "::error::$rel carries no noindex robots meta"
+                  exit 1
+                fi
+                ;;
+              *)
+                if [ "$found" != "1" ]; then
+                  echo "::error::$rel carries $found canonical link(s); expected exactly 1"
+                  exit 1
+                fi
+                url="$(grep -oE '<link[^>]*rel="canonical"[^>]*>' "$page" | sed -E 's/.*href="([^"]*)".*/\1/')"
+                case "$url" in
+                  "$SITE_URL"*) ;;
+                  *)
+                    echo "::error::$rel states the canonical $url, which is outside $SITE_URL"
+                    exit 1
+                    ;;
+                esac
+                published=$((published + 1))
+                ;;
+            esac
+          done < <(find "$OUT" -name index.html | sort)
+          echo "$published published page(s) state their canonical"
+
+      - name: No site-internal path drops the base path
+        # The site is served from a subdirectory. Next rewrites next/link hrefs and
+        # bundled asset URLs to carry it, but not a raw href or src an element states
+        # itself, and not a metadata icon URL — either resolves against the domain root
+        # and 404s in production only. Only rendered HTML is scanned: the RSC payload
+        # sidecars store link targets base-path-free on purpose, because the client
+        # router prepends it at navigation time.
+        run: |
+          offenders="$(grep -rhoE '(href|src)="/[^"]*"' "$OUT" --include='*.html' \
+            | sed -E 's/^(href|src)="//; s/"$//' \
+            | awk -v base="$BASE_PATH" 'substr($0, 1, 2) != "//" && $0 != base && index($0, base "/") != 1' \
+            | sort -u || true)"
+          if [ -n "$offenders" ]; then
+            echo "::error::site-internal path(s) missing $BASE_PATH: $(echo "$offenders" | tr '\n' ' ')"
+            exit 1
+          fi
+          echo "every site-internal path carries $BASE_PATH"
 
   guards:
     runs-on: ubuntu-latest
@@ -350,6 +506,46 @@ jobs:
             exit 1
           fi
           echo "$count skill(s) checked"
+
+      - name: Skill frontmatter parses as YAML
+        # The description is the skill-matching input, and a plain scalar holding a colon
+        # followed by a space is not valid YAML. Nothing else notices: plugin validate
+        # passes without even a warning, both installers copy the file, and the site
+        # renders the card from a line reader. The skill reaches the agent with no
+        # description at all, so it never matches.
+        run: |
+          command -v ruby >/dev/null || {
+            echo "::error::ruby is required to parse skill frontmatter"
+            exit 2
+          }
+          shopt -s nullglob
+          count=0
+          for file in plugins/*/skills/*/SKILL.md; do
+            ruby -ryaml -e '
+              path = ARGV[0]
+              text = File.read(path)
+              unless text.start_with?("---")
+                warn "::error file=#{path}::no frontmatter block"
+                exit 1
+              end
+              begin
+                data = YAML.safe_load(text.split(/^---\s*$/, 3)[1].to_s)
+              rescue => e
+                warn "::error file=#{path}::frontmatter is not valid YAML (#{e.class}) - quote any value holding a colon followed by a space"
+                exit 1
+              end
+              unless data.is_a?(Hash) && data["name"].is_a?(String) && data["description"].is_a?(String)
+                warn "::error file=#{path}::frontmatter must parse to a mapping with a name and a description"
+                exit 1
+              end
+            ' "$file" || exit 1
+            count=$((count + 1))
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "::error::no SKILL.md under plugins/*/skills/"
+            exit 1
+          fi
+          echo "$count skill frontmatter block(s) parse"
       - name: Skill names are unique across plugins
         # install.sh and the skills CLI both install flat, by skill name. Two plugins
         # claiming one name would silently overwrite each other on those channels.
@@ -390,8 +586,9 @@ jobs:
   version-bump:
     # Merging to main is the release, and the version string is the only update signal:
     # ship changed skills without bumping it and installed users keep the cached copy.
-    # The hub's catalog-agreement check used to catch this; nothing else does now.
-    if: github.event_name == 'pull_request'
+    # Bumps happen once, on the PR into main (normally the release PR, develop -> main),
+    # so this runs only there; no-premature-bump below covers the other side.
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -435,3 +632,34 @@ jobs:
             checked=$((checked + 1))
           done
           echo "$checked plugin(s) bumped"
+
+  no-premature-bump:
+    # The other half of version-bump: a bump on a PR into develop would conflict with
+    # every in-flight PR touching the same plugin — the friction develop exists to
+    # remove — and would skip the release PR's whole-diff review. A plugin new in the
+    # PR has no base version, so stating its first one passes.
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: No existing plugin changes its version
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          checked=0
+          for dir in plugins/*/; do
+            manifest="${dir%/}/.claude-plugin/plugin.json"
+            git cat-file -e "$BASE:$manifest" 2>/dev/null || continue
+            git cat-file -e "$HEAD:$manifest" 2>/dev/null || continue
+            base_version="$(git show "$BASE:$manifest" | jq -r '.version // empty')"
+            head_version="$(git show "$HEAD:$manifest" | jq -r '.version // empty')"
+            if [ "$base_version" != "$head_version" ]; then
+              echo "::error file=$manifest::version changed ($base_version -> $head_version) on a PR into develop — leave it alone; the release PR bumps every changed plugin at once"
+              exit 1
+            fi
+            checked=$((checked + 1))
+          done
+          echo "$checked plugin(s) left their version alone"

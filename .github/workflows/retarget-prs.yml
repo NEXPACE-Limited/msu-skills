@@ -1,0 +1,37 @@
+# PRs integrate on develop; main receives only the release PR (develop -> main).
+# GitHub always defaults a new PR's base to the repository's default branch, and main
+# must stay the default because every install channel reads it — so instead of failing
+# a PR opened against main, this moves it onto develop and says so in a comment.
+#
+# pull_request_target, not pull_request: a fork PR's GITHUB_TOKEN is read-only under
+# pull_request, and retargeting needs write. _target is safe here because nothing
+# checks out or executes PR code — the job is two API calls on event metadata.
+#
+# It fires only when the PR is opened. A change that genuinely belongs on main (a
+# hotfix, a release-machinery change) keeps its base by being moved back once, by
+# hand — this workflow does not fight the correction.
+
+name: retarget-prs
+
+on:
+  pull_request_target:
+    types: [opened]
+    branches: [main]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  retarget:
+    # The release PR is the one PR that belongs on main: develop, from this repository.
+    if: github.event.pull_request.head.ref != 'develop' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Move the base onto develop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" -X PATCH -f base=develop
+          gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="Retargeted onto \`develop\` — PRs integrate there, and \`main\` receives only the release PR. If this change genuinely belongs on \`main\`, move the base back by hand; this bot acts only when a PR is opened."

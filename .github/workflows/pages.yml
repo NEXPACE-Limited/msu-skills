@@ -1,14 +1,21 @@
-# Publishes the landing page to GitHub Pages. scripts/build-site.mjs renders it from the
+# Publishes the landing page to GitHub Pages. The Next.js app in web/ renders it from the
 # catalog and every SKILL.md frontmatter, so the published page follows the repository
 # with no file to keep in sync by hand.
 #
 # This repository already uses GitHub Actions as its Pages source. A new fork enables it
 # once under Settings → Pages; until then only the deploy job fails.
+#
+# Publishing is gated on CI. Triggering on the push directly would publish a merge whose
+# leak scan or linked-page check had just failed, because those guards live only in CI —
+# so this waits for that run and republishes only when it succeeded. The cost is that a
+# CI outage stops publishing; `workflow_dispatch` is the way through.
 
 name: Pages
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -29,18 +36,62 @@ defaults:
 
 jobs:
   build:
+    # `branches` filters the triggering run's head branch, which for a CI run on a pull
+    # request is the PR branch, not its base — so the event is checked too. A manual
+    # dispatch carries no workflow_run context and is allowed on its own terms.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # workflow_run checks out the default branch's tip by default, which need not
+          # be the commit CI passed on. Pin it; a dispatch falls back to its own ref.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - name: Render the page
-        run: node scripts/build-site.mjs
+          cache: npm
+          # The cache key derives from a lockfile, and setup-node only searches the
+          # repository root for one. The app's lockfile is a directory down, so name it
+          # or the cache silently never populates.
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        # This job holds pages:write and id-token:write, so a dependency's install script
+        # would run holding the credentials that publish the site: --ignore-scripts is not
+        # optional here. `ci` over `install` for the same reason the lockfile is committed
+        # — a publish installs the resolved tree, never a freshly solved one.
+        run: npm ci --ignore-scripts
+        working-directory: ./web
+      - name: Build the site
+        run: npm run build
+        working-directory: ./web
+      - name: Strip the RSC payload sidecars
+        # `next build` writes a React Server Component payload beside every exported page,
+        # in two shapes: `__next.*.txt` and the route's own `index.txt`. They are machine
+        # payloads with no title, and a project Pages site has no crawler-visible
+        # robots.txt of its own — the effective one is whatever the organization's
+        # <org>.github.io repository serves — so leaving them out of the artifact is the
+        # only control this repository has over what is crawlable.
+        #
+        # llms.txt is a published feed that shares the extension, so the strip names the
+        # two sidecar shapes instead of globbing *.txt, then proves it survived: a glob
+        # that ate it would publish a site whose LLM index 404s, and nothing downstream
+        # would fail.
+        run: |
+          find web/out \( -name '__next.*.txt' -o -name 'index.txt' \) -delete
+          test -f web/out/llms.txt || {
+            echo "::error::llms.txt was deleted by the sidecar strip"
+            exit 1
+          }
+      # No `static_site_generator: next` — it writes its own next.config, which would
+      # override the committed one that derives basePath and the site URL from the catalog.
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: _site
+          path: web/out
 
   deploy:
     needs: build

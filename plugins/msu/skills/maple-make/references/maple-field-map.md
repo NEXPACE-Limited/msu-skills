@@ -3,8 +3,6 @@ name: maple-field-map
 description: |
   Map JSON structure: file path rules, info fields, mob/NPC spawns (life), portals, footholds, and ladders.
   Use when placing mobs, designing level layout, reading spawn positions, or connecting maps via portals.
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Map System

@@ -1,0 +1,4 @@
+# Default owner for everything in this repository.
+# GitHub requests a review from the matching owner when a pull request opens.
+# Split this into per-path rules once review responsibility is divided.
+* @soohanpark

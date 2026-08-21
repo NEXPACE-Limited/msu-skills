@@ -1,5 +1,7 @@
 # MSU Skills
 
+[![skills.sh](https://skills.sh/b/nexpace-limited/msu-skills)](https://skills.sh/nexpace-limited/msu-skills)
+
 Use MapleStory Universe resources with AI agents.
 
 **[nexpace-limited.github.io/msu-skills](https://nexpace-limited.github.io/msu-skills/)** —
@@ -48,16 +50,16 @@ setup is needed.
 
 ### Other agents — skills CLI
 
-Requires [Node.js](https://nodejs.org) 18+.
+Requires [Node.js](https://nodejs.org) 22.20+.
 
 ```bash
 npx skills add NEXPACE-Limited/msu-skills
 ```
 
 This installs the skills for your active coding agent, such as Cursor, Codex
-CLI, OpenCode, Windsurf, Continue, Cline, or Claude Desktop. (Claude Code users
-should prefer the plugin channel above.) The skills do not bundle a CLI helper
-or require shell utilities.
+CLI, OpenCode, Windsurf, Continue, Cline, or Zed. (Claude Code users should
+prefer the plugin channel above.) The skills do not bundle a CLI helper or
+require shell utilities.
 
 This offers the skills of every plugin in the repository at once. Name the ones
 you want to narrow it:
@@ -195,6 +197,9 @@ Official MCP setup docs:
 | `game-tools` | [`game-tutorial`](plugins/game-tools/skills/game-tutorial/) | First-time-player onboarding: what to teach, when, and how to verify it |
 | `game-tools` | [`i18n-setup`](plugins/game-tools/skills/i18n-setup/) | Localization: string extraction, locale catalogs, fallback, plurals, glyphs, safe layouts |
 
+Any row above installs on its own with
+`npx skills add NEXPACE-Limited/msu-skills --skill <name>`.
+
 ## MCP Requirement
 
 The target agent environment must have the `maple-lookup` MCP server configured
@@ -214,7 +219,7 @@ plugins/game-tools/               # the game-tools plugin — no manifest key, n
   .claude-plugin/plugin.json
   skills/
 install.sh                        # manual installer for Codex / Gemini / Kimi
-site/, scripts/build-site.mjs     # the landing page, generated from the files above
+web/                              # the landing page — a Next.js app built from the files above
 ```
 
 Each plugin owns a directory under `plugins/` so that its skills, MCP servers,
@@ -231,6 +236,11 @@ Example prompt:
 ```text
 Please build a web view featuring three moving Orange Mushrooms.
 ```
+
+## Contributing
+
+Have a skill worth publishing here? [CONTRIBUTING.md](CONTRIBUTING.md) covers where the
+file goes, which plugin it belongs in, how to write it, and how to open the pull request.
 
 ## Important Notes
 

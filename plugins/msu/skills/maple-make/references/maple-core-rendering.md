@@ -5,14 +5,12 @@ description: |
   two rendering approaches (img tag vs Canvas), Phaser framework integration, and frame iteration.
   Applies to ALL entity types (mob, character, NPC, pet, morph, reactor, tamingmob).
   Load when rendering any sprite or integrating with Phaser.
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Sprite Rendering — Common Rules
 
 These rules apply to **all** entity types: mob, character, NPC, pet, morph, reactor, tamingmob.
-For entity-specific structure → see each entity's dedicated skill file.
+For entity-specific structure → see each entity's dedicated reference file.
 For character socket assembly → see `maple-character-rendering.md`.
 
 ## CDN
@@ -133,7 +131,7 @@ ctx.drawImage(img, drawX, drawY);
 | Entity type | Recommended approach | Reason |
 |-------------|---------------------|--------|
 | Single sprite (mob, NPC, pet, morph) | `<img>` tag or **Phaser Image 1 per frame** | No socket math needed |
-| Multi-part entity (character, tamingmob) | **Phaser Image per part** (`setOrigin(0,0)` + manual coords) | See each entity's dedicated skill file for assembly code |
+| Multi-part entity (character, tamingmob) | **Phaser Image per part** (`setOrigin(0,0)` + manual coords) | See each entity's dedicated reference file for assembly code |
 | Multi-layer compositing (custom) | Canvas `drawImage()` | Full pixel control |
 
 > **Phaser + Canvas mixing warning:** `RenderTexture.draw()` accepts only Phaser GameObjects, NOT `HTMLCanvasElement`. Do not render to an HTML Canvas and try to upload it to a RenderTexture — use Phaser Image objects instead.

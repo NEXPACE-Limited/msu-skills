@@ -3,8 +3,6 @@ name: maple-mob-boss-papulatus-structure
 description: |
   Papulatus 2-phase boss rendering: Clock (8500001) → Pilot (8500002).
   Unified multi-phase entry in viewer.
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Papulatus — Two-Phase Boss Rendering

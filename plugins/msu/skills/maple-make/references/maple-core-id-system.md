@@ -3,8 +3,6 @@ name: maple-core-id-system
 description: |
   Item, Skill, Mob, NPC ID encoding rules and file path mapping.
   Use when converting IDs to file paths, or resolving which folder/file an item/skill/mob belongs to.
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # ID System

@@ -3,8 +3,6 @@ name: maple-mob-boss-blackmage-structure
 description: |
   Black Mage multi-part boss rendering: 6 parts, 4 phases with form changes,
   HP linking. Load when rendering Black Mage (8880500–8880505).
-user-invocable: true
-disable-model-invocation: false
 ---
 
 # Black Mage — Multi-Part Boss Rendering

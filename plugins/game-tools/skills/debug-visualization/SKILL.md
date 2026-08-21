@@ -161,7 +161,7 @@ const T = DebugPanel.define({ /* ... */ });
 
 ```html
 <script>
-/* ==== DEBUG PANEL v1 — verbatim library, do not edit (builder's tuning panel). Only the ENABLED and LANG lines may be changed. ==== */
+/* ==== DEBUG PANEL v2 — verbatim library, do not edit (builder's tuning panel). Only the ENABLED and LANG lines may be changed. ==== */
 /* ... the full, unmodified contents of debug-panel.js ... */
 /* ==== END DEBUG PANEL ==== */
 </script>
@@ -171,6 +171,8 @@ const T = DebugPanel.define({ /* ... */ });
 An inline build **cannot be uploaded to a sandboxed host** — `script-src 'self'` blocks inline scripts, so the panel (and the inline game code) won't run there. The moment publishing intent appears, split into external files. If you cannot reproduce the library completely and verbatim, ship the game WITHOUT the panel block rather than with a truncated one.
 
 **Verbatim rule:** paste the library exactly as shipped. The only two lines you may ever change inside the sentinels are `ENABLED` (set `false` on publish) and `LANG` (`'en'` or `'ko'`, match the builder's language). NEVER rename `DebugPanel`, the `[TUNING]`/`[ERRORS]` sentinels, the sentinel comments, or the `advanced` group key — they are protocol tokens.
+
+**Version marker:** the header carries the library version — `v2` is what ships with this skill. The builder's repo holds a byte-for-byte copy, so a copy stamped lower is stale: when you open a game whose header shows an older version, replace the whole library with the shipped one (keeping that repo's `ENABLED`/`LANG` lines) before touching game code. Bump the marker in both files whenever `debug-panel.js` changes.
 
 **API you author against (everything else is built in):**
 
