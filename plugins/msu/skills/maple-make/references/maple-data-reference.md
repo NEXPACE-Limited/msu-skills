@@ -44,7 +44,7 @@ description: ENTRY POINT for MapleStory asset reference. Read this before any ot
 | Reference | Load when... |
 |-------|-------------|
 | `maple-core-id-system.md` | Resolving IDs, mapping items/skills/mobs to files |
-| `maple-core-id-reference.md` | All 36 weapon type codes, full job tree, body part slots, skill grades |
+| `maple-core-id-reference.md` | Weapon type codes, full job tree, body part slots, skill grades |
 | `maple-core-rendering.md` | CDN, sprite direction, flip rules, img/Canvas rendering, Phaser integration — all entity types |
 | `maple-character-rendering.md` | Character sprite assembly, socket attachment, z-order, VSlot, AAT, animation states |
 | `maple-character-skill-system.md` | Skill JSON structure, formula syntax, damage calculation |

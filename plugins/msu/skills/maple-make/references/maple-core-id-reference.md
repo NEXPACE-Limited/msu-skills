@@ -1,14 +1,14 @@
 ---
 name: maple-core-id-reference
 description: |
-  Complete lookup tables for the ID system: all 36 weapon type codes (WT_*),
+  Lookup tables for the ID system: the weapon type codes (WT_*),
   all body part slot codes (BP_*), full job advancement tree, skill grade system,
   and V-skill roots. Use when you need specific weapon type codes or job IDs.
 ---
 
 # ID System — Full Reference
 
-## Complete Weapon Types (36)
+## Weapon Types (37)
 
 | Code | Type | Note |
 |------|------|------|
@@ -17,8 +17,10 @@ description: |
 | WT_OH_MACE=32 | 1H Mace | |
 | WT_DAGGER=33 | Dagger | |
 | WT_SUB_DAGGER=34 | Sub Dagger | Dual Blade off-hand |
+| 36 | Cane | Phantom (2400), AAT 13 |
 | WT_WAND=37 | Wand | |
 | WT_STAFF=38 | Staff | |
+| 39 | Bare Hands | hidden (`info.hide=1`), AAT 8 — Buccaneer line and Ark accept it as `weapon2` |
 | WT_TH_SWORD=40 | 2H Sword | |
 | WT_TH_AXE=41 | 2H Axe | |
 | WT_TH_MACE=42 | 2H Mace | |
@@ -29,18 +31,31 @@ description: |
 | WT_THROWINGGLOVE=47 | Throwing Glove | |
 | WT_KNUCKLE=48 | Knuckle | |
 | WT_GUN=49 | Gun | |
+| 50 | Shovel | no normal-attack AAT |
+| 51 | Pickaxe | no normal-attack AAT |
 | WT_DUAL_BOW=52 | Dual Bowgun | Mercedes |
 | WT_HAND_CANNON=53 | Hand Cannon | Cannon Shooter |
 | WT_BIG_SWORD=56 | Great Sword | Zero (Alpha) |
 | WT_LONG_SWORD=57 | Long Sword | Zero (Beta) |
-| WT_GAUNTLET=58 | Gauntlet | |
+| WT_GAUNTLET=58 | Gauntlet | Blaster (3700) |
 | WT_ANCIENT_BOW=59 | Ancient Bow | |
-| WT_ROD=21 | Rod | Soul Shooter line |
-| WT_SOUL_SHOOTER=22 | Soul Shooter | Angelic Buster |
+| WT_ROD=21 | Rod | Luminous (2700) |
+| WT_SOUL_SHOOTER=22 | Soul Shooter | Angelic Buster (6500) |
+| 23 | Desperado | Demon Avenger (3101) |
+| 24 | Energy Chain | Xenon (3600) |
+| 26 | Psy-limiter | Kinesis (14200) |
 | WT_CHAIN=27 | Chain | Cadena |
-| WT_FAN=29 | Fan | Hoyoung |
-| WT_TUNER=213 | Tuner | |
-| WT_BREATH_SHOOTER=214 | Breath Shooter | |
+| 28 | Lucent Gauntlet | Illium (15200) |
+| WT_FAN=29 | Fan | Hoyoung (16400) |
+| WT_TUNER=213 | Tuner | Adele (15100) |
+| WT_BREATH_SHOOTER=214 | Breath Shooter | Kain (6300) |
+
+Rows carrying a bare number were recovered from the live data — `String/Eqp.json`,
+the weapon sticker JSONs, and skill `weapon`/`weapon2` requirements — which publish
+the code but not the `WT_` identifier; use the number until the constant is confirmed.
+`1352xxx` (secondary items), `1602xxx` (skill-effect dummies), `1690xxx` (level
+placeholders), and `170xxxx` (weapon stickers, see `maple-character-rendering.md`) are
+item categories, not weapon types.
 
 ## Complete Body Part Codes
 
