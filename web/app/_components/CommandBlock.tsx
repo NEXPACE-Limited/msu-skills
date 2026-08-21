@@ -1,7 +1,6 @@
 import { CopyButton } from './CopyButton'
 
-/** One command, with the only interactive element on most of these pages. The text is the
- *  single source for both what is shown and what is copied, so the two cannot drift. */
+/** One command. The text is the single source for what is shown and what is copied. */
 export function CommandBlock({ children }: { children: string }) {
   return (
     <div className="cmd">

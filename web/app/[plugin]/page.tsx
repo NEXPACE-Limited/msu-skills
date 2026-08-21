@@ -15,13 +15,11 @@ type Params = { plugin: string }
 type Located = {
   catalog: Catalog
   plugin: Plugin
-  /** Position in catalog order, which is what assigns the plugin its hue. */
+  /** Position in catalog order, which assigns the plugin its hue. */
   index: number
 }
 
-/** The route segment is a plugin name, so the catalog is the only thing that can resolve
- *  it. No guard here for a plugin named `mcp`: loadSite() refuses that name before either
- *  export below sees a plugin list, and a second check would be a copy that can drift. */
+/** No guard here for a plugin named `mcp`: loadSite() refuses that name first. */
 const locate = async (name: string): Promise<Located | undefined> => {
   const { catalog, plugins } = await loadSite()
   const index = plugins.findIndex(plugin => plugin.name === name)
@@ -40,22 +38,19 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { plugin: name } = await params
   const located = await locate(name)
-  // The page itself answers an unknown name with notFound(); returning nothing here keeps
-  // this function from throwing before that happens.
+  // The page answers an unknown name with notFound(); this must not throw before it does.
   if (!located) return {}
 
   const { plugin } = located
   const url = pageUrl(plugin.name)
 
   return {
-    // Just the name: the root layout's template appends the site identity.
+    // The root layout's template appends the site identity.
     title: plugin.name,
     description: plugin.description,
     alternates: { canonical: url },
-    // MEASURED (next/dist/lib/metadata/resolve-metadata.js, the `case 'openGraph'` branch):
-    // a page's openGraph REPLACES the layout's rather than merging into it, so declaring
-    // only `url` would drop the og:image, og:site_name and og:type the previous generator
-    // put on every page (site/partials/head.html:7-14). They are restated to keep parity.
+    // MEASURED (next/dist/lib/metadata/resolve-metadata.js): a page's openGraph REPLACES
+    // the layout's rather than merging, so type, siteName and images are restated here.
     openGraph: {
       type: 'website',
       siteName: CATALOG_NAME,
@@ -74,8 +69,7 @@ export default async function PluginPage({ params }: { params: Promise<Params> }
   const server = plugin.servers[0]
   const hue = hueFor(index)
 
-  // Built from REPO_SLUG rather than written out, so a fork or a rename re-points the
-  // command with no edit here.
+  // Built from REPO_SLUG, so a fork or a rename re-points the command.
   const installer =
     `curl -fsSL https://raw.githubusercontent.com/${REPO_SLUG}/main/install.sh` +
     ` | bash -s -- --plugin ${plugin.name}`
@@ -95,8 +89,7 @@ export default async function PluginPage({ params }: { params: Promise<Params> }
               <div className="tags">
                 <span className="tag">v{plugin.version}</span>
                 <span className="tag">{plural(plugin.skills.length, 'skill')}</span>
-                {/* The credential's own title, not a word for it: plugin.json names the key
-                    and a plugin that declares none has nothing to name. */}
+                {/* The credential's own title from plugin.json, not a word for it. */}
                 <span className="tag">{server?.credentialTitle ?? 'no credential'}</span>
                 <span className="tag">{server ? server.name : 'no MCP server'}</span>
               </div>

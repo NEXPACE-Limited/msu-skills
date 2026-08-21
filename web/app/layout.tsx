@@ -7,41 +7,29 @@ import { TopBar } from './_components/TopBar'
 import { Footer } from './_components/Footer'
 import './globals.css'
 
-/**
- * next/font self-hosts both families at build time — measured on this exact setup: the
- * export writes woff2 into out/_next/static/media/ and no request to fonts.googleapis.com
- * or fonts.gstatic.com survives anywhere in out/. Two families, latin only, 64 KB total.
- *
- * They are declared here rather than per page because preloading is per route: a font
- * function called on one page is not preloaded on the others.
- */
+/** next/font self-hosts both families at build time; no request to a Google host survives
+ *  in out/. Declared here rather than per page because preloading is per route. */
 const display = Instrument_Sans({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap'
 })
 
-/** MONO is left at its default of 1. Prose is Instrument Sans, so the proportional end of
- *  the axis is never asked for and requesting the range would only add bytes. */
 const mono = Google_Sans_Code({
   subsets: ['latin'],
   variable: '--font-mono',
   display: 'swap',
-  // next/font has no metric data for this family, so it cannot synthesise a
-  // metric-matched fallback and says so at build time. Naming the fallbacks keeps the
-  // swap from landing on whatever generic the platform picks.
+  // next/font has no metric data for this family and cannot synthesise a matched fallback,
+  // so the fallbacks are named rather than left to the platform's generic.
   fallback: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
 })
 
 /**
- * Resolves the theme before first paint. There is no server, so this inline script is the
- * only way to avoid a flash of the wrong theme.
- *
- * Two attributes, not one: `data-theme-setting` is what the reader chose (system | light |
- * dark) and survives reloads; `data-color-mode` is what that resolves to right now. The
- * split matters because setting `color-scheme` to a concrete value stops
- * `prefers-color-scheme` from matching, so "follow the system" cannot be expressed by the
- * resolved value alone.
+ * Resolves the theme before first paint; with no server this inline script is the only way
+ * to avoid a flash of the wrong theme. Two attributes: `data-theme-setting` is what the
+ * reader chose (system | light | dark), `data-color-mode` is what that resolves to now.
+ * Setting `color-scheme` to a concrete value stops `prefers-color-scheme` from matching,
+ * so "follow the system" cannot be expressed by the resolved value alone.
  */
 const THEME_SCRIPT = `(function(){try{
 var s=localStorage.getItem('msu-theme');
@@ -53,8 +41,8 @@ r.setAttribute('data-color-mode',m);
 }catch(e){}})()`
 
 export const metadata: Metadata = {
-  // The trailing slash is load-bearing: without it `new URL('og.png', base)` resolves
-  // against the host root, because URL resolution drops the last non-slash segment.
+  // Trailing slash is load-bearing: without it `new URL('og.png', base)` resolves against
+  // the host root.
   metadataBase: new URL(SITE_URL),
   title: {
     default: `${CATALOG_NAME} — ${SITE_IDENTITY}`,
@@ -67,12 +55,11 @@ export const metadata: Metadata = {
   },
   twitter: { card: 'summary_large_image' },
   verification: { google: 'uKu1Yw-fWiPDATOK12extDRbn3mS2TIV_wiCyflDOPc' },
-  // MEASURED: metadata icon URLs are emitted verbatim — Next does NOT apply basePath to
-  // them the way it does to next/link. A bare '/favicon.svg' 404s on a project Pages site.
+  // MEASURED: Next does not apply basePath to metadata icon URLs; a bare '/favicon.svg'
+  // 404s on a project Pages site.
   icons: { icon: [{ url: asset('favicon.svg'), type: 'image/svg+xml' }] }
-  // No `alternates.canonical` here on purpose. MEASURED: a canonical on the root layout is
-  // inherited verbatim by every route including 404, so all of them declare themselves
-  // duplicates of the home page. Each page sets its own.
+  // No `alternates.canonical` here: a layout canonical is inherited verbatim by every route
+  // including 404, so all of them would declare themselves duplicates of the home page.
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -80,8 +67,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       className={`${display.variable} ${mono.variable}`}
-      // The inline script above rewrites two attributes on this element before React
-      // hydrates, which is exactly what the warning is for.
+      // THEME_SCRIPT rewrites two attributes on this element before React hydrates.
       suppressHydrationWarning
     >
       <head>

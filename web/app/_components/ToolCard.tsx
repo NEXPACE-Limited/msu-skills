@@ -1,7 +1,6 @@
 import type { McpTool } from '@/lib/types'
 
-/** The index of the `)` that closes the `(` at `open`, or -1. Nested parentheses are
- *  counted, so an argument list containing one is not cut in half. */
+/** The index of the `)` that closes the `(` at `open`, or -1. Nested parentheses count. */
 const closingParen = (text: string, open: number): number => {
   let depth = 0
   for (let index = open; index < text.length; index += 1) {
@@ -14,14 +13,9 @@ const closingParen = (text: string, open: number): number => {
   return -1
 }
 
-/**
- * The call form to show under the purpose, or nothing.
- *
- * A tool is only ever `{ name, purpose }` here — the `## MCP Tool:` table is what the page
- * reads, and no file declares a signature. So the block is lifted verbatim when the purpose
- * already spells the call out, and omitted otherwise: an argument list written here would be
- * the page asserting an interface of its own.
- */
+/** The call form to show under the purpose, or nothing. No file declares a signature, so
+ *  the block is lifted verbatim when the purpose already spells the call out and omitted
+ *  otherwise — an argument list written here would be the page asserting an interface. */
 const callForm = (tool: McpTool): string | undefined => {
   const open = tool.purpose.indexOf(`${tool.name}(`)
   if (open === -1) return undefined
