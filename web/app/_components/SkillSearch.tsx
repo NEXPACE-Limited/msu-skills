@@ -15,12 +15,8 @@ export type SearchItem = {
   hue: string
 }
 
-/**
- * Search over the catalog's skills. There are no facets: the only axes the frontmatter
- * actually carries today are the plugin and whether the skill bundles files, and the MCP
- * requirement is derived from the plugin, so a counted chip row would filter on nothing.
- * Substring matching over the name, the plugin and the description is the whole feature.
- */
+/** Search over the catalog's skills: substring matching over name, plugin and description.
+ *  No facets — the frontmatter carries no axis worth filtering on. */
 export function SkillSearch({ items }: { items: SearchItem[] }) {
   const [open, setOpen] = useState(false)
   const router = useRouter()

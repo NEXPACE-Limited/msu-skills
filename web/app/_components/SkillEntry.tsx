@@ -4,14 +4,9 @@ import type { Plugin, Skill } from '@/lib/types'
 import { plural } from '@/lib/text'
 import { splitSay } from './say'
 
-/**
- * One skill, full width. Not a card in a grid: descriptions vary more than four-fold in
- * length, so rows that need no common height are the only shape that does not either clip
- * the content or leave holes in the layout.
- *
- * The rest of the description sits in a <details>, which discloses without JavaScript —
- * the copy button and the search palette need it, a description must not.
- */
+/** One skill, full width: descriptions vary more than four-fold in length, so rows that
+ *  need no common height are the only shape that neither clips nor leaves holes. The rest
+ *  of the description sits in a <details>, which discloses without JavaScript. */
 export function SkillEntry({
   skill,
   plugin,
@@ -27,9 +22,7 @@ export function SkillEntry({
 
   return (
     // data-skill is the anchor CI greps to prove every skill has a card on its own plugin's
-    // page. It is an attribute rather than a class on purpose: a class is a styling decision
-    // and would tie the check to the design, which is exactly what broke when the design
-    // changed under the old `class="skill-name">name<` grep.
+    // page. An attribute rather than a class, so the check is not tied to the design.
     <article className="skill" data-skill={skill.name} style={{ ['--fill' as string]: hue }}>
       <div className="skill-id">
         <h3 className="skill-name">

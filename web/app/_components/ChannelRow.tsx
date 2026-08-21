@@ -2,13 +2,9 @@ import type { ReactNode } from 'react'
 
 import { CommandList } from './CommandBlock'
 
-/**
- * One install channel: what it is on the left, what to run on the right.
- *
- * Both halves are wrapper elements the grid needs — the row is two columns, and the
- * stylesheet reaches the state line through `.channel > div > p.state`, so flattening
- * either one loses the layout and the type.
- */
+/** One install channel: what it is on the left, what to run on the right. Both halves are
+ *  wrapper elements the grid needs, and the stylesheet reaches the state line through
+ *  `.channel > div > p.state`. */
 export function ChannelRow({
   title,
   blurb,
@@ -16,8 +12,7 @@ export function ChannelRow({
   state
 }: {
   title: string
-  // ReactNode rather than string: the spec's blurbs carry inline <code> (`--skill`,
-  // `~/.codex/config.toml`). A plain string still satisfies it.
+  // ReactNode so a blurb can carry inline <code>; a plain string still satisfies it.
   blurb?: ReactNode
   commands: string[]
   state?: ReactNode

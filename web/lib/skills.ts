@@ -1,18 +1,12 @@
-/**
- * One skill, read off disk: its frontmatter, what it bundles, and whether it ships a
- * references/ directory. Ported from scripts/build-site.mjs:119-180 with the parsing
- * semantics unchanged — the same SKILL.md files feed a sitemap and an llms.txt that are
- * compared against that generator's output.
- */
+/** One skill, read off disk: its frontmatter, what it bundles, and whether it ships a
+ *  references/ directory. */
 
 import { existsSync } from 'node:fs'
 import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Skill } from './types'
 
-/** The record being built and the key a continuation line folds into. The source carried
- *  that key as a `_last` field on the same accumulator; holding it beside the record keeps a
- *  synthetic key out of what callers read. */
+/** The record being built and the key a continuation line folds into. */
 type Frontmatter = {
   readonly fields: Record<string, string>
   readonly last: string | null
@@ -36,8 +30,7 @@ export const parseFrontmatter = (text: string, path: string): Record<string, str
       if (match) {
         const [, key, raw] = match
         // `description: >` and `description: |` carry the text on the lines below, so the
-        // indicator itself is not the value. Both fold to one line here — a card shows the
-        // description as a single paragraph either way.
+        // indicator itself is not the value. Both fold to one line here.
         const value = /^[|>][+-]?\d*$/.test(raw.trim())
           ? ''
           : raw.replace(/^["']|["']$/g, '').trim()
@@ -59,8 +52,7 @@ export const parseFrontmatter = (text: string, path: string): Record<string, str
   return parsed.fields
 }
 
-/** Everything the skill ships besides SKILL.md, at any depth: references/*.md for most,
- *  a library file at the skill root for others. */
+/** Everything the skill ships besides SKILL.md, at any depth. */
 export const countBundled = async (dir: string): Promise<number> => {
   const entries = await readdir(dir, { withFileTypes: true })
   const counts = await Promise.all(
@@ -89,7 +81,6 @@ export const readSkill = async (pluginDir: string, name: string): Promise<Skill>
     name,
     description: fields.description,
     bundled: await countBundled(dir),
-    // Not every skill has one, and a card must not link to a directory that is not there.
     hasReferences: existsSync(join(dir, 'references'))
   }
 }

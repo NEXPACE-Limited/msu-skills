@@ -1,6 +1,4 @@
-/** Every icon the site draws, in one place so a stroke width or a viewBox cannot drift
- *  between two copies of the same mark. All are decorative: the control around them
- *  carries the accessible name. */
+/** Every icon the site draws. All decorative: the control around them carries the name. */
 
 const stroke = {
   fill: 'none',

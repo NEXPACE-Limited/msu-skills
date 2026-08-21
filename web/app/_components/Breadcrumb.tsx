@@ -5,20 +5,15 @@ import { breadcrumbJsonLd, type Crumb } from '@/lib/jsonld'
 import { pageUrl } from '@/lib/site'
 import { JsonLd } from './JsonLd'
 
-/** One step of the trail. `href` is an in-site route path; the last step is the current page
- *  and needs none. */
+/** One step of the trail. `href` is an in-site route path; the last step needs none. */
 export type Step = { name: string; href?: string }
 
-/** pageUrl treats '' as the catalog page and strips the slashes off anything else, so a
- *  route path has to lose its own before it is passed in — `pageUrl('/')` would otherwise
- *  double the slash SITE_URL already ends with. */
+/** pageUrl treats '' as the catalog page and strips slashes off anything else, so a route
+ *  path has to lose its own first — `pageUrl('/')` would double the slash. */
 const routeOf = (href: string): string => href.replace(/^\/+|\/+$/g, '')
 
-/**
- * The visible breadcrumb and its BreadcrumbList, rendered from one array. Structured data
- * has to represent what the page shows, and two lists built from two sets of values would
- * be free to disagree.
- */
+/** The visible breadcrumb and its BreadcrumbList, rendered from one array so the two
+ *  cannot disagree. */
 export function Breadcrumb({ trail }: { trail: Step[] }) {
   const steps = trail.map((step, index) => {
     const current = index === trail.length - 1

@@ -1,12 +1,5 @@
-/**
- * The assembly module: one read of the repository into the SiteData every page renders from.
- * Ported from scripts/build-site.mjs :61-89 (readJson, listDirs, listFiles), :182-220
- * (readPlugin) and the data half of build() at :493-527.
- *
- * Nothing here produces markup. The generator's page fragments — pluginCard, skillCard,
- * toolCard, serverList — are components now, and React escapes, so no escape() survives the
- * port either.
- */
+/** One read of the repository into the SiteData every page renders from. Nothing here
+ *  produces markup. */
 
 import { existsSync } from 'node:fs'
 import { readFile, readdir } from 'node:fs/promises'
@@ -18,8 +11,7 @@ import { readSkill } from './skills'
 import type { Catalog, CatalogOwner, McpServer, Plugin, SiteData, SkillOf } from './types'
 
 /** `next build` and `next dev` both run with the working directory at the app root, so the
- *  repository the site is generated from — the catalog, the plugin manifests, every
- *  SKILL.md — is its parent. Derived from cwd rather than from import.meta.url, which in a
+ *  repository is its parent. Derived from cwd rather than import.meta.url, which in a
  *  bundled module points at build output instead of at this file. */
 export const REPO_ROOT = resolve(process.cwd(), '..')
 
@@ -54,8 +46,8 @@ type PluginManifest = {
   userConfig?: Record<string, UserConfigEntry>
 }
 
-/** A server as .mcp.json writes it, before the credential and the tool table are attached.
- *  `type` is not narrowed: an unknown transport must render as itself. */
+/** A server as .mcp.json writes it. `type` is not narrowed: an unknown transport must
+ *  render as itself. */
 type McpServerConfig = {
   type?: string
   url?: string
@@ -84,9 +76,8 @@ const listDirs = async (path: string): Promise<string[]> =>
     .map(entry => entry.name)
     .sort()
 
-/** Unsorted, unlike listDirs, and deliberately so: the order decides which copy of a tool
- *  table uniqueByName keeps when one is repeated across references, and sorting would move
- *  that silently. */
+/** Unsorted on purpose: the order decides which copy of a repeated tool table
+ *  uniqueByName keeps, and sorting would move that silently. */
 const listFiles = async (dir: string): Promise<string[]> => {
   const entries = await readdir(dir, { withFileTypes: true })
   const nested = await Promise.all(
@@ -109,8 +100,8 @@ const readPlugin = async (entry: LocalCatalogEntry): Promise<Plugin> => {
   const names = existsSync(skillsDir) ? await listDirs(skillsDir) : []
   const skills = await Promise.all(names.map(name => readSkill(dir, name)))
 
-  // Every markdown file the plugin ships, so a tool table is found wherever its skill keeps
-  // it — in SKILL.md or in any reference below it.
+  // Every markdown file the plugin ships, so a tool table is found in SKILL.md or in any
+  // reference below it.
   const markdown = existsSync(skillsDir)
     ? (await listFiles(skillsDir)).filter(path => path.endsWith('.md'))
     : []
@@ -167,9 +158,9 @@ export const loadSite = async (): Promise<SiteData> => {
     )
   }
 
-  // A plugin page renders to /<plugin>/ and the MCP page to /<MCP_PAGE_DIR>/, so one name
-  // addresses both. Measured: the App Router reports nothing here — it serves the static
-  // page and the plugin's own page is unreachable — so this is the only guard.
+  // A plugin page renders to /<plugin>/ and the MCP page to /<MCP_PAGE_DIR>/. The App
+  // Router reports nothing on the collision — it serves the static page and the plugin's
+  // own page is unreachable — so this is the only guard.
   const collision = plugins.find(plugin => plugin.name === MCP_PAGE_DIR)
   if (collision) {
     throw new Error(
@@ -179,8 +170,7 @@ export const loadSite = async (): Promise<SiteData> => {
     )
   }
 
-  // Whichever plugin owns an MCP server is the one the MCP page documents. A plugin that
-  // owns none needs no setup, so it is never the subject there.
+  // Whichever plugin owns an MCP server is the one the MCP page documents.
   const mcpOwner = plugins.find(plugin => plugin.servers.length > 0) ?? plugins[0]
   const mcpServer: McpServer | undefined = mcpOwner.servers[0]
   if (!mcpServer) {
@@ -189,8 +179,7 @@ export const loadSite = async (): Promise<SiteData> => {
         'server to plugins/<plugin>/.mcp.json, or delete app/mcp/ and SiteData.mcpServer.'
     )
   }
-  // The page's tools come from the table the owning plugin's skills keep for their own
-  // agent; with none found the page would claim capabilities it cannot name.
+  // With no tool table the page would claim capabilities it cannot name.
   if (mcpServer.tools.length === 0) {
     throw new Error(
       `no tool table for '${mcpServer.name}' under ${mcpOwner.source}/skills/. Add a ` +
@@ -199,8 +188,8 @@ export const loadSite = async (): Promise<SiteData> => {
     )
   }
 
-  // Skills that need the server, taken from the same fact the plugin pages' "Requires" row
-  // reads — the skill's plugin declares it — rather than from a list written by hand.
+  // Skills that need the server: the skill's plugin declares it, the same fact the plugin
+  // pages' "Requires" row reads.
   const mcpSkills: SkillOf[] = plugins.flatMap(plugin =>
     plugin.servers.some(server => server.name === mcpServer.name)
       ? plugin.skills.map(skill => ({ skill, plugin }))

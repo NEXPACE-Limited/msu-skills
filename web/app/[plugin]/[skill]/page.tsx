@@ -14,10 +14,8 @@ import { splitSay } from '../../_components/say'
 type Params = { plugin: string; skill: string }
 type Props = { params: Promise<Params> }
 
-/**
- * The spec styles the body prose of this column inline: globals.css carries no class for
- * it, and `.lede` is a larger, narrower face meant for the text above the fold.
- */
+/** Body prose for this column; globals.css carries no class for it and `.lede` is the
+ *  larger, narrower face meant for text above the fold. */
 const PROSE: CSSProperties = {
   margin: '0 0 26px',
   fontSize: '17px',
@@ -26,16 +24,14 @@ const PROSE: CSSProperties = {
   maxWidth: '60ch'
 }
 
-/** The plugin and skill a route addresses, plus the plugin's hue — colour is the plugin's
- *  identity, so it is read from the plugin's position in the catalog rather than passed in. */
+/** The plugin and skill a route addresses, plus the plugin's hue from its catalog position. */
 const findSkill = async ({ plugin: pluginName, skill: skillName }: Params) => {
   const { catalog, plugins } = await loadSite()
   const index = plugins.findIndex(entry => entry.name === pluginName)
   const plugin = index === -1 ? undefined : plugins[index]
   const skill = plugin?.skills.find(entry => entry.name === skillName)
-  // Unreachable from generateStaticParams, which enumerates only real pairs. It is what
-  // makes the rest of the page total, and the answer if the route is ever asked for
-  // outside the exported set.
+  // Unreachable from generateStaticParams; the answer if the route is asked for outside
+  // the exported set.
   if (!plugin || !skill) notFound()
 
   return { catalog, plugin, skill, hue: hueFor(index) }
@@ -53,15 +49,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const url = pageUrl(`${plugin.name}/${skill.name}`)
 
   return {
-    // The root layout's template appends the site identity, so this is the name alone.
+    // The root layout's template appends the site identity.
     title: skill.name,
-    // The frontmatter's own sentence. It is written to be matched by an agent, and it is
-    // the same text the page shows.
+    // The frontmatter's own sentence — the same text the page shows.
     description: skill.description,
     alternates: { canonical: url },
-    // MEASURED against next 16.3.1, lib/metadata/resolve-metadata.js:182 — a page's
-    // `openGraph` REPLACES the layout's resolved one, so type, siteName and images are
-    // restated here or every skill page ships without a preview card.
+    // MEASURED (next/dist/lib/metadata/resolve-metadata.js): a page's `openGraph` REPLACES
+    // the layout's rather than merging, so type, siteName and images are restated here.
     openGraph: {
       url,
       type: 'website',
@@ -76,7 +70,6 @@ export default async function SkillPage({ params }: Props) {
   const { first, rest } = splitSay(skill.description)
   const server = plugin.servers[0]
 
-  // plugin.source is repository-relative and carries no trailing slash.
   const skillDir = `${plugin.source}/skills/${skill.name}`
   // hasReferences, not bundled > 0: a skill can ship a file at its own root instead, and a
   // link to a references/ that is not there would 404.
@@ -86,8 +79,6 @@ export default async function SkillPage({ params }: Props) {
 
   return (
     <main>
-      {/* globals.css defines a modifier class for only two of the four hues, so the custom
-          property is what colours all four. Same mechanism as the skill rows and panels. */}
       <section className="colorhead" style={{ ['--fill' as string]: hue }}>
         <div className="wrap">
           <Breadcrumb
@@ -108,9 +99,8 @@ export default async function SkillPage({ params }: Props) {
             </span>
             <span className="tag">{server ? `needs ${server.name}` : 'no MCP needed'}</span>
           </div>
-          {/* The command belongs with the name it installs, not in the sidebar beside the
-              metadata. --skill is the skills CLI's only selector, and that channel has no
-              plugin boundary, so this is the one command that installs this skill alone. */}
+          {/* --skill is the skills CLI's only selector, so this is the one command that
+              installs this skill alone. */}
           <div className="head-cmd">
             <p className="cmd-label">Install just this skill</p>
             <CommandBlock>{`npx skills add ${REPO_SLUG} --skill ${skill.name}`}</CommandBlock>
@@ -124,9 +114,8 @@ export default async function SkillPage({ params }: Props) {
             <div>
               <p className="say-big">{first}</p>
 
-              {/* The rest of the description is the matching input — the triggers an agent
-                  reads to decide whether to load the skill. Some descriptions are one
-                  sentence and have none. */}
+              {/* The rest of the description is the matching input an agent reads to decide
+                  whether to load the skill. Some descriptions are one sentence and have none. */}
               {rest && (
                 <>
                   <p className="kicker">When it loads</p>
@@ -176,8 +165,7 @@ export default async function SkillPage({ params }: Props) {
               </div>
               <div>
                 <h4>Source</h4>
-                {/* The instruction body is not reproduced here — GitHub stays canonical for
-                    it, and this page is what a reader meets before the file. */}
+                {/* The instruction body is not reproduced here; GitHub stays canonical. */}
                 <div className="v">
                   <a href={repoFile(`${skillDir}/SKILL.md`)}>SKILL.md on GitHub →</a>
                 </div>

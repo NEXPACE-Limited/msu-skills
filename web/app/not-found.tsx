@@ -6,8 +6,7 @@ import { plural } from '@/lib/text'
 
 export const metadata: Metadata = {
   title: 'Page not found',
-  // MEASURED: without this, /404/ and /_not-found/ are exported as indexable pages that
-  // declare no canonical of their own, and read as duplicates of the home page.
+  // Without this, /404/ and /_not-found/ export as indexable pages with no canonical.
   robots: { index: false, follow: false }
 }
 
@@ -32,15 +31,10 @@ export default async function NotFound() {
             today.
           </p>
           <div className="panels">
-            {/* The heading stays derived — it is the catalog's own identity and names where
-                "Home →" goes. The sentence under it is deliberately NOT catalog.description.
-                That field is scoped to one plugin's subject ("common skills and shared
-                modules"), so it would describe this card as a plugin rather than as the
-                catalog. This is component prose with no other source, not a manifest field
-                retyped, which is the thing AGENTS.md forbids. It names no plugin and counts
-                nothing, so a third plugin does not date it; the counts below are derived.
-                If marketplace.json's description is ever widened to cover the catalog, this
-                becomes a duplicate and should go back to {catalog.description}. */}
+            {/* Component prose, not catalog.description: that field is scoped to one
+                plugin's subject and would describe this card as a plugin rather than as
+                the catalog. It names no plugin and counts nothing, so a new plugin does
+                not date it. */}
             <Link className="panel" href="/">
               <h3>{catalog.name}</h3>
               <p>

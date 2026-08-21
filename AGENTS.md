@@ -283,9 +283,9 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
   stays fully opaque — a translucent bar would render the nav over arbitrary page content
   at an unmeasured contrast on every scroll position.
 - **The motion system is CSS only.** It adds no dependency, no client JavaScript and no
-  marker on `<html>`. Three invariants hold it there. The section at the end of
-  `globals.css` states each one in full with the measurements behind it and is the
-  authority; this list carries the names so a reviewer knows what to check.
+  marker on `<html>`. Three invariants hold it there. The motion header in `globals.css`
+  states each one and is the authority; this list carries the names so a reviewer knows
+  what to check.
   1. Every `@keyframes` declares only a `from`, so the base rule is the finished state and
      `animation: none` renders the page that ships. `animation-fill-mode: forwards` must
      never appear in the file.

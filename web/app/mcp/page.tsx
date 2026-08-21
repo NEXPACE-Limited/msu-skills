@@ -11,15 +11,11 @@ import { SkillEntry } from '../_components/SkillEntry'
 import { ToolCard } from '../_components/ToolCard'
 import { headClassFor, hueFor } from '../_components/hue'
 
-/**
- * The environment variable every hand-setup snippet reads the key from. README's
- * '## MCP Configuration' and install.sh both spell it this way, and no manifest declares
- * it — it is the only string on this page with no field behind it.
- */
+/** The environment variable every hand-setup snippet reads the key from. README and
+ *  install.sh both spell it this way; no manifest declares it. */
 const KEY_ENV = 'MSU_OPENAPI_KEY'
 
-/** One `mcp add`, in the flag order README publishes. `url` is a parameter rather than a
- *  captured value so the caller's narrowing does not have to survive a closure. */
+/** One `mcp add`, in the flag order README publishes. */
 const addCommand = (cli: string, flags: string, server: string, url: string): string =>
   `${cli} mcp add${flags} ${server} ${url}`
 
@@ -40,8 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function McpPage() {
   const { catalog, plugins, mcpOwner, mcpServer, mcpSkills } = await loadSite()
 
-  // The server wears the colour of the plugin that declares it. Ownership is what this page
-  // is about, and the catalog page's panel for that plugin reads the same index.
+  // The server wears the colour of the plugin that declares it.
   const ownerIndex = plugins.indexOf(mcpOwner)
 
   // .mcp.json carries one credential header; the first key is the one the userConfig
@@ -58,14 +53,12 @@ export default async function McpPage() {
       : [])
   ]
 
-  // A flag a declared value cannot fill is dropped rather than printed as `undefined` into
-  // a command a reader would paste.
+  // A flag a declared value cannot fill is dropped rather than printed as `undefined`.
   const flags =
     (mcpServer.type ? ` --transport ${mcpServer.type}` : '') +
     (header ? ` --header "${header}: $${KEY_ENV}"` : '')
 
-  // Registering a server by hand needs somewhere to send the request, so a transport with no
-  // URL gets no snippets instead of three broken ones.
+  // A transport with no URL gets no snippets instead of three broken ones.
   const setup =
     mcpServer.url === undefined
       ? undefined

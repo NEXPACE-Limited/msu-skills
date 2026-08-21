@@ -1,8 +1,5 @@
-/**
- * The five notices from README's `## Important Notes`, verbatim. AGENTS.md requires the
- * site to repeat them exactly and forbids softening them, so these are transcribed rather
- * than summarised, and the README is the copy to change first.
- */
+/** The five notices from README's `## Important Notes`, verbatim. AGENTS.md forbids
+ *  softening them; the README is the copy to change first. */
 const NOTICES = [
   'MSU Resource Skills are reference instructions for using MSU game resources supplied through the MSU Open API. They do not provide the resources, operate your AI agent, or generate outputs themselves.',
   'Use of MSU Resource Skills, Resource MCP, and the MSU Open API is subject to the MSU API Terms, Builder Terms, EULA, applicable policies, and applicable laws.',
