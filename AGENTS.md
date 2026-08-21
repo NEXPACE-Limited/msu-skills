@@ -111,7 +111,7 @@ plugins/<plugin>/skills/<name>/references/  # files the skill loads on demand
 install.sh                 # local or curl installer for non-Claude CLIs; --plugin selects one
 Makefile                   # wrappers: make check, make dev. See Commands
 web/                       # the landing page: a Next.js App Router app, statically exported
-web/next.config.mjs        # output:'export'. basePath and site URL derived from the catalog
+web/next.config.mjs        # output:'export' (prod only). basePath and site URL from the catalog
 web/lib/*.ts               # the repository read into the data every page renders from
 web/app/**                 # the page types, plus the sitemap.xml and llms.txt handlers
 web/public/                # og.png, favicon.svg, logo.svg — copied into the export as-is
@@ -272,6 +272,42 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
 - Fonts are self-hosted: `next/font` downloads both families at build time and the export
   contains no third-party request at all. Keep it at zero — the published site must load
   nothing from a host it does not serve.
+- **The top bar is sticky, and two things depend on its height.** `--topbar-h` in
+  `globals.css` is the only place that height is stated: `.topbar .wrap` takes it as
+  `min-height`, and `html { scroll-padding-top }` is computed from it so an anchor jump
+  never lands its target underneath the bar — which governs `#main` (the skip link) and
+  `#plugins`. Change the bar's height there and nowhere else. Its
+  `z-index: 40` sits in a fixed budget: above the page, below the palette veil (60), the
+  palette (61) and the skip link (80); it deliberately does not need to outrank
+  `.colorhead::before`, which is sealed by its own `isolation: isolate`. The background
+  stays fully opaque — a translucent bar would render the nav over arbitrary page content
+  at an unmeasured contrast on every scroll position.
+- **The motion system is CSS only.** It adds no dependency, no client JavaScript and no
+  marker on `<html>`. Three invariants hold it there. The motion header in `globals.css`
+  states each one and is the authority; this list carries the names so a reviewer knows
+  what to check.
+  1. Every `@keyframes` declares only a `from`, so the base rule is the finished state and
+     `animation: none` renders the page that ships. `animation-fill-mode: forwards` must
+     never appear in the file.
+  2. Any hidden initial state sits inside `@media (prefers-reduced-motion: no-preference)`
+     nested in an `@supports` test for the timeline that rule uses. Most readers are inside
+     that fence and Firefox stable is outside it, so a rule that forgets the fence hides
+     content from the majority rather than from an edge case.
+  3. A scroll range is an absolute length off `cover`, never a percentage of `entry`, which
+     resolves against the subject's own height. This one carries a layout constraint:
+     a reveal needs `--reveal` (200px) of scrollable document below its subject's top edge,
+     so nothing in the last 200px of a document may carry one.
+
+  Two gestures divide the work — colour unfurls, ink rises. A coloured field grows from an
+  anchored edge; type fades up into place on scroll. They are told apart by what moves, so
+  no box carries both. Every base rule is opacity 1 and no keyframe declares a `to`, so a
+  fade's endpoint is always the measured value. Two states drop the animation onto that base
+  rule rather than tune it: an element containing `:focus-visible`, because a focus ring must
+  never be half-drawn, and `.skill-body:has(details[open])`, because a disclosure does not
+  scroll. That is also why the `prefers-reduced-motion` guard keeps its blanket `!important`
+  — Radix Presence unmounts cmdk's dialog only when the computed `animationName` is `none`,
+  so weakening it leaves the palette hanging open, and a palette entrance is scoped to
+  `[data-state="open"]` rather than declared on `.pal` itself.
 - `web/public/og.png` is the link-preview card, the one asset that is drawn rather than
   generated. It carries no counts and no plugin names, so only a change to the headline
   or the wordmark makes it stale.
@@ -291,6 +327,21 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
   under `output: 'export'`, and any static server would have to re-create the base-path
   prefix before a single asset resolved. The copy buttons need a secure context, so
   `localhost` shows them working and a `file://` open does not.
+- **`output: 'export'` is withheld in development, and that conditional is load-bearing.**
+  MEASURED in `next/dist/server/dev/next-dev-server.js`: while `output` is `'export'` the
+  DEV server throws `Page "/[plugin]/page" is missing param …` for any path that matches a
+  dynamic route but was not returned by `generateStaticParams()` — before the component
+  runs, so `notFound()` never fires and `not-found.tsx` is unreachable. `make dev` answered
+  a stray URL with a `500` and an error overlay instead of the 404 page. The guard is
+  spelled `output === 'export'` and consults nothing else, so `export const dynamicParams =
+  false` does not lift it; do not add it for this. Withholding the value in dev lets the
+  path fall through to the route and reach `notFound()`, which is what a static host does
+  by serving `out/404.html` for a path with no file behind it. `next build` sets `NODE_ENV`
+  to production, so the build CI runs and Pages publishes always has `output: 'export'` —
+  VERIFIED by building both ways and diffing: all 14 exported pages render identical
+  markup, and `sitemap.xml`, `llms.txt` and the stylesheet are byte-identical. (The export
+  is not byte-reproducible in general — the build id and the RSC row numbering move between
+  two runs of the *same* config, so compare rendered markup rather than hashes.)
 - `web/out/`, `web/node_modules/` and `web/.next/` are gitignored; the pages are built on
   deploy and never committed. `web/package-lock.json` is committed — see
   *Public-repository rules*.

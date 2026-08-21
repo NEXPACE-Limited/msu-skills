@@ -16,15 +16,11 @@ export async function generateMetadata(): Promise<Metadata> {
   const url = pageUrl('')
 
   return {
-    // No `title`. This page is the site, so the layout's default already reads
-    // '<catalog> — <identity>'; setting one here would run it through the template and
-    // repeat the identity.
+    // No `title`: the layout's default already reads '<catalog> — <identity>'.
     description: catalog.description,
     alternates: { canonical: url },
-    // MEASURED against next 16.3.1, lib/metadata/resolve-metadata.js mergeMetadata(): a
-    // page's `openGraph` REPLACES the layout's resolved one rather than merging into it,
-    // so type, siteName and images are restated here or this page ships without them.
-    // Only og:title and og:description are back-filled from the page's own metadata.
+    // MEASURED (next/dist/lib/metadata/resolve-metadata.js): a page's `openGraph` REPLACES
+    // the layout's rather than merging, so type, siteName and images are restated here.
     openGraph: {
       url,
       type: 'website',
@@ -34,8 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-/** One figure in the hero strip. The noun is inflected from the figure, so a catalog that
- *  holds one plugin does not read '1 plugins'. */
+/** One figure in the hero strip, noun inflected from the figure. */
 function Count({ value, noun }: { value: number; noun: string }) {
   return (
     <span>
@@ -44,37 +39,31 @@ function Count({ value, noun }: { value: number; noun: string }) {
   )
 }
 
-/** Capitalised because the headline below is the only caller and the count opens it. */
 const NUMBER_WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight']
 
-/** 'Two plugins' — a headline reads as prose rather than as a figure, but the figure is
- *  still the catalog's. A count past the table falls back to its digits. */
+/** 'Two plugins' — a headline reads as prose. A count past the table falls back to digits. */
 const spelledCount = (count: number, noun: string): string =>
   `${NUMBER_WORDS[count] ?? count} ${count === 1 ? noun : `${noun}s`}`
 
 export default async function CatalogPage() {
   const { catalog, plugins, skillCount } = await loadSite()
 
-  // A server belongs to exactly one plugin — its .mcp.json sits inside that plugin's root
-  // — so the plugins' servers concatenate without deduplication.
+  // A server belongs to exactly one plugin, so the lists concatenate without deduplication.
   const servers = plugins.flatMap(plugin => plugin.servers)
 
-  // Every install string is composed from the repository identity and the catalog rather
-  // than typed, so a fork or a rename never publishes someone else's commands.
+  // Composed from the repository identity, so a fork or a rename never publishes someone
+  // else's commands.
   const marketplace = `/plugin marketplace add ${REPO_SLUG}`
   const installer = `https://raw.githubusercontent.com/${REPO_SLUG}/main/install.sh`
 
-  // The two channels that select a plugin show one worked example, matching their 'install
-  // a plugin' blurbs; each plugin's own page carries its own commands. loadSite() refuses a
-  // catalog with no plugin, so this is always present.
+  // One worked example for the channels that select a plugin. loadSite() refuses an empty
+  // catalog, so this is always present.
   const example = plugins[0]
 
   return (
     <main>
       <section className="hero">
         <div className="wrap">
-          {/* The four brand petals, in favicon order. Decorative: the colours carry no
-              information a reader could miss. */}
           <div className="petal-row" aria-hidden="true">
             <i />
             <i />
@@ -87,10 +76,6 @@ export default async function CatalogPage() {
             the game-production tooling that goes with them. One command, on Claude Code,
             Codex, Gemini, and Kimi.
           </p>
-          {/* All three channels, not just the first. The page's job is to hand over an
-              install command, and which one a reader needs is decided by the agent they
-              already run — so making two of them a scroll away asks a question the reader
-              cannot answer by scrolling. */}
           <div className="hero-cmds">
             <div className="hero-cmd">
               <p className="cmd-label">Claude Code</p>
@@ -113,14 +98,13 @@ export default async function CatalogPage() {
             <Count value={plugins.length} noun="plugin" />
             <Count value={skillCount} noun="skill" />
             <Count value={servers.length} noun="MCP server" />
-            {/* Not a manifest figure. Skills are shipped verbatim with no build, which is
-                the claim this repeats. */}
+            {/* Not a manifest figure: skills ship verbatim with no build. */}
             <Count value={0} noun="build step" />
           </div>
         </div>
       </section>
 
-      {/* The topbar links to /#plugins, so this id is the target it needs. */}
+      {/* The topbar links to /#plugins. */}
       <section className="band" id="plugins">
         <div className="wrap">
           <p className="kicker">What&rsquo;s inside</p>
@@ -148,8 +132,6 @@ export default async function CatalogPage() {
             the skill — so they are written to be matched, and shown here exactly as written.
           </p>
           <div className="skills">
-            {/* Catalog order, and a skill takes the hue of the plugin that ships it —
-                the same index the panel above it was drawn from. */}
             {plugins.flatMap((plugin, index) =>
               plugin.skills.map(skill => (
                 <SkillEntry

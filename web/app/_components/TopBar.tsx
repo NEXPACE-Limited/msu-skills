@@ -26,9 +26,8 @@ export async function TopBar() {
     <header className="topbar">
       <div className="wrap">
         <Link className="mark" href="/">
-          {/* The logo is its own file, not the favicon. The favicon's URL is cached by
-              browsers and crawlers and its box is cropped for 16px chrome; a wordmark
-              that has to be re-spaced must not drag the tab icon along with it. */}
+          {/* Its own file, not the favicon: that URL is cached hard and cropped for 16px
+              chrome, so the wordmark must be free to change without it. */}
           <img src={asset('logo.svg')} width={26} height={26} alt="" />
           <b>msu-skills</b>
         </Link>

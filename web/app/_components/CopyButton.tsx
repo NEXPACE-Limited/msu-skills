@@ -8,9 +8,7 @@ type State = 'idle' | 'done' | 'blocked'
 const LABEL: Record<State, string> = {
   idle: 'Copy command',
   done: 'Copied',
-  // navigator.clipboard is secure-context only, so a page opened over file:// — which is
-  // how a rendered export gets reviewed by hand — cannot copy at all. Saying so beats a
-  // button that silently does nothing.
+  // navigator.clipboard is secure-context only; a page opened over file:// cannot copy.
   blocked: 'Copy blocked — select the text instead'
 }
 

@@ -1,9 +1,5 @@
-/**
- * What a plugin's .mcp.json declares, and what the plugin's own skills say that server
- * answers. Ported from scripts/build-site.mjs :75-79, :91-117 and :222-231.
- *
- * Nothing here emits markup: a component renders these values, and React escapes them.
- */
+/** What a plugin's .mcp.json declares, and what the plugin's own skills say that server
+ *  answers. Nothing here emits markup. */
 
 import type { McpServer, McpTool } from './types'
 
@@ -15,11 +11,9 @@ export const userConfigReference = (headers?: Record<string, string>): string | 
     .map(value => String(value).match(/^\$\{user_config\.([A-Za-z0-9_-]+)\}$/)?.[1])
     .find(Boolean)
 
-/** The tools a server exposes, read from the table a skill already keeps for its own agent:
- *  a `## MCP Tool: <server>` heading followed by rows whose first cell is a `code`-quoted
- *  tool name. `.mcp.json` declares how to reach a server, never what it answers, so this
- *  table is the only source — and retyping a tool name into a component would let the page
- *  claim a tool the skills no longer call. */
+/** The tools a server exposes: a `## MCP Tool: <server>` heading followed by rows whose
+ *  first cell is a `code`-quoted tool name. That table is the only source — retyping a
+ *  tool name into a component would let the page claim a tool the skills no longer call. */
 export const parseToolTable = (text: string, serverName: string): McpTool[] => {
   const start = text.search(new RegExp(`^##+\\s+MCP Tool:\\s*${serverName}\\s*$`, 'm'))
   if (start === -1) return []
@@ -39,8 +33,7 @@ export const parseToolTable = (text: string, serverName: string): McpTool[] => {
     .map(([name, purpose]) => ({ name: name.slice(1, -1), purpose }))
 }
 
-/** One entry per tool name, first mention winning, so a table repeated across references
- *  does not render the same tool twice. */
+/** One entry per tool name, first mention winning. */
 export const uniqueByName = (tools: McpTool[]): McpTool[] => [
   ...new Map(tools.map((tool): [string, McpTool] => [tool.name, tool])).values()
 ]
@@ -51,8 +44,7 @@ export const TRANSPORTS: Record<string, string> = {
   stdio: 'stdio'
 }
 
-/** An unknown transport renders as itself: .mcp.json is the authority on what a server
- *  speaks, and a type this table has no wording for is still a fact about the server. */
+/** An unknown transport renders as itself: .mcp.json is the authority. */
 export const transportLabel = (type?: string): string =>
   type === undefined ? '' : (TRANSPORTS[type] ?? type)
 
