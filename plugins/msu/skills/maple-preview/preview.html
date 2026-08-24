@@ -1,0 +1,425 @@
+<!doctype html>
+<!-- ==== MAPLE PREVIEW v1 — verbatim template, do not edit. Fill the JSON inside <script id="maple-preview-data"> and nothing else. ==== -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>maple-preview</title>
+<style>
+  :root { color-scheme: light; --ink: #1d2433; --muted: #6b7280; --line: #d9dee7; --bg: #f5f7fb; --card: #fff; --pick: #2563eb; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: var(--ink); background: var(--bg); }
+  header, main, footer { max-width: 1100px; margin: 0 auto; padding: 16px 20px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 0; }
+  .muted { color: var(--muted); margin: 0; }
+  .hint { margin: 8px 0 0; }
+  #composite[hidden] { display: none; }
+  #composite { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  #stage { background: repeating-conic-gradient(#eef1f6 0 25%, #fff 0 50%) 0 0 / 24px 24px; border-radius: 8px; image-rendering: pixelated; }
+  .slot { margin-top: 20px; }
+  .slot-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .pill { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px 10px; background: var(--card); border: 2px solid var(--line); border-radius: 12px; cursor: pointer; text-align: center; font: inherit; color: inherit; }
+  .card:hover { border-color: #9db4e8; }
+  .card:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
+  .card[aria-pressed="true"] { border-color: var(--pick); box-shadow: 0 0 0 3px rgba(37, 99, 235, .18); }
+  .num { position: absolute; top: 6px; left: 8px; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .card[aria-pressed="true"] .num { color: var(--pick); }
+  .thumb { display: flex; align-items: center; justify-content: center; width: 96px; height: 96px; }
+  .thumb img, .thumb canvas { image-rendering: pixelated; max-width: 96px; max-height: 96px; }
+  .name { font-weight: 600; line-height: 1.25; }
+  .id { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .note { font-size: 12px; color: var(--muted); }
+  .err { font-size: 12px; color: #b91c1c; }
+  footer { position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--line); }
+  .bar { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+  button.primary { font: inherit; font-weight: 600; color: #fff; background: var(--pick); border: 0; border-radius: 8px; padding: 10px 16px; cursor: pointer; }
+  #out { flex: 1 1 360px; min-height: 96px; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; border: 1px solid var(--line); border-radius: 8px; padding: 8px; resize: vertical; }
+  #copied { font-size: 13px; color: #15803d; min-height: 1.4em; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">maple-preview</h1>
+  <p id="request" class="muted"></p>
+  <p id="hint" class="hint"></p>
+</header>
+<main>
+  <section id="composite" hidden>
+    <canvas id="stage" width="240" height="270" aria-label="character preview"></canvas>
+    <div>
+      <h2 id="composite-title"></h2>
+      <p id="composite-note" class="muted"></p>
+      <p id="composite-status" class="muted"></p>
+    </div>
+  </section>
+  <div id="slots"></div>
+</main>
+<footer>
+  <div class="bar">
+    <button id="copy" type="button" class="primary"></button>
+    <textarea id="out" readonly aria-label="selection"></textarea>
+  </div>
+  <p id="copied" role="status" aria-live="polite"></p>
+</footer>
+<script id="maple-preview-data" type="application/json">
+/*MAPLE_PREVIEW_DATA*/
+</script>
+<script>
+(function () {
+  'use strict';
+  var CDN = 'https://resource-static.msu.io/data/';
+  var STR = {
+    ko: { hint: '카드를 눌러 고르세요. 다 고르면 아래 [선택 복사]를 누르고, 그 내용을 채팅에 붙여넣으세요. 번호로 말해도 됩니다 (예: "모자 2번").',
+          copy: '📋 선택 복사', copied: '복사됨 — 채팅에 붙여넣으세요', copyFailed: '자동 복사가 막혔습니다 — 위 상자의 내용을 직접 복사하세요',
+          one: '하나 선택', many: '여러 개 선택 가능', none: '(선택 없음)',
+          compositeTitle: '착용 미리보기 (stand1)', compositeNote: '기본 몸·머리·얼굴·헤어에 현재 선택을 입힌 모습입니다. 슬롯을 바꾸면 바로 갱신됩니다.',
+          failed: '불러오기 실패', noSprite: '스프라이트 데이터 없음', noBase: 'base(body/head) 데이터가 없어 착용 미리보기를 그릴 수 없습니다.',
+          nodata: '#maple-preview-data 안에 JSON이 없습니다. 템플릿의 자리표시자를 후보 데이터로 바꿔 주세요.', unplaced: '붙이지 못한 파트' },
+    en: { hint: 'Click a card to pick it. When done, press [Copy selection] below and paste it into the chat. Numbers work too (e.g. "cap #2").',
+          copy: '📋 Copy selection', copied: 'Copied — paste it into the chat', copyFailed: 'Clipboard blocked — copy the text in the box above by hand',
+          one: 'pick one', many: 'pick any number', none: '(none)',
+          compositeTitle: 'Worn preview (stand1)', compositeNote: 'The current picks worn on the default body, head, face and hair. Changing a slot updates it.',
+          failed: 'failed to load', noSprite: 'no sprite data', noBase: 'No base (body/head) data, so the worn preview cannot be drawn.',
+          nodata: 'No JSON inside #maple-preview-data. Replace the template placeholder with the candidate data.', unplaced: 'parts not attached' }
+  };
+  var CHARACTER = ['cap', 'coat', 'longcoat', 'pants', 'shoes', 'glove', 'weapon', 'cape', 'shield', 'accessory', 'hair', 'face'];
+  var SOCKETS = ['hand', 'handMove', 'navel', 'neck', 'brow'];
+  // data/zmap.json key order (index 0 = closest to the viewer). Copied here because the CDN answers no cross-origin
+  // fetch from a page; DATA.zmap overrides it when the table changes.
+  var ZMAP = ['mobEquipFront','tamingMobFront','mobEquipMid','saddleFront','mobEquipUnderSaddle','tamingMobMid','characterStart','emotionOverBody','weaponWristOverGlove','capeOverHead','weaponOverGlove','gloveWristOverHair','gloveOverHair','handOverHair','weaponOverHand','shieldOverHair','gloveWristBelowWeapon','gloveBelowWeapon','handBelowWeapon','weaponOverArm','gloveWristBelowMailArm','mailArmOverHair','gloveBelowMailArm','armOverHair','mailArmOverHairBelowWeapon','armOverHairBelowWeapon','weaponBelowArm','capOverHair','accessoryEarOverHair','accessoryOverHair','hairOverHead','accessoryEyeOverCap','capAccessory','cap','hair','accessoryEye','accessoryEyeShadow','accessoryFace','capAccessoryBelowAccFace','accessoryEar','capBelowAccessory','accessoryFaceOverFaceBelowCap','face','accessoryEyeBelowFace','accessoryFaceBelowFace','hairShade','head','cape','gloveWrist','mailArm','glove','hand','arm','weapon','shield','weaponOverArmBelowHead','gloveWristBelowHead','mailArmBelowHeadOverMailChest','gloveBelowHead','armBelowHeadOverMailChest','mailArmBelowHead','armBelowHead','weaponOverBody','mailChestTop','gloveWristOverBody','mailChestOverHighest','pantsOverMailChest','mailChest','shoesTop','pantsOverShoesBelowMailChest','shoesOverPants','mailChestOverPants','pants','shoes','pantsBelowShoes','mailChestBelowPants','gloveOverBody','body','gloveWristBelowBody','gloveBelowBody','capAccessoryBelowBody','shieldBelowBody','capeBelowBody','hairBelowBody','weaponBelowBody','backHairOverCape','backWing','backWeaponOverShield','backShield','backCapOverHair','backHair','backCap','backWeaponOverHead','backHairBelowCapWide','backHairBelowCapNarrow','backHairBelowCap','backCape','backAccessoryOverHead','backAccessoryFaceOverHead','backHead','backMailChestOverPants','backPantsOverMailChest','backMailChest','backPantsOverShoesBelowMailChest','backShoes','backPants','backShoesBelowPants','backPantsBelowShoes','backMailChestBelowPants','backWeaponOverGlove','backGloveWrist','backGlove','backBody','backAccessoryEar','backAccessoryFace','backCapAccessory','backMailChestAccessory','backShieldBelowBody','backHairBelowHead','backWeapon','characterEnd'];
+  // data/smap.json, hair layers only: layer name → the VSlot code a cap's info.vslot lists when it covers that layer.
+  var HAIR_VSLOT = { hair: 'H2', hairOverHead: 'H1', hairShade: 'Hs', hairBelowBody: 'Hb', backHair: 'H1', backHairBelowCap: 'H6', backHairBelowCapNarrow: 'H5', backHairBelowCapWide: 'H4', backHairBelowHead: 'Hf', backHairOverCape: 'Hc' };
+  var BACK = 10000;
+
+  var DATA = null;
+  try { DATA = JSON.parse(document.getElementById('maple-preview-data').textContent); } catch (e) { DATA = null; }
+  var L = STR[(DATA && DATA.lang) === 'en' ? 'en' : 'ko'];
+  document.getElementById('copy').textContent = L.copy;
+  if (!DATA || !Array.isArray(DATA.slots)) { document.getElementById('hint').textContent = L.nodata; return; }
+  if (Array.isArray(DATA.zmap) && DATA.zmap.length) ZMAP = DATA.zmap;
+  document.documentElement.lang = DATA.lang === 'en' ? 'en' : 'ko';
+  document.title = (DATA.title || 'maple-preview') + ' — maple-preview';
+  document.getElementById('title').textContent = DATA.title || 'maple-preview';
+  document.getElementById('request').textContent = DATA.request || '';
+  document.getElementById('hint').textContent = L.hint;
+  document.getElementById('composite-title').textContent = L.compositeTitle;
+  document.getElementById('composite-note').textContent = L.compositeNote;
+
+  // ------------------------------------------------------------------ sprite data
+  function isPart(v) { return !!v && typeof v === 'object' && (typeof v._path === 'string' || typeof v.cdn_url === 'string'); }
+  function srcOf(data) { return data.cdn_url || (CDN + data._path); }
+  function delayOf(v, fallback) { var d = parseInt(v, 10); return d > 0 ? d : fallback; }
+  // Accepts an action node in any shape maple-lookup or the CDN returns and yields ordered frames of named parts:
+  //   [ { body: Part, arm: Part, delay }, … ]              get_sprite_data character action — one object per frame
+  //   [ Part, Part ]                                       get_sprite_data mob/npc action — each frame is the part itself
+  //   { "0": { body: Part, … }, "1": … } / { "0": Part }   the same two shapes as raw CDN JSON
+  //   { "0.body": Part, "0.arm": Part, "1.body": … }       flat "{frame}.{part}" keys
+  //   { info, "stand1": … }                                action-wrapped: the preferred (else first non-info) action is unwrapped
+  //   { face: Part }  or  Part                             a single frame
+  // A Part carries cdn_url (absolute) or _path (CDN-relative), origin, map, z, delay.
+  function normalize(node, preferred) {
+    if (!node || typeof node !== 'object') return [];
+    if (isPart(node)) return [{ delay: delayOf(node.delay, 0), parts: [{ name: 'sprite', data: node }] }];
+    if (Array.isArray(node)) return node.map(function (fr) {
+      return isPart(fr) ? { delay: delayOf(fr.delay, 0), parts: [{ name: 'sprite', data: fr }] } : frameParts(fr, 0);
+    });
+    var keys = Object.keys(node);
+    var byFrame = {};
+    var seen = false;
+    keys.forEach(function (k) {
+      var m = /^(\d+)\.(.+)$/.exec(k);
+      if (m && isPart(node[k])) { seen = true; (byFrame[m[1]] = byFrame[m[1]] || {})[m[2]] = node[k]; }
+    });
+    if (seen) node = byFrame;
+    var nums = Object.keys(node).filter(function (k) { return /^\d+$/.test(k); }).sort(function (a, b) { return a - b; });
+    if (!nums.length) {
+      var direct = keys.some(function (k) { return isPart(node[k]) || (node[k] && typeof node[k] === 'object' && isPart(node[k]['0'])); });
+      if (direct) return [frameParts(node, 0)];
+      var action = (preferred && node[preferred]) || node[keys.filter(function (k) { return k !== 'info'; })[0]];
+      return action && action !== node ? normalize(action, preferred) : [];
+    }
+    return nums.map(function (k) { return isPart(node[k]) ? { delay: delayOf(node[k].delay, 0), parts: [{ name: 'sprite', data: node[k] }] } : frameParts(node[k], 0); });
+  }
+  function frameParts(frame, fallbackDelay) {
+    var parts = [], delay = delayOf(frame && frame.delay, 0);
+    Object.keys(frame || {}).forEach(function (name) {
+      var v = frame[name];
+      if (isPart(v)) { parts.push({ name: name, data: v }); if (!delay) delay = delayOf(v.delay, 0); }
+      else if (v && typeof v === 'object' && isPart(v['0'])) parts.push({ name: name, data: v['0'] });
+    });
+    return { delay: delay || fallbackDelay, parts: parts };
+  }
+  var imgCache = {};
+  function loadImage(path) {
+    if (!imgCache[path]) imgCache[path] = new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = function () { resolve(null); };
+      img.src = /^https?:/.test(path) ? path : CDN + path;
+    });
+    return imgCache[path];
+  }
+
+  // ------------------------------------------------------------------ animation clock
+  var animators = [];
+  var lastTick = 0;
+  function tick(now) {
+    var dt = lastTick ? Math.min(now - lastTick, 100) : 0;
+    lastTick = now;
+    animators.forEach(function (a) { a.step(dt); });
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  function sequenceFor(count, pingPong) {
+    var seq = [];
+    for (var i = 0; i < count; i++) seq.push(i);
+    if (pingPong && count > 2) for (var j = count - 2; j > 0; j--) seq.push(j);
+    return seq;
+  }
+  // Plays frames [{img, origin, delay}] on a canvas with the origin pixel pinned at (ox, oy) in sprite units.
+  function spriteAnimator(canvas, frames, scale, ox, oy) {
+    var ctx = canvas.getContext('2d');
+    var i = 0, acc = 0, seq = sequenceFor(frames.length, false);
+    function draw() {
+      var fr = frames[seq[i]];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.imageSmoothingEnabled = false;
+      if (fr.img) ctx.drawImage(fr.img, Math.round((ox - fr.origin.x) * scale), Math.round((oy - fr.origin.y) * scale), fr.img.naturalWidth * scale, fr.img.naturalHeight * scale);
+    }
+    draw();
+    return { step: function (dt) {
+      if (seq.length < 2) return;
+      acc += dt;
+      if (acc >= frames[seq[i]].delay) { acc = 0; i = (i + 1) % seq.length; draw(); }
+    } };
+  }
+
+  // ------------------------------------------------------------------ character assembly (maple-character-rendering.md)
+  function zIndexOf(z) { var i = ZMAP.indexOf(z); return i === -1 ? BACK : i; }
+  // parts: [{name, data, owner}] → world position of every part's origin pixel; the body origin is world (0,0).
+  function placeParts(parts) {
+    var anchors = {}, placed = [], pending = parts.slice(), bodyIdx = -1;
+    pending.forEach(function (p, k) { if (bodyIdx === -1 && p.name === 'body') bodyIdx = k; });
+    if (bodyIdx === -1) return { placed: [], unplaced: pending };
+    var body = pending.splice(bodyIdx, 1)[0];
+    body.world = { x: 0, y: 0 };
+    Object.keys(body.data.map || {}).forEach(function (s) { anchors[s] = { x: body.data.map[s].x, y: body.data.map[s].y }; });
+    placed.push(body);
+    var progress = true;
+    while (pending.length && progress) {
+      progress = false;
+      for (var k = 0; k < pending.length; k++) {
+        var p = pending[k], map = p.data.map || {}, s = null;
+        for (var j = 0; j < SOCKETS.length; j++) if (map[SOCKETS[j]] && anchors[SOCKETS[j]]) { s = SOCKETS[j]; break; }
+        if (!s) continue;
+        p.world = { x: anchors[s].x - map[s].x, y: anchors[s].y - map[s].y };
+        if (p.name === 'arm' || p.name === 'head') Object.keys(map).forEach(function (key) {
+          if (!anchors[key]) anchors[key] = { x: p.world.x + map[key].x, y: p.world.y + map[key].y };
+        });
+        placed.push(p); pending.splice(k, 1); k--; progress = true;
+      }
+    }
+    return { placed: placed, unplaced: pending };
+  }
+  // A cap's info.vslot lists the layers it covers; a hair layer whose code appears there is hidden.
+  // ponytail: hair layers only — head and ears always stay, full-helmet masking (Hd) is not modelled.
+  function applyCapMask(placed, vslot) {
+    if (!vslot) return;
+    var codes = String(vslot).match(/.{2}/g) || [];
+    placed.forEach(function (p) {
+      var code = HAIR_VSLOT[p.data.z];
+      if (p.owner !== 'cap' && code && codes.indexOf(code) !== -1) p.hidden = true;
+    });
+  }
+
+  var stage = document.getElementById('stage');
+  var compositeSection = document.getElementById('composite');
+  var compositeStatus = document.getElementById('composite-status');
+  var renderToken = 0;
+  var SCALE = 3;
+  function isCharacterSlot(slot) { return CHARACTER.indexOf(slot.category) !== -1; }
+  var hasCharacterSlots = DATA.slots.some(isCharacterSlot);
+  var base = DATA.base || {};
+  var baseFrames = { body: normalize(base.body, 'stand1'), head: normalize(base.head, 'stand1'), face: normalize(base.face, 'default'), hair: normalize(base.hair, 'stand1') };
+
+  function renderComposite() {
+    var token = ++renderToken;
+    compositeSection.hidden = false;
+    if (!baseFrames.body.length || !baseFrames.head.length) { compositeStatus.textContent = L.noBase; return; }
+    var picks = [];   // {owner, frames, vslot}
+    DATA.slots.forEach(function (slot) {
+      if (!isCharacterSlot(slot)) return;
+      selected(slot).forEach(function (id) {
+        var cand = (slot.candidates || []).filter(function (c) { return String(c.id) === id; })[0];
+        if (cand) picks.push({ owner: slot.category, frames: normalize(cand.sprite, slot.category === 'face' ? 'default' : 'stand1'), vslot: cand.vslot, name: cand.name || id });
+      });
+    });
+    var faceFrames = (picks.filter(function (p) { return p.owner === 'face'; })[0] || { frames: baseFrames.face }).frames;
+    var hairFrames = (picks.filter(function (p) { return p.owner === 'hair'; })[0] || { frames: baseFrames.hair }).frames;
+    var equips = picks.filter(function (p) { return p.owner !== 'face' && p.owner !== 'hair'; });
+    var capVslot = (equips.filter(function (p) { return p.owner === 'cap' && p.vslot; })[0] || {}).vslot || null;
+    function at(frames, f) { return frames[f] || frames[0] || { delay: 0, parts: [] }; }
+    var noSprite = equips.filter(function (p) { return !p.frames.length; }).map(function (p) { return p.owner + ' ' + p.name; });
+    var frames = baseFrames.body.map(function (bodyFrame, f) {
+      var parts = [];
+      function add(frame, owner, only) { frame.parts.forEach(function (p) { if (!only || only.indexOf(p.name) !== -1) parts.push({ name: p.name, data: p.data, owner: owner }); }); }
+      add(bodyFrame, 'body');
+      add(at(baseFrames.head, f), 'head', ['head', 'ear']);
+      add(at(faceFrames, 0), 'face');
+      add(at(hairFrames, f), 'hair');
+      equips.forEach(function (e) { add(at(e.frames, f), e.owner); });
+      var rank = { body: 0, arm: 1, head: 2 };   // body first, then the parts that publish the hand and brow anchors
+      parts.sort(function (a, b) { return (rank[a.name] === undefined ? 3 : rank[a.name]) - (rank[b.name] === undefined ? 3 : rank[b.name]); });
+      var result = placeParts(parts);
+      applyCapMask(result.placed, capVslot);
+      return { placed: result.placed, unplaced: result.unplaced, delay: bodyFrame.delay || 500 };
+    });
+    var paths = [];
+    frames.forEach(function (fr) { fr.placed.forEach(function (p) { var s = srcOf(p.data); if (paths.indexOf(s) === -1) paths.push(s); }); });
+    Promise.all(paths.map(loadImage)).then(function (imgs) {
+      if (token !== renderToken) return;
+      var byPath = {}, failed = [];
+      paths.forEach(function (p, k) { byPath[p] = imgs[k]; if (!imgs[k]) failed.push(p); });
+      var ctx = stage.getContext('2d');
+      var ox = stage.width / SCALE / 2, oy = stage.height / SCALE - 8;
+      var seq = sequenceFor(frames.length, true), i = 0, acc = 0;   // stand1 plays ping-pong
+      function draw() {
+        var fr = frames[seq[i]];
+        ctx.clearRect(0, 0, stage.width, stage.height);
+        ctx.imageSmoothingEnabled = false;
+        fr.placed.filter(function (p) { return !p.hidden; })
+          .sort(function (a, b) { return zIndexOf(b.data.z) - zIndexOf(a.data.z); })   // furthest back first
+          .forEach(function (p) {
+            var img = byPath[srcOf(p.data)]; if (!img) return;
+            var o = p.data.origin || { x: 0, y: 0 };
+            ctx.drawImage(img, Math.round((ox + p.world.x - o.x) * SCALE), Math.round((oy + p.world.y - o.y) * SCALE), img.naturalWidth * SCALE, img.naturalHeight * SCALE);
+          });
+      }
+      draw();
+      animators = animators.filter(function (a) { return !a.composite; });
+      animators.push({ composite: true, step: function (dt) {
+        if (token !== renderToken || seq.length < 2) return;
+        acc += dt;
+        if (acc >= frames[seq[i]].delay) { acc = 0; i = (i + 1) % seq.length; draw(); }
+      } });
+      var status = [];
+      if (noSprite.length) status.push(L.noSprite + ': ' + noSprite.join(', '));
+      if (failed.length) status.push(L.failed + ': ' + failed.join(', '));
+      var unplaced = frames[0].unplaced.map(function (p) { return p.owner + '.' + p.name; });
+      if (unplaced.length) status.push(L.unplaced + ': ' + unplaced.join(', '));
+      compositeStatus.textContent = status.join(' · ');
+    });
+  }
+
+  // ------------------------------------------------------------------ slots and cards
+  var selection = {};   // slot.key → [id]
+  function selected(slot) { return selection[slot.key] || []; }
+  function toggle(slot, id, btn) {
+    var cur = selected(slot), on = cur.indexOf(id) !== -1;
+    if (slot.pick === 'many') selection[slot.key] = on ? cur.filter(function (x) { return x !== id; }) : cur.concat([id]);
+    else selection[slot.key] = on ? [] : [id];
+    Array.prototype.forEach.call(btn.parentNode.querySelectorAll('.card'), function (c) {
+      c.setAttribute('aria-pressed', selected(slot).indexOf(c.getAttribute('data-id')) !== -1 ? 'true' : 'false');
+    });
+    updateOut();
+    if (hasCharacterSlots && isCharacterSlot(slot)) renderComposite();
+  }
+  function showImage(path, thumb, err) {
+    return loadImage(path).then(function (img) {
+      if (!img) { err.textContent = L.failed; return; }
+      var s = Math.max(1, Math.min(2, Math.floor(92 / Math.max(img.naturalWidth, img.naturalHeight, 1))));
+      var scaled = document.createElement('canvas');
+      scaled.width = img.naturalWidth * s; scaled.height = img.naturalHeight * s;
+      var c = scaled.getContext('2d'); c.imageSmoothingEnabled = false; c.drawImage(img, 0, 0, scaled.width, scaled.height);
+      thumb.appendChild(scaled);
+    });
+  }
+  function thumbFor(slot, cand, thumb, err) {
+    var still = cand.image || cand.icon || cand.thumbnail;   // the search result's thumbnail, or any PNG the agent names
+    var animated = slot.category === 'mob' || slot.category === 'npc';
+    var frames = normalize(cand.sprite, slot.category === 'face' ? 'default' : 'stand1');
+    if (still && !(animated && frames.length)) return showImage(still, thumb, err);
+    if (!frames.length || !frames[0].parts.length) { err.textContent = L.noSprite; return; }
+    if (!animated) return showImage(srcOf(frames[0].parts[0].data), thumb, err);
+    return Promise.all(frames.map(function (fr) { return loadImage(srcOf(fr.parts[0].data)); })).then(function (imgs) {
+      var w = 1, h = 1;
+      imgs.forEach(function (img) { if (img) { w = Math.max(w, img.naturalWidth); h = Math.max(h, img.naturalHeight); } });
+      if (imgs.every(function (img) { return !img; })) { err.textContent = L.failed; return; }
+      var scale = Math.max(0.25, Math.min(2, 92 / w, 92 / h));
+      var canvas = document.createElement('canvas');
+      canvas.width = 96; canvas.height = 96;
+      thumb.appendChild(canvas);
+      animators.push(spriteAnimator(canvas, frames.map(function (fr, k) {
+        return { img: imgs[k], origin: fr.parts[0].data.origin || { x: 0, y: 0 }, delay: fr.delay || 150 };
+      }), scale, 48 / scale, 94 / scale));
+    });
+  }
+  var slotsEl = document.getElementById('slots');
+  DATA.slots.forEach(function (slot) {
+    slot.pick = slot.pick === 'many' ? 'many' : 'one';
+    var section = document.createElement('section');
+    section.className = 'slot';
+    var head = document.createElement('div');
+    head.className = 'slot-head';
+    var h2 = document.createElement('h2'); h2.textContent = slot.label || slot.key;
+    var pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = slot.pick === 'many' ? L.many : L.one;
+    head.appendChild(h2); head.appendChild(pill);
+    section.appendChild(head);
+    var grid = document.createElement('div');
+    grid.className = 'cards';
+    (slot.candidates || []).forEach(function (cand, k) {
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'card'; btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('data-id', String(cand.id));
+      var num = document.createElement('span'); num.className = 'num'; num.textContent = '#' + (k + 1);
+      var thumb = document.createElement('span'); thumb.className = 'thumb';
+      var name = document.createElement('span'); name.className = 'name'; name.textContent = cand.name || String(cand.id);
+      var id = document.createElement('span'); id.className = 'id'; id.textContent = String(cand.id);
+      var err = document.createElement('span'); err.className = 'err';
+      btn.appendChild(num); btn.appendChild(thumb); btn.appendChild(name); btn.appendChild(id);
+      if (cand.note) { var note = document.createElement('span'); note.className = 'note'; note.textContent = cand.note; btn.appendChild(note); }
+      btn.appendChild(err);
+      btn.addEventListener('click', function () { toggle(slot, String(cand.id), btn); });
+      if (cand.selected && (slot.pick === 'many' || !selected(slot).length)) {   // the agent's own recommendation, pre-picked
+        selection[slot.key] = selected(slot).concat([String(cand.id)]);
+        btn.setAttribute('aria-pressed', 'true');
+      }
+      grid.appendChild(btn);
+      thumbFor(slot, cand, thumb, err);
+    });
+    section.appendChild(grid);
+    slotsEl.appendChild(section);
+  });
+
+  // ------------------------------------------------------------------ selection block
+  var out = document.getElementById('out');
+  function block() {
+    var lines = ['[MAPLE-PREVIEW] Use exactly these asset IDs — do not substitute or search again.'];
+    DATA.slots.forEach(function (slot) {
+      var ids = selected(slot), names = {};
+      (slot.candidates || []).forEach(function (c) { names[String(c.id)] = c.name; });
+      lines.push(slot.key + ': ' + (ids.length ? ids.map(function (id) { return id + (names[id] ? ' (' + names[id] + ')' : ''); }).join(', ') : L.none));
+    });
+    return lines.join('\n');
+  }
+  function updateOut() { out.value = block(); }
+  updateOut();
+  var copied = document.getElementById('copied');
+  document.getElementById('copy').addEventListener('click', function () {
+    updateOut();
+    var text = out.value;
+    function fallback() {
+      try { out.focus(); out.select(); if (document.execCommand('copy')) { copied.textContent = L.copied; return; } } catch (e) { /* fall through */ }
+      out.focus(); out.select(); copied.textContent = L.copyFailed;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { copied.textContent = L.copied; }, fallback);
+    else fallback();
+  });
+  if (hasCharacterSlots) renderComposite();
+})();
+</script>
+</body>
+</html>
