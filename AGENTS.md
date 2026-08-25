@@ -189,13 +189,12 @@ source stays single. Three obligations follow:
   `../<other-skill>/` only happens to work in flat non-Claude installs.
 - **Renaming or removing a skill here is a breaking change** for anyone name-calling
   it, even though nothing in this repo references it. Same for the contract surface a
-  consumer wires into (recipe IDs, profile fields).
+  consumer wires into (recipe IDs, profile fields). What that costs in a version number
+  is *Versioning and release*'s table, which is the only place that enumerates them.
 - **A dependency names the catalog, not only the plugin.** Consumers declare
-  `{ "name": "msu", "marketplace": "msu-skills", "version": "~0.<minor>" }` and list
-  `msu-skills` in their own marketplace's `allowCrossMarketplaceDependenciesOn`.
-  Renaming this catalog breaks every one of them.
-
-Consumers pin `~0.<minor>` because in 0.x a minor bump is the breaking bump.
+  `{ "name": "msu", "marketplace": "msu-skills" }` and list `msu-skills` in their own
+  marketplace's `allowCrossMarketplaceDependenciesOn`. Renaming this catalog breaks
+  every one of them.
 
 ## The landing page
 
@@ -269,9 +268,16 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
   already keep for their own agent. Find no table and the build stops rather than render a
   page that names no tool. `/mcp/` is also a route, and a plugin named `mcp` would shadow
   it with the App Router reporting nothing, so the data layer refuses that name.
-- Fonts are self-hosted: `next/font` downloads both families at build time and the export
-  contains no third-party request at all. Keep it at zero — the published site must load
-  nothing from a host it does not serve.
+- **The export makes exactly one request to a host it does not serve**, and everything else
+  is served from the site. Fonts are self-hosted: `next/font` downloads both families at
+  build time, so neither costs a request. The one exception is the Cloudflare Web Analytics
+  beacon in the root layout — GitHub Pages keeps no access log and reports no visitor count,
+  so it is the only thing that measures whether the site is read. Do not delete it as a
+  stray third-party asset, and hold a second one to the same bar: name what it answers that
+  nothing here already answers. It sets no cookie and collects no personal data, which is
+  why README's notices say nothing about it. The beacon's token is public by design and is
+  written in the layout; a static export inlines an env var into the HTML regardless, so
+  hiding it there would only make it look secret.
 - **The top bar is sticky, and two things depend on its height.** `--topbar-h` in
   `globals.css` is the only place that height is stated: `.topbar .wrap` takes it as
   `min-height`, and `html { scroll-padding-top }` is computed from it so an anchor jump
@@ -368,10 +374,36 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
 merges to `develop` with version strings untouched. To release: take the release PR —
 `release-pr.yml` opens or refreshes it Mondays 00:00 UTC while `develop` is ahead,
 `workflow_dispatch` any time — read `git diff main...develop` plugin by plugin, and
-commit one bump per touched plugin to `develop` — patch for compatible changes, minor for
-breaking ones, since consumers pin `~0.<minor>`. Merging that PR is the release — no
-tag to cut, no second repository to bump. A change confined to one plugin leaves the
-others' version strings alone, so their installed users are not disturbed.
+commit one bump per touched plugin to `develop` at the level the table below picks.
+Merging that PR is the release — no tag to cut, no second repository to bump. A change
+confined to one plugin leaves the others' version strings alone, so their installed
+users are not disturbed.
+
+**One question picks the level: does a consumer that calls this plugin by name have to
+read the diff before taking it?** Skills are called by name and nothing here references
+them, so what breaks is a name that disappeared or a shape that changed — never an
+import a checker could follow.
+
+| Level | When | Triggers |
+|---|---|---|
+| major | something a consumer names is gone or means something else | a skill renamed or removed; a contract surface changed (recipe IDs, profile fields, an output shape a consumer parses); an MCP server or tool renamed; a **required** `userConfig` field added |
+| minor | purely additive | a new skill; a new MCP tool; an **optional** `userConfig` field |
+| patch | everything else | a body edit that preserves observable behaviour; a new `references/` file; description wording; a template fix; a typo |
+
+A skill's body is its behaviour, so preserving observable behaviour is the whole of what
+makes a body edit a patch: change what a skill emits or how it is invoked and that is
+the contract-surface row, however small the diff looks. `references/` is loaded by the
+owning skill and named by nobody else, which is why adding one is patch and not minor.
+
+Every change under `plugins/<name>/` moves that plugin's version, down to a typo —
+there is no no-bump level, which is where this departs from plain semver. A doc fix
+would go unreleased there; here the version string is the update signal, so an unbumped
+fix reaches nobody.
+
+**A plugin's own name, and the catalog's, are not version events.** Renaming `msu`, or
+renaming `msu-skills`, starts a fresh install identity and ends the stream the old name
+published; a major bump announces it to nobody, because nobody is watching the new name
+yet. Those are coordinated with consumers rather than expressed as a number.
 
 Merge the release PR with a merge commit. Squashing forks `main`'s history away from
 `develop`'s, and every later release PR re-shows diffs that already shipped. The rare
@@ -386,7 +418,9 @@ authoritative. The consequence worth remembering is that the version string *is*
 update signal — push commits without bumping it and installed users keep the cached
 copy. CI's `version-bump` job fails a PR into `main` that changes a plugin without
 bumping *that* plugin, because nothing else catches it now that the hub's
-catalog-agreement check is gone.
+catalog-agreement check is gone. It compares the two version strings and stops there —
+which level was chosen is a judgement made once, on the release PR, by whoever reads the
+diff.
 
 `web/package.json` carries a `version` of its own. It is not a release identity and does
 not move on a release: the site is not installed, not catalogued, and not depended on, so

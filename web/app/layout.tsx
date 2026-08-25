@@ -80,6 +80,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <TopBar />
         <div id="main">{children}</div>
         <Footer />
+        {/* The only request the export makes to a host this site does not serve. GitHub Pages
+         *  keeps no access log and reports no visitor count, so without this nothing about
+         *  who reads the page is measured. The token identifies the site rather than the
+         *  account and is public by design; a static export would inline an env var holding
+         *  it anyway. `type="module"` is deferred by definition, so nothing blocks the parse
+         *  and no `defer` is needed. */}
+        <script
+          type="module"
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "d354bbd084f74f16b584d4c5f9043837"}'
+        />
       </body>
     </html>
   )

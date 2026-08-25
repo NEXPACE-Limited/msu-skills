@@ -73,7 +73,7 @@ jobs:
             printf '\n%s\n\n' '## Commits'
             git log --reverse --format='- %s' origin/main..origin/develop
             printf '\n%s\n' '## Before merging'
-            printf -- '- [ ] One bump per changed plugin, committed to `develop` — patch for compatible changes, minor for breaking ones (consumers pin `~0.<minor>`)\n'
+            printf -- '- [ ] One bump per changed plugin, committed to `develop`, at the level the table in AGENTS.md *Versioning and release* picks\n'
             printf -- '- [ ] Merge with a **merge commit**, never squash — squashing forks the histories and the next release PR re-shows shipped diffs\n'
           } > "$body"
 
