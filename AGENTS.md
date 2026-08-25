@@ -189,11 +189,12 @@ source stays single. Three obligations follow:
   `../<other-skill>/` only happens to work in flat non-Claude installs.
 - **Renaming or removing a skill here is a breaking change** for anyone name-calling
   it, even though nothing in this repo references it. Same for the contract surface a
-  consumer wires into (recipe IDs, profile fields).
+  consumer wires into (recipe IDs, profile fields). What that costs in a version number
+  is *Versioning and release*'s table, which is the only place that enumerates them.
 - **A dependency names the catalog, not only the plugin.** Consumers declare
-  `{ "name": "msu", "marketplace": "msu-skills", "version": "~0.<minor>" }` and list
-  `msu-skills` in their own marketplace's `allowCrossMarketplaceDependenciesOn`.
-  Renaming this catalog breaks every one of them.
+  `{ "name": "msu", "marketplace": "msu-skills" }` and list `msu-skills` in their own
+  marketplace's `allowCrossMarketplaceDependenciesOn`. Renaming this catalog breaks
+  every one of them.
 
 ## The landing page
 

@@ -18,15 +18,15 @@
 - [ ] Local checks pass: `claude plugin validate .` · `claude plugin validate plugins/<plugin>` · `bash install.sh --target /tmp/probe` · `npx skills add . -l` · `bash scripts/check-endpoints.sh`
 - [ ] A skill needing a credential sits in the plugin that declares it; no plugin acquires a credential it does not use
 - [ ] No unreleased product names, no credentials — this repository is world-readable
-- [ ] No skill renamed or removed. If one was, this PR is breaking: name the affected skills in the summary so the release PR bumps the minor version (0.x rule)
+- [ ] No skill renamed or removed. If one was, this PR is breaking: name the affected skills in the summary so the release PR picks the level AGENTS.md *Versioning and release* calls for
 - [ ] New or changed frontmatter follows AGENTS.md naming and description rules
 
 ## Consumer impact
 
-<!-- Downstream plugins call these skills by name and pin `msu ~0.<minor>` against the
+<!-- Downstream plugins call these skills by name, and depend on `msu` against the
      `msu-skills` catalog. A renamed skill, a changed contract surface, or a renamed
      catalog breaks them silently. Merging the release PR to `main` is the release —
      there is no second step. -->
 
 - [ ] Nothing consumer-visible changed
-- [ ] Breaking for consumers — named in the summary, for the release PR's minor bump
+- [ ] Breaking for consumers — named in the summary, for the release PR's bump
