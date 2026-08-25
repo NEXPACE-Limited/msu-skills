@@ -269,9 +269,16 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
   already keep for their own agent. Find no table and the build stops rather than render a
   page that names no tool. `/mcp/` is also a route, and a plugin named `mcp` would shadow
   it with the App Router reporting nothing, so the data layer refuses that name.
-- Fonts are self-hosted: `next/font` downloads both families at build time and the export
-  contains no third-party request at all. Keep it at zero — the published site must load
-  nothing from a host it does not serve.
+- **The export makes exactly one request to a host it does not serve**, and everything else
+  is served from the site. Fonts are self-hosted: `next/font` downloads both families at
+  build time, so neither costs a request. The one exception is the Cloudflare Web Analytics
+  beacon in the root layout — GitHub Pages keeps no access log and reports no visitor count,
+  so it is the only thing that measures whether the site is read. Do not delete it as a
+  stray third-party asset, and hold a second one to the same bar: name what it answers that
+  nothing here already answers. It sets no cookie and collects no personal data, which is
+  why README's notices say nothing about it. The beacon's token is public by design and is
+  written in the layout; a static export inlines an env var into the HTML regardless, so
+  hiding it there would only make it look secret.
 - **The top bar is sticky, and two things depend on its height.** `--topbar-h` in
   `globals.css` is the only place that height is stated: `.topbar .wrap` takes it as
   `min-height`, and `html { scroll-padding-top }` is computed from it so an anchor jump
