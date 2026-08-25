@@ -1,6 +1,6 @@
 ---
 name: maple-preview
-description: "Use when a MapleStory asset request resolves to more than one plausible candidate: a look described by colour, style, or mood instead of an exact name or ID (검은 모자, 흰색 티셔츠, 이 맵에 어울리는 몬스터), a maple-lookup search returning several close matches, or the user asking to preview, compare, or choose between assets before they are used (미리보기, 비교해서 보고, 골라볼게, 후보 보여줘). Builds a local page the user picks from; when it was not invoked by name, it asks first."
+description: "Use when a MapleStory asset request resolves to more than one plausible candidate: a look described by colour, style, or mood instead of an exact name or ID (a black cap, a white tee, a monster that suits this map), a maple-lookup search returning several close matches, or the user asking to preview, compare, or choose between assets before they are used. Builds a local page the user picks from; when it was not invoked by name, it asks first."
 ---
 
 # maple-preview
@@ -22,8 +22,8 @@ nothing about which hat the builder pictured. So:
   about names, and the builder has not seen a single pixel yet.
 - **Invoked by name, or the builder asked to preview, compare, or choose** → build the page.
 - **Not invoked** → ask one line in the builder's language and end the turn, with the counts:
-  `모자 5개, 상의 4개, 하의 4개가 검색됐어요. 미리보기 페이지를 만들어 비교해 보시겠어요?`
-  Build on yes. On no, list the candidates as numbered text and ask which; on "그냥 골라줘",
+  `5 caps, 4 tops and 4 pants matched. Shall I build a preview page so you can compare them?`
+  Build on yes. On no, list the candidates as numbered text and ask which; on "just pick for me",
   take the top match per slot and say which ones you took.
 - An exact name or ID, or a single candidate → the skill does not apply.
 
@@ -32,11 +32,11 @@ nothing about which hat the builder pictured. So:
 1. **Candidates** — 2–6 per slot from `search(query, category, tags)`; every result carries
    `id`, `name`, `score`, and a `thumbnail` URL. A query in Korean that returns unrelated names
    usually works as the English item name (`black cap`, `red pants`); a mob search narrows with
-   `tags` such as `tier:low`. For a mood with no name ("이 맵에 어울리는", "비슷한 느낌"),
-   `search_similar` with a `text` description returns rows from every category — keep the ones
-   that carry an `id` in the wanted category. Drop what plainly mismatches the description. One
-   slot per requested part (`cap`, `coat`, `pants`, …) or role (`mob`); `pick` is `one` for an
-   outfit slot and `many` for a roster.
+   `tags` such as `tier:low`. For a mood with no name ("something that suits this map", "a
+   similar vibe"), `search_similar` with a `text` description returns rows from every category
+   — keep the ones that carry an `id` in the wanted category. Drop what plainly mismatches the
+   description. One slot per requested part (`cap`, `coat`, `pants`, …) or role (`mob`); `pick`
+   is `one` for an outfit slot and `many` for a roster.
 2. **Sprite data, one call per candidate** — `get_sprite_data(category, id, ["stand1"])` for a
    character part (`["default"]` for a face), `["stand"]` for a mob or NPC. The response is
    `{ info, <action>: [frame, …] }`: paste the action's frame array as `sprite` unchanged, the
@@ -50,8 +50,8 @@ nothing about which hat the builder pictured. So:
 4. **Open it** — try the OS opener (`open` on macOS, `xdg-open` on Linux, `start` on Windows)
    and print the absolute path in every case; in a remote or container session say it has to
    be opened locally. Suggest `.maple-preview/` for `.gitignore` if it is not there.
-5. **End the turn** — the path, what the page shows, and how to answer: the **선택 복사** button,
-   or numbers per slot (`모자 2번`).
+5. **End the turn** — the path, what the page shows, and how to answer: the **Copy selection**
+   button, or numbers per slot (`cap #2`).
 
 ### Data — the JSON inside `#maple-preview-data`
 
@@ -71,16 +71,16 @@ rather than fetched. It reads the tool's frame arrays, raw CDN frame objects, an
 `"0.body"`-style flat keys alike.
 
 ```json
-{ "lang": "ko", "title": "검은 모자 · 흰 티셔츠 · 빨간 바지",
-  "request": "검은 모자, 흰색 티셔츠, 빨간 바지로 캐릭터 구성",
+{ "lang": "en", "title": "Black cap · white tee · red pants",
+  "request": "a character in a black cap, a white tee and red pants",
   "base": { "body": [ { "body": {}, "arm": {}, "delay": 500 } ], "head": [ { "head": {}, "ear": {} } ],
             "face": [ { "face": {} } ], "hair": [ { "hair": {}, "hairOverHead": {} } ] },
   "slots": [
-    { "key": "cap", "label": "모자", "category": "cap", "pick": "one", "candidates": [
+    { "key": "cap", "label": "Cap", "category": "cap", "pick": "one", "candidates": [
       { "id": "1002060", "name": "Black Baseball Cap", "thumbnail": "https://…/icon.png",
         "sprite": [ { "default": {} }, { "default": {} }, { "default": {} } ], "vslot": "CpH1H5", "selected": true },
       { "id": "1002130", "name": "Black Loosecap", "thumbnail": "https://…/icon.png", "sprite": [ { "default": {} } ] } ] },
-    { "key": "mob", "label": "몬스터", "category": "mob", "pick": "many", "candidates": [
+    { "key": "mob", "label": "Mob", "category": "mob", "pick": "many", "candidates": [
       { "id": "1210102", "name": "Orange Mushroom", "thumbnail": "https://…/stand/0.png",
         "sprite": [ { "cdn_url": "https://…/move/0.png", "origin": {}, "delay": 180 }, { "cdn_url": "https://…/stand/1.png", "origin": {}, "delay": 180 } ] } ] } ] }
 ```
@@ -90,11 +90,11 @@ rather than fetched. It reads the tool's frame arrays, raw CDN frame objects, an
 ## Reading the answer
 
 - A `[MAPLE-PREVIEW]` block: one line per slot, `key: id (name)[, id (name)]`. A slot showing
-  `(선택 없음)` → ask about that slot in one line; do not fill it yourself.
+  `(none)` in the page's language → ask about that slot in one line; do not fill it yourself.
 - Numbers: `#n` is the card's position within its slot, in the order you listed candidates.
 - Then continue with `maple-make` using exactly those IDs — no new search, no substitution, no
   "similar" swap. Rendering the chosen assets is that skill's job.
-- "다른 것도 보여줘" → a new file with the next number and new candidates.
+- "Show me others" → a new file with the next number and new candidates.
 
 ## Constraints
 

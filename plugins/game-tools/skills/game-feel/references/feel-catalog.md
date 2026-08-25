@@ -19,7 +19,7 @@ range. All timers are milliseconds driven by `dt`, never frame counts.
 
 ### 1. Coyote time
 - **What** — a jump is still accepted for a short window after walking off a ledge.
-- **Missing** — "절벽 끝에서 점프가 씹혀요": the frame the player sees the edge is already airborne.
+- **Missing** — "my jump gets eaten at the edge": the frame the player sees the edge is already airborne.
 - **Site** — the jump-start condition, next to `grounded`.
 - **Values** — 80–150 ms (100). Past 200 it reads as a double jump.
 - **Sketch**
@@ -32,7 +32,7 @@ range. All timers are milliseconds driven by `dt`, never frame counts.
 
 ### 2. Jump buffer
 - **What** — a jump pressed shortly before landing fires on the first grounded frame.
-- **Missing** — "착지 직전에 누르면 안 뛰어요"; the player mashes.
+- **Missing** — "pressing just before landing does nothing"; the player mashes.
 - **Site** — input read (a press stamps `jumpBuffered = BUFFER_MS`) and the jump start (consumes it).
 - **Values** — 80–150 ms (120). Longer than the shortest landing-to-jump animation feels laggy.
 - **Sketch**
@@ -45,7 +45,7 @@ range. All timers are milliseconds driven by `dt`, never frame counts.
 
 ### 3. Variable jump height (jump cut)
 - **What** — releasing the jump early shortens the jump.
-- **Missing** — one fixed arc; small hops are impossible; "점프가 너무 붕 떠요".
+- **Missing** — one fixed arc; small hops are impossible; "every jump floats".
 - **Site** — input read on release, applied in the integrate step while rising.
 - **Values** — on release while `vy < 0`: `vy *= 0.4–0.5`; or a minimum jump time of 60–100 ms before the cut may act.
 - **Sketch**
@@ -77,7 +77,7 @@ range. All timers are milliseconds driven by `dt`, never frame counts.
 
 ### 6. Corner correction
 - **What** — a move blocked by a corner is nudged sideways or upward when the overlap is small.
-- **Missing** — "모서리에 걸려요": a head bonk on a ceiling edge, or a foot catching a ledge, stops the move dead.
+- **Missing** — "I keep snagging on corners": a head bonk on a ceiling edge, or a foot catching a ledge, stops the move dead.
 - **Site** — collision resolve, in the branch that blocks the move.
 - **Values** — nudge up to 4–8 px, or ≤ ¼ of the hitbox on that axis.
 - **Sketch**
@@ -90,7 +90,7 @@ range. All timers are milliseconds driven by `dt`, never frame counts.
 
 ### 7. Acceleration, deceleration, air control
 - **What** — velocity ramps to target; ground and air rates differ; turning around gets a boost.
-- **Missing** — "뻑뻑해요" or "미끄러워요": velocity snaps to ±max or stops instantly, or slides.
+- **Missing** — "stiff" or "slippery": velocity snaps to ±max or stops instantly, or slides.
 - **Site** — the integrate step, between input and position.
 - **Values** — ground: reach max in 80–200 ms, stop faster than start (decel 1.2–2 × accel); air control 50–80 % of ground accel; turnaround multiplier 1.5–2 when input opposes velocity.
 - **Sketch**
@@ -127,7 +127,7 @@ range. All timers are milliseconds driven by `dt`, never frame counts.
 
 ### 11. Action input buffer
 - **What** — an action pressed during another action's lock fires when the lock ends.
-- **Missing** — "휘두르는 도중에 누른 입력이 사라져요".
+- **Missing** — "inputs pressed mid-swing just vanish".
 - **Site** — input read (stamp) and action start (consume).
 - **Values** — 100–300 ms; longer than the longest lock it must cover, or it cannot do its job.
 - **Sketch**
@@ -147,7 +147,7 @@ range. All timers are milliseconds driven by `dt`, never frame counts.
 
 ### 13. Hurtbox smaller than the sprite, generous hitboxes
 - **What** — the box that takes damage is inset; the boxes that deal the player's damage are not.
-- **Missing** — "스치기만 해도 맞아요"; conversely "분명 맞췄는데 안 맞아요".
+- **Missing** — "a graze counts as a hit"; conversely "I clearly hit it and nothing happened".
 - **Site** — collision resolve, in the damage checks — never the drawing.
 - **Values** — hurtbox 60–80 % of the sprite, centred or biased away from the facing direction; the player's attack boxes 110–130 % of the visual.
 - **Check** — the debug overlay draws both boxes; the sprite and the render code do not change.

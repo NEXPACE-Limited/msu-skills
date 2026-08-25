@@ -1,6 +1,6 @@
 ---
 name: game-feel
-description: "Use when a game's controls feel stiff, floaty, heavy, slippery, unresponsive, or unfair; when players miss jumps they thought they made, snag on platform corners, lose inputs pressed during another action, or get hit by grazes; when a platformer, runner, or action game is being built or polished and its input and movement handling was never reviewed; or when the user asks for a game-feel pass or names coyote time, jump buffering, variable jump height, gravity tuning, corner correction, acceleration, or input buffering (조작감, 뻑뻑해요, 붕 떠요, 점프가 씹혀요, 모서리에 걸려요, 입력이 씹혀요). Audits, proposes, and applies only what the user confirms."
+description: "Use when a game's controls feel stiff, floaty, heavy, slippery, unresponsive, or unfair; when players miss jumps they thought they made, snag on platform corners, lose inputs pressed during another action, or get hit by grazes; when a platformer, runner, or action game is being built or polished and its input and movement handling was never reviewed; or when the user asks for a game-feel pass or names coyote time, jump buffering, variable jump height, gravity tuning, corner correction, acceleration, or input buffering. Audits, proposes, and applies only what the user confirms."
 ---
 
 # Game Feel
@@ -27,10 +27,10 @@ Identify, with `file:line` evidence:
 
 Load [feel-catalog.md](references/feel-catalog.md) and walk every row its applicability table
 marks for the movement model. Record `present`, `partial`, or `absent` per technique with the
-evidence line. The reported symptom says where to look first, not where to stop: "절벽 끝에서
-점프가 씹혀요" is coyote time *and* jump buffering *and* press-vs-hold detection, and the same
-pass covers variable jump, fall gravity, terminal velocity, and air control, because those are
-the complaints that arrive next.
+evidence line. The reported symptom says where to look first, not where to stop: "my jump gets
+eaten at the edge of a cliff" is coyote time *and* jump buffering *and* press-vs-hold
+detection, and the same pass covers variable jump, fall gravity, terminal velocity, and air
+control, because those are the complaints that arrive next.
 
 ## 3. Propose, then stop
 
@@ -51,13 +51,13 @@ change the builder first meets on stage costs the demo.
 | The thought | Why it does not lift the gate |
 |---|---|
 | "The fix is standard, well-established, no ambiguity" | Confidence in the proposal, not permission to skip the review — every row changes how the game plays, and the builder owns feel. |
-| "They said 필요한 처리를 적용해줘 / 필요한 거 다 적용해줘" | That names the outcome of the pass, which every builder asks for. It is not an instruction to skip the table. |
+| "They said to apply whatever is needed" | That names the outcome of the pass, which every builder asks for. It is not an instruction to skip the table. |
 | "There is no time — the demo is in 30 minutes" | The table is the fastest path: one message, one-word answer. |
 | "Their senior already said which two to add" | The senior named two rows; the audit found more. Show all of them, theirs first. |
 
-The only instruction that lifts the gate is one not to ask — "묻지 말고", "질문 없이", "don't
-ask", "just do it", "no review". Then apply the recommended rows and put the table in the
-report instead of the question.
+The only instruction that lifts the gate is one not to ask — "don't ask", "just do it", "no
+review", "use your judgement and apply it", in whatever language the builder writes. Then
+apply the recommended rows and put the table in the report instead of the question.
 
 ## 4. Apply the confirmed rows
 
