@@ -363,8 +363,13 @@ stops mentioning a name, URL, header, or `--transport <type>` the server declare
   republishes the site and a merge to `develop` publishes nothing. A release whose guards
   failed publishes nothing either; deploying anyway, after a CI outage rather than a real
   failure, is `workflow_dispatch`.
-- This repository's Pages source is GitHub Actions. A new fork enables it once under
-  Settings → Pages before its first deployment.
+- This repository's Pages source is GitHub Actions, and `pages.yml`'s build job is gated
+  on `github.event.repository.fork == false`, so a fork publishes nothing. A fork's copy
+  would carry this repository's analytics beacon token and canonical URLs — both are
+  inlined into the export — so a second live copy reports into the same Cloudflare
+  property. Whether a fork enables Pages at all is outside this repository's reach; the
+  workflow that would fill it is not. A fork meant to publish deletes that condition
+  deliberately.
 - The catalog page repeats the README's legal notices verbatim. Keep the two in step, and
   do not soften them here either.
 
