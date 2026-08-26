@@ -2,8 +2,8 @@
 # catalog and every SKILL.md frontmatter, so the published page follows the repository
 # with no file to keep in sync by hand.
 #
-# This repository already uses GitHub Actions as its Pages source. A new fork enables it
-# once under Settings → Pages; until then only the deploy job fails.
+# This repository already uses GitHub Actions as its Pages source. A fork does not
+# publish at all — see the guard on the build job.
 #
 # Publishing is gated on CI. Triggering on the push directly would publish a merge whose
 # leak scan or linked-page check had just failed, because those guards live only in CI —
@@ -36,13 +36,18 @@ defaults:
 
 jobs:
   build:
+    # A fork never publishes. Its copy carries this repository's analytics beacon and
+    # canonical URLs, so a second live copy pollutes both; the fork's own Pages setting
+    # is outside this repository's reach, but the workflow that would fill it is not.
+    #
     # `branches` filters the triggering run's head branch, which for a CI run on a pull
     # request is the PR branch, not its base — so the event is checked too. A manual
     # dispatch carries no workflow_run context and is allowed on its own terms.
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push')
+      github.event.repository.fork == false &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
