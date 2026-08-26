@@ -3,11 +3,11 @@
   "name": "game-tools",
   "displayName": "Game Tools",
   "version": "0.2.0",
-  "description": "Quality gates and live tooling for game production — balance, game feel, determinism, cross-device UI, tutorials, localization, and an in-game debug/tuning panel. Works with any engine or platform; published by NEXPACE alongside the MSU builder skills.",
+  "description": "Quality checks and fixes for a game that already runs, on any engine or platform. It covers the parts of a game that are not features: how the controls feel, whether the numbers are balanced, whether the same input always gives the same result, whether the UI fits every screen and input device, whether a new player understands what to do, and whether the text works in other languages. It also ships an in-game panel for changing values while playing, instead of another edit-and-rebuild round. Published by NEXPACE alongside the MSU builder skills.",
   "author": {
     "name": "NEXPACE"
   },
   "homepage": "https://github.com/NEXPACE-Limited/msu-skills",
   "repository": "https://github.com/NEXPACE-Limited/msu-skills",
-  "keywords": ["game", "gamedev", "qa", "balance", "i18n", "tutorial", "ux", "msu", "nexpace"]
+  "keywords": ["game", "gamedev", "game-design", "game-polish", "playtest", "qa", "balance", "game-feel", "ux", "accessibility", "i18n", "engine-agnostic", "nexpace"]
 }
