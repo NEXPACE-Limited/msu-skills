@@ -169,7 +169,7 @@ rest are walked in full.
 
 - **Symptom.** Nothing loads; the console shows a CSP violation, a mixed-content block, or a 404.
 - **Observe.** `Content-Security-Policy` `media-src` (or `default-src` with no `media-src`)
-  without the audio host; an HTTPS page requesting `http://` audio; a wrong path — case,
+  without the audio host; an HTTPS page requesting audio over plain HTTP; a wrong path — case,
   extension, or the base path of a project site.
 - **Healthy.** Assets from allowed origins over HTTPS at the path the build writes.
 - **Fix.** The policy or the URL.
