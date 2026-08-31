@@ -2,14 +2,14 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "msu",
   "displayName": "MSU Skills",
-  "version": "0.4.0",
-  "description": "MapleStory Universe (NEXPACE) common skills and modules — Maple asset knowledge with the maple-lookup MCP for building Synergy Apps",
+  "version": "0.4.1",
+  "description": "Skills and an MCP server for building on MapleStory Universe game data. The bundled maple-lookup MCP server searches the MSU Open API for characters, mobs, maps, skills, items, and sprites; the skills cover how that data is structured, how to choose between candidates, and how to turn it into something that renders. This plugin owns the MSU Builder OpenAPI key, and other NEXPACE plugins build on it instead of copying its skills.",
   "author": {
     "name": "NEXPACE"
   },
   "homepage": "https://github.com/NEXPACE-Limited/msu-skills",
   "repository": "https://github.com/NEXPACE-Limited/msu-skills",
-  "keywords": ["maplestory", "msu", "nexpace", "game-assets", "mcp"],
+  "keywords": ["maplestory", "maplestory-universe", "msu", "nexpace", "synergy-app", "game-assets", "sprites", "game-development", "mcp", "open-api"],
   "userConfig": {
     "openapi_key": {
       "type": "string",

@@ -62,12 +62,8 @@ apply the recommended rows and put the table in the report instead of the questi
 ## 4. Apply the confirmed rows
 
 - Confirmed rows only, at the sites you named; extend the movement code rather than replace it.
-- Every new value lives in one place. If the project carries the tuning-panel contract
-  (`DebugPanel.define` in the game code, a `debug-panel.js`, or its `AGENTS.md` block),
-  register the values there — in the group the game's movement values already use, or a `feel`
-  group — with English keys and labels in the builder's language, under the
-  `debug-visualization` skill's rules. Otherwise one named-constants block; no scattered
-  literals.
+- Every new value lives in one place: the project's own tunables schema when it has one,
+  otherwise one named-constants block; no scattered literals.
 - Check the interactions the catalog lists per technique: a buffer is consumed once, coyote
   time is not re-armed by the jump itself, a jump cut acts only while rising, corner correction
   nudges only when the blocked move is nearly clear.
@@ -76,8 +72,8 @@ apply the recommended rows and put the table in the report instead of the questi
 
 One check per applied technique — the smallest thing that fails if the logic breaks: a
 scripted input sequence through the update function (`leave ledge → 80 ms → press jump →
-airborne at jump velocity`), an assertion harness, or the panel's hitbox and timer overlays
-when one exists. Report which checks ran and their results; a technique without a check is
+airborne at jump velocity`), an assertion harness, or the game's own hitbox and timer overlays
+when it has them. Report which checks ran and their results; a technique without a check is
 reported as unverified, not as done.
 
 ## Constraints
