@@ -196,4 +196,4 @@ range. All timers are milliseconds driven by `dt`, never frame counts.
 ### 20. Windows in milliseconds
 - **What** — every window above is stored in ms and compared against `dt`-accumulated time.
 - **Missing** — "6 frames" of coyote time becomes 200 ms on a 30 fps phone.
-- **Site** — everywhere a timer lives; the constants block or the tuning-panel schema.
+- **Site** — everywhere a timer lives; the constants block or the project's tunables schema.
