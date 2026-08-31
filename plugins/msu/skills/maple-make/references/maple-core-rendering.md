@@ -17,7 +17,10 @@ For character socket assembly → see `maple-character-rendering.md`.
 
 - **Base URL**: `https://resource-static.msu.io/data/`
 - All `_path` values in JSON are relative to this base URL
-- Supports CORS — all methods work: `<img>`, `fetch()`, `canvas drawImage()`, `getImageData()`, `toDataURL()`
+- **No CORS headers.** The CDN sends no `Access-Control-Allow-Origin` for any origin, on
+  JSON or PNG. `<img>` and `canvas drawImage()` work; browser `fetch()` is blocked, and a
+  drawn CDN image taints the canvas, so `getImageData()` and `toDataURL()` then throw.
+  Fetch JSON through `maple-lookup` and inline it into the HTML — never `fetch()` it in the page.
 
 ## Sprite Direction
 

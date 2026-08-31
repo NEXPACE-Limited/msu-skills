@@ -143,11 +143,9 @@ const PHASES = [
   { name: 'Spirit',  partLabels: ['Spirit'] },
 ];
 
-// 2. Load all part JSONs from CDN
-const partJsons = {};
-for (const part of PARTS) {
-  partJsons[part.id] = await fetch(CDN + `Mob/${part.id}.json`).then(r => r.json());
-}
+// 2. Part JSONs — fetch each through maple-lookup and inline the result here.
+//    Browser fetch() of CDN JSON is blocked (no CORS headers); PNGs still load via <img>.
+const partJsons = { /* '8830000': { …get_sprite_data output… }, … */ };
 
 // 3. Create animator per part
 const animators = PARTS.map(part => ({
@@ -167,7 +165,8 @@ function setPhase(phase) {
 // 5. Load PNG: CDN + frame._path
 function loadImage(path) {
   const img = new Image();
-  img.crossOrigin = 'anonymous';
+  // No crossOrigin — the CDN sends no CORS headers, so 'anonymous' fails the load outright.
+  // The canvas is tainted as a result: draw only, no getImageData()/toDataURL().
   img.src = CDN + path;
   return img;
 }
