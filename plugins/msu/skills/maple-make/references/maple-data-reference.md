@@ -96,8 +96,12 @@ Use the `maple-lookup` MCP server tools to search game data and fetch sprite inf
 
 | Tool | Purpose | Example |
 |------|---------|---------|
-| `maple-lookup_search` | Fuzzy search by name (Korean/English) | `maple-lookup_search("고블린")` → ID, name, score, category |
+| `maple-lookup_search` | Fuzzy search by name (Korean/English) | `maple-lookup_search("고블린")` → ID, name, score, category, `cdn_url` (the entry's JSON), `thumbnail` |
 | `maple-lookup_get_sprite_data` | Fetch sprite/skill data from CDN | `maple-lookup_get_sprite_data("mob", "5100203", ["stand"])` → frames with _path, origin, delay, z (layer), map (socket points) |
+
+A searchable category is not automatically one `get_sprite_data` serves: it answers
+`Unknown category` for anything holding no sprite data, `map` included. Follow the workflow
+for the category you want rather than assuming the pair.
 
 **Sprite Workflow (mob/equipment):**
 1. `maple-lookup_search` → get ID and category
@@ -106,7 +110,8 @@ Use the `maple-lookup` MCP server tools to search game data and fetch sprite inf
 
 **Character Assembly Workflow:**
 1. `maple-lookup_get_sprite_data("body", "2000", ["stand1"])` → base body with socket data
-2. `maple-lookup_get_sprite_data("head", "12000", ["stand1"])` → head with socket data
+2. `maple-lookup_get_sprite_data("body", "12000", ["stand1"])` → head with socket data
+   (the head is a `body` entry — `12000`, `info.islot` `Hd`. There is no `head` category)
 3. `maple-lookup_search("{equipment}", "{category}")` → get equipment IDs
 4. `maple-lookup_get_sprite_data("{category}", "{id}", ["stand1"])` → equipment frames with socket data
 5. Assemble parts using socket points (navel, neck, brow, hand) — see `maple-core-rendering.md` and `maple-character-rendering.md`
@@ -116,8 +121,11 @@ Use the `maple-lookup` MCP server tools to search game data and fetch sprite inf
 2. `maple-lookup_get_sprite_data("npc", "{npcID}", ["stand"])` → NPC sprite (same structure as mob)
 
 **Map Workflow:**
-1. `maple-lookup_search("{map name}", "map")` → get map ID
-2. `maple-lookup_get_sprite_data("map", "{mapID}")` → get map data (tiles, footholds, portals, life) — see `maple-field-map.md`
+1. `maple-lookup_search("{map name}", "map")` → get map ID and `cdn_url`
+2. Fetch that `cdn_url` agent-side → map JSON (tiles, footholds, portals, `life` — `null` on some maps) — see `maple-field-map.md`.
+   `get_sprite_data` does not serve `map` — a map has no sprite data — so the CDN JSON is the only route.
+3. Fetch the back/tile/object set JSONs the map names (`Map/Back|Tile|Obj/{name}.json`) the same way — they hold the `_path` values
+4. Inline every JSON into the HTML; browser `fetch()` of the CDN is CORS-blocked — see `maple-core-rendering.md`
 
 **Skill Workflow:**
 1. `maple-lookup_search("{skill name}", "skill")` → get skill ID

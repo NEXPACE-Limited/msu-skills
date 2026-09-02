@@ -26,7 +26,7 @@ Name lookup: `String/Map.json` → key = mapID as string (no zero-pad)
 | Key | Description |
 |-----|-------------|
 | `info` | Map metadata (bounds, BGM, flags) |
-| `life` | Mob and NPC spawn entries |
+| `life` | Mob and NPC spawn entries. `null` on some maps (e.g. 927030091) — guard before iterating |
 | `portal` | Portal definitions (spawn, warp, script) |
 | `foothold` | Platform/ground collision segments |
 | `ladderRope` | Ladder and rope definitions |
@@ -392,7 +392,9 @@ obj entries   → oS values  → Map/Obj/{oS}.json   → [l0][l1][l2]["0"]._path
 ```
 
 The set JSONs must be loaded first (after discovering their names from the map JSON),
-before `_path` values can be collected to load PNG files.
+before `_path` values can be collected to load PNG files. Fetch them agent-side and inline
+them with the map JSON — the CDN sends no CORS headers, so a page-side `fetch()` fails (see
+`maple-core-rendering.md`).
 
 **Known data gaps:**
 - `Map/Obj/connect.json` (ladder/rope visual objects) exists, but `Map/Obj/connect/` PNG directory may be absent if the .img was not exported with PNG extraction.
@@ -410,6 +412,7 @@ Input: Map ID (e.g. 100000000)
 
 4. Spawns:  life[*] where type="m" → mob spawn positions + IDs
             life[*] where type="n" → NPC positions
+            (life is null on some maps → no spawns; check before iterating)
 
 5. Portals: portal[*] where pt=2  → warp to other maps
             portal[*] where pt=0  → player spawn points (pn="sp")

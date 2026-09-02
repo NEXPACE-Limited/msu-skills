@@ -236,6 +236,7 @@ Mobs with `info.bodyAttack = 1` deal damage through **body collision** — no at
 ## Quick Reference
 
 ```
+// loadJSON(): the JSON already inlined into the page — never a browser fetch (the CDN has no CORS)
 // Spawn a mob
 const statsData = loadJSON(`Mob/${mobId.toString().padStart(7,'0')}.json`);
 const animId = statsData.info.link ?? mobId.toString().padStart(7,'0');

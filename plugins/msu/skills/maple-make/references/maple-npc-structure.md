@@ -188,6 +188,7 @@ Example: Kyrin's `say` state contains a `speak` key (non-numeric) — skip it.
 ## Quick Reference
 
 ```
+// loadJSON(): the JSON already inlined into the page — never a browser fetch (the CDN has no CORS)
 // Render an NPC
 const npcData = loadJSON(`Npc/${npcId.toString().padStart(7,'0')}.json`);
 const animId = npcData.info.link ?? npcId.toString().padStart(7,'0');
