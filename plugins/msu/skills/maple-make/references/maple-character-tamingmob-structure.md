@@ -203,6 +203,7 @@ For the mount navel used in character attachment: `flippedNavel.x = -navel.x` (n
 ## Quick Reference
 
 ```
+// loadJSON(): the JSON already inlined into the page — never a browser fetch (the CDN has no CORS)
 // Render character on mount
 mountJson = loadJSON(`Character/TamingMob/${tamingMobID}.json`)
 // Action fallback: stand1 → sit → fly → walk1 → stand2

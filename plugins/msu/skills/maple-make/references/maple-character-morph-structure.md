@@ -113,6 +113,7 @@ Morph/{morphID}/{state}/{frame}.png
 ## Quick Reference
 
 ```
+// loadJSON(): the JSON already inlined into the page — never a browser fetch (the CDN has no CORS)
 // Render a morph
 const morphData = loadJSON(`Morph/${morphId.toString().padStart(4,'0')}.json`);
 const frame = morphData.stand["0"];

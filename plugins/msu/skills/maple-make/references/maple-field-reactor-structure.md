@@ -174,6 +174,7 @@ Non-numeric keys (`event`, `hit`, `repeat`) are **not frames**. Filter with `!is
 ## Quick Reference
 
 ```
+// loadJSON(): the JSON already inlined into the page — never a browser fetch (the CDN has no CORS)
 // Render a reactor
 const data = loadJSON(`Reactor/${reactorId.toString().padStart(7,'0')}.json`);
 const animId = data.info?.link ?? reactorId.toString().padStart(7,'0');

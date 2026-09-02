@@ -253,11 +253,9 @@ const PHASES = [
   // ... additional destruction phases
 ];
 
-// 3. Load all part JSONs
-const partJsons = {};
-for (const part of PARTS) {
-  partJsons[part.id] = await fetch(CDN + `Mob/${part.id}.json`).then(r => r.json());
-}
+// 3. Part JSONs — fetch each through maple-lookup and inline the result here.
+//    Browser fetch() of CDN JSON is blocked (no CORS headers); PNGs still load via <img>.
+const partJsons = { /* '8810000': { …get_sprite_data output… }, … */ };
 
 // 4. Render at same anchor, sorted by zOffset
 function draw(anchorX, anchorY, visibleParts) {

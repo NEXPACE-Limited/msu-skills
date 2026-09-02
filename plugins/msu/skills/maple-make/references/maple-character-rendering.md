@@ -19,7 +19,7 @@ Characters are rendered by **overlapping matching socket points** between body a
    - Categories: hair, face, cap, coat, longcoat, pants, shoes, glove, weapon, cape, shield, accessory
 2. **Fetch sprite data**: `maple-lookup_get_sprite_data("{category}", "{itemID}", ["stand1"])` → get animation frames with socket data
    - Base body: `maple-lookup_get_sprite_data("body", "2000", ["stand1"])`
-   - Head: `maple-lookup_get_sprite_data("head", "12000", ["stand1"])`
+   - Head: `maple-lookup_get_sprite_data("body", "12000", ["stand1"])` — the head is a `body` entry (`islot` `Hd`); there is no `head` category
    - Face/Hair/Equipment: use search results' category and ID
    - Response keys for body/head/equipment are `"{frame}.{part}"` format (e.g. `"0.body"`, `"0.arm"`, `"0.head"`)
    - Each entry includes `_path`, `origin`, `delay`, `z` (layer), and `map` (socket points like navel, neck, brow, hand)
