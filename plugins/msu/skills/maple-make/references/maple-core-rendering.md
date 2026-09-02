@@ -20,6 +20,9 @@ For character socket assembly → see `maple-character-rendering.md`.
 - **No CORS headers.** The CDN sends no `Access-Control-Allow-Origin` for any origin, on
   JSON or PNG. `<img>` and `canvas drawImage()` work; browser `fetch()` is blocked, and a
   drawn CDN image taints the canvas, so `getImageData()` and `toDataURL()` then throw.
+  Phaser fails on both counts by default — XHR loading, WebGL texture upload — and needs
+  `type: Phaser.CANVAS` plus `loader: { imageLoadType: 'HTMLImageElement' }`; see *Phaser
+  Framework Integration*.
   Retrieve JSON outside the page — `maple-lookup`, or the CDN URL fetched agent-side for what
   it does not serve — and inline it into the HTML; never `fetch()` it from the page.
 
@@ -138,6 +141,8 @@ ctx.drawImage(img, drawX, drawY);
 | Multi-part entity (character, tamingmob) | **Phaser Image per part** (`setOrigin(0,0)` + manual coords) | See each entity's dedicated reference file for assembly code |
 | Multi-layer compositing (custom) | Canvas `drawImage()` | Full pixel control |
 
+Both Phaser rows need the game config under *Phaser Framework Integration*; Phaser's defaults cannot load a CDN PNG.
+
 > **Phaser + Canvas mixing warning:** `RenderTexture.draw()` accepts only Phaser GameObjects, NOT `HTMLCanvasElement`. Do not render to an HTML Canvas and try to upload it to a RenderTexture — use Phaser Image objects instead.
 
 ---
@@ -145,6 +150,23 @@ ctx.drawImage(img, drawX, drawY);
 ## Phaser Framework Integration
 
 MapleStory sprites are individual PNGs per frame — NOT spritesheets. Phaser requires specific handling.
+
+### Game Config — Required for CDN PNGs
+
+The CDN sends no CORS headers (see *CDN*), and Phaser's defaults fail on it twice: `load.image`
+goes through XHR, which the browser blocks, and the WebGL renderer throws `SecurityError` when it
+uploads a tainted image as a texture. Measured on Phaser 3.80: only the Canvas renderer with
+element loading works.
+
+```javascript
+new Phaser.Game({
+  type: Phaser.CANVAS,                           // WebGL rejects a cross-origin image without CORS
+  loader: { imageLoadType: 'HTMLImageElement' }, // default 'XHR' is CORS-blocked → loaderror
+  // ...
+});
+```
+
+Do not set `loader.crossOrigin`: like `img.crossOrigin`, it turns the load into a CORS request that fails outright.
 
 ### Critical Rules — getFirstTick TypeError Prevention
 
@@ -160,6 +182,7 @@ The `getFirstTick` error (`Cannot read properties of undefined (reading 'duratio
 
 ```javascript
 // In preload() — load each animation frame as individual image
+// (needs the Game Config above: Canvas renderer + HTMLImageElement loading)
 const CDN = "https://resource-static.msu.io/data/";
 
 frames.forEach((frame, i) => {
