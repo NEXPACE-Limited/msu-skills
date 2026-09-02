@@ -99,6 +99,10 @@ Use the `maple-lookup` MCP server tools to search game data and fetch sprite inf
 | `maple-lookup_search` | Fuzzy search by name (Korean/English) | `maple-lookup_search("고블린")` → ID, name, score, category |
 | `maple-lookup_get_sprite_data` | Fetch sprite/skill data from CDN | `maple-lookup_get_sprite_data("mob", "5100203", ["stand"])` → frames with _path, origin, delay, z (layer), map (socket points) |
 
+A searchable category is not automatically one `get_sprite_data` serves: it answers
+`Unknown category` for anything holding no sprite data, `map` included. Follow the workflow
+for the category you want rather than assuming the pair.
+
 **Sprite Workflow (mob/equipment):**
 1. `maple-lookup_search` → get ID and category
 2. `maple-lookup_get_sprite_data` → get animation frames
@@ -119,7 +123,8 @@ Use the `maple-lookup` MCP server tools to search game data and fetch sprite inf
 **Map Workflow:**
 1. `maple-lookup_search("{map name}", "map")` → get map ID and `cdn_url`
 2. Fetch that `cdn_url` → map JSON (tiles, footholds, portals, life) — see `maple-field-map.md`.
-   `get_sprite_data` has no `map` category; the CDN JSON is the only route.
+   `get_sprite_data` does not serve `map` — a map has no sprite data — so the CDN JSON
+   is the only route. Confirmed as intended by the team that owns the server.
 
 **Skill Workflow:**
 1. `maple-lookup_search("{skill name}", "skill")` → get skill ID
