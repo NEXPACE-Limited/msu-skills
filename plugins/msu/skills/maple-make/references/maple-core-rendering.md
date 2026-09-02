@@ -20,7 +20,8 @@ For character socket assembly → see `maple-character-rendering.md`.
 - **No CORS headers.** The CDN sends no `Access-Control-Allow-Origin` for any origin, on
   JSON or PNG. `<img>` and `canvas drawImage()` work; browser `fetch()` is blocked, and a
   drawn CDN image taints the canvas, so `getImageData()` and `toDataURL()` then throw.
-  Fetch JSON through `maple-lookup` and inline it into the HTML — never `fetch()` it in the page.
+  Retrieve JSON outside the page — `maple-lookup`, or the CDN URL fetched agent-side for what
+  it does not serve — and inline it into the HTML; never `fetch()` it from the page.
 
 ## Sprite Direction
 
