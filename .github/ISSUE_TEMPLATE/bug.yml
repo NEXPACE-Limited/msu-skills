@@ -1,0 +1,74 @@
+name: Bug report
+description: Something this catalog ships behaves differently from what it documents
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Never paste your OpenAPI key.** Redact it in every request, log, and header you
+        quote — `x-nxopen-api-key: <redacted>`, or omit the header line entirely.
+
+        A report is most useful when it names the documented behaviour and the observed
+        one side by side, so the fix is either the doc or the implementation and never a
+        guess about which was meant.
+
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it go wrong?
+      options:
+        - "A skill's instructions or one of its reference files"
+        - "The maple-lookup MCP server"
+        - "Installing — the Claude Code plugin, npx skills, or install.sh"
+        - "The landing page"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Plugin and version
+      description: 'The version string the plugin declares, e.g. `msu 0.4.1`. Skip it if the report is not about an installed plugin.'
+    validations:
+      required: false
+
+  - type: textarea
+    id: documented
+    attributes:
+      label: What is documented
+      description: Quote the instruction you followed and link the file or section it lives in.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: The exact call, command, or prompt — redacted. Say which endpoint or channel it ran against.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Verbatim output, not a summary of it. Errors carried inside a successful response are worth quoting whole.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+
+  - type: textarea
+    id: anything-else
+    attributes:
+      label: Anything else
+      description: A near-identical call that does work, other IDs or inputs you tried, who this blocks. Optional.
+    validations:
+      required: false

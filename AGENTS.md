@@ -121,7 +121,7 @@ scripts/check-endpoints.sh # public-repo scan, inherited from the retired hub
 .github/workflows/pages.yml # builds and publishes the page after CI passes on main
 .github/workflows/retarget-prs.yml # moves a PR opened against main onto develop
 .github/workflows/release-pr.yml # opens/refreshes the release PR, Mondays 00:00 UTC
-.github/ISSUE_TEMPLATE/    # new-plugin proposal form; blank issues stay enabled
+.github/ISSUE_TEMPLATE/    # issue forms; blank issues stay enabled
 CONTRIBUTING.md            # the contributor's half: writing a skill, placement, the PR
 AGENTS.md                  # this file. CLAUDE.md and GEMINI.md are one-line @ imports
 ```
