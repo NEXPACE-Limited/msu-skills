@@ -354,6 +354,20 @@ check 'a .prev with no trailing newline replays' \
                   MSU_STATUSLINE_ROOT="$here/.." bash "$here/../scripts/launcher.sh" </dev/null \
                 | head -1)"
 
+# The launcher forwards --config, so there is one path a user can be handed that does
+# not move when the plugin is updated. It must answer without reading stdin: a
+# diagnostic that blocks on a terminal is worse than none.
+check 'the launcher forwards --config' \
+  'MAX_WIDTH=72' "$(rm -rf "$lroot/conf"; mkdir -p "$lroot/conf"
+                    printf 'echo PREV\n' > "$lroot/conf/msu-statusline.prev"
+                    CLAUDE_CONFIG_DIR="$lroot/conf" TMPDIR="$lroot/cache/" \
+                      MSU_STATUSLINE_ROOT="$here/.." bash "$here/../scripts/launcher.sh" --config \
+                    | sed -n '/^MAX_WIDTH=/p')"
+check 'and answers even with no plugin, instead of waiting on stdin' \
+  '⚠ MSU statusline: plugin not found' \
+  "$(CLAUDE_CONFIG_DIR="$lroot/conf" TMPDIR="$lroot/cache/" MSU_STATUSLINE_ROOT= \
+       bash "$here/../scripts/launcher.sh" --config 2>&1 | sed $'s/\033\[[0-9;]*m//g')"
+
 check 'an unresolvable plugin says so rather than going quiet' \
   '⚠ MSU statusline: plugin not found' "$(unresolved '')"
 check 'and does not take the wrapped status line down with it' \

@@ -26,6 +26,18 @@ if [ -z "$root" ]; then
   root=${root%/}
   [ -z "$root" ] || printf '%s\n' "$root" > "$MEMO"
 fi
+# --config is passed straight through, with no replay and no stdin. It exists here so
+# there is one stable path a user can be handed: this file's location never changes,
+# while the plugin's is versioned and moves on every update.
+#
+# It returns unconditionally, including when the plugin cannot be found. Falling through
+# would reach the stdin read below, which blocks on a terminal — a diagnostic command
+# that hangs is worse than no diagnostic command.
+if [ "${1:-}" = --config ]; then
+  [ -n "$root" ] || { printf '%s[1;31m⚠ MSU statusline: plugin not found%s\n' $'\033' $'\033[0m'; exit 0; }
+  exec bash "$root/scripts/statusline.sh" --config
+fi
+
 # Nothing to replay and a plugin to run: hand the process over rather than spending
 # another one. stdin passes through untouched and this launcher stops existing.
 if [ ! -s "$PREV" ] && [ -n "$root" ]; then

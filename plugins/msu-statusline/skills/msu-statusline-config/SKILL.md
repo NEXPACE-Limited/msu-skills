@@ -17,12 +17,18 @@ and a value never needs shell quoting.
 **Ask the script, never this file and never memory.**
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/statusline.sh" --config
+bash "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/msu-statusline.sh" --config
 ```
 
 That prints every key with the value **in force** — after the conf file has been read
 and every value checked. No list of keys is written down here on purpose: one would be
-a second source, and it would be a version behind the moment a segment is added.
+a second source, and it would be a version behind the moment a segment is added. What
+each key governs is in the comment above it in the script's `# Defaults` block, which is
+the same single source; read it there when a request names a behaviour rather than a key.
+
+Route it through the launcher, as above, rather than through the plugin directly. The
+launcher's path never changes; the plugin's carries a version number and moves on every
+update, so a command naming it is one `claude plugin update` from being wrong.
 
 The distinction between what is written and what is in force is the whole reason to ask
 the script. A value the parser cannot use is replaced silently, and the render looks
@@ -37,7 +43,10 @@ to them as if it had taken effect. `--config` reports what actually did.
    A key absent from the file is at its default; that is not a problem to fix. Where the
    two disagree, the file holds a value the script rejected — worth telling the user
    about, whether or not it is what they asked you to change.
-2. Show them what is set now, and apply what they asked for. A key `--config` does not
+2. Show them what is set now, and apply what they asked for. When the request names no
+   number — "a bit shorter", "less often" — pick one, say it was your pick, and give
+   them the current value to push back against. Do not go hunting for a value that makes
+   the render visibly change; see step 4. A key `--config` does not
    list cannot be set; say so and name the ones that can, rather than writing a line
    that will be ignored.
 3. Write the file back, keeping the user's own comments and key order, appending
@@ -45,9 +54,13 @@ to them as if it had taken effect. `--config` reports what actually did.
 4. Confirm twice, because the two answer different questions:
 
    ```bash
-   bash "${CLAUDE_PLUGIN_ROOT}/scripts/statusline.sh" --config   # did the value take?
-   bash "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/msu-statusline.sh"  # what does it look like?
+   CONFIG=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
+   bash "$CONFIG/msu-statusline.sh" --config              # did the value take?
+   echo '{}' | bash "$CONFIG/msu-statusline.sh"           # what does it look like?
    ```
+
+   The second is piped something, even `{}`: a wrapped status line reads stdin, and with
+   a terminal on the other end it waits for input that never comes.
 
    The second renders the whole status line, so its first rows may be a status line that
    was already configured before this one was installed — that is the launcher replaying
@@ -74,10 +87,11 @@ against the cache file's age each time the status line runs.
 - **"The icon colour is not cycling" is usually not a cycling problem.** Check these
   two before touching `ICON_CYCLE`, because both freeze the colour while looking fine:
   `--config` reporting `ICON_CYCLE=0` (something non-numeric was written, and `0` means
-  hold the first colour), and `ICON_TRUECOLOR=auto` on a terminal that advertises
-  neither `COLORTERM=truecolor` nor a `*-direct` `TERM` — Terminal.app and a default
-  tmux both do this, the icon falls back to the label's colour, and `ICON_TRUECOLOR=on`
-  is the answer. Otherwise the cycle is simply ten minutes long and nothing is wrong.
+  hold the first colour), and `ICON_TRUECOLOR=auto` on a terminal that advertises no
+  24-bit support in `COLORTERM` or `TERM` — Terminal.app and a default tmux both handle
+  it and advertise nothing, the icon falls back to the label's colour, and
+  `ICON_TRUECOLOR=on` is the answer. The exact set the script accepts is the `case` it
+  reads them in; do not go by a list written anywhere else, this one included. Otherwise the cycle is simply ten minutes long and nothing is wrong.
 - **`MAX_WIDTH` counts the title, not the line.** The timestamp, the icon and the label
   sit outside it, so the row is around twenty columns wider than the number. It also
   does nothing at all outside a UTF-8 locale, where slicing would cut a multi-byte

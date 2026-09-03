@@ -23,8 +23,9 @@ The launcher resolves the newest installed version itself.
 
 ## Install
 
-1. **Read `$CONFIG/settings.json`.** Create `$CONFIG` first if it is not there. Edit
-   the file as JSON, never as text: it holds the user's permissions and hooks, and a bad
+1. **Read `$CONFIG/settings.json`.** Create `$CONFIG` if it is not there, and treat a
+   missing or empty file as `{}` — a first install has neither. Edit the file as JSON,
+   never as text: it holds the user's permissions and hooks, and a bad
    patch costs them more than this feature. Parsing and re-serialising reflows the
    file — every value survives, the formatting may not, and that is fine.
 2. **Preserve an existing status line.** If `.statusLine.command` is set and does
@@ -34,8 +35,12 @@ The launcher resolves the newest installed version itself.
    straight back into a JSON string, and a stray `\n` there is a command that no longer
    matches what the user had. If there is no existing command, write no file.
 
-   **If it does mention `msu-statusline.sh`, this is a repair or a reinstall: leave
-   `.prev` exactly as it is.** Writing the launcher's own command into `.prev` makes the
+   If `.prev` already exists and the current command is *not* ours, the user changed
+   their status line since the last install: overwrite it, because the newer one is
+   what they expect back.
+
+   **If the current command does mention `msu-statusline.sh`, this is a repair or a
+   reinstall: leave `.prev` exactly as it is.** Writing the launcher's own command into `.prev` makes the
    launcher run itself, find `.prev` non-empty, and run itself again — unbounded
    recursion, two processes per level, on every status-line redraw. This guard is the
    only thing standing between a reinstall and a fork bomb.
@@ -59,12 +64,18 @@ The launcher resolves the newest installed version itself.
    so, and then it costs a full re-run of this command on every tick, including any
    status line being wrapped.
 
-5. **Create `$CONFIG/msu-statusline.conf` if it is absent.** Its format is `KEY=value`,
-   one per line, unquoted, no comments needed. The keys and their values are the block
-   of `${CLAUDE_PLUGIN_ROOT}/scripts/statusline.sh` between `# Defaults` and
-   `# End defaults`; the `case` in the conf loop just below it is the authority on which
-   of them take effect, so cross-check against that and copy no key it does not accept.
-   Never overwrite a conf that exists — it is the user's configuration.
+5. **Create `$CONFIG/msu-statusline.conf` if it is absent** — never overwrite one that
+   exists, it is the user's configuration. Ask the script for its contents rather than
+   transcribing them from anywhere:
+
+   ```bash
+   bash "$CONFIG/msu-statusline.sh" --config > "$CONFIG/msu-statusline.conf"
+   ```
+
+   With no conf to read, that prints exactly the defaults in `KEY=value` form, which is
+   the format the file takes. Do not assemble the list by reading the script: the keys
+   are named once inside it and every other list — including any in this file — would be
+   a second source that goes stale.
 6. **Show the real line**, which also proves the whole chain works. Feed it a session
    JSON object rather than `/dev/null`: a wrapped status line usually reads one, and on
    empty input it prints nothing and makes this step look like a failure.
@@ -95,14 +106,21 @@ Edit `settings.json` as JSON here too, never as text — this path *deletes* a k
 is the easier one to get wrong.
 
 1. **Check the status line is still ours.** If `.statusLine.command` does not mention
-   `msu-statusline.sh`, the user has changed it since installing; leave `settings.json`
-   alone entirely and go to step 3, or restoring would overwrite their newer choice.
-2. **Put back what was there.** If `$CONFIG/msu-statusline.prev` is non-empty, restore
-   its contents — with any trailing newline stripped, or the restored command will not
-   be the one the user had — as `.statusLine.command`, and delete the file. Otherwise
-   delete the `statusLine` key entirely so Claude Code goes back to its own footer, and
-   delete `.prev` too if it is there: an emptied one is a state the troubleshooting
-   below tells users to create, and it would outlive the thing that reads it.
+   `msu-statusline`, the user has changed it since installing; leave `settings.json`
+   alone, say why, and carry on from step 3 — restoring would overwrite their newer
+   choice. Delete `.prev` there too: nothing reads it once the launcher is gone. Match
+   on `msu-statusline` rather than `msu-statusline.sh`, so a command pointing straight
+   into the plugin at `…/scripts/launcher.sh` is still recognised as ours.
+2. **Put back what was there.** If `$CONFIG/msu-statusline.prev` holds a command —
+   anything other than whitespace — restore it as `.statusLine.command` and delete the
+   file. Strip any trailing newline, or the restored command is not the one the user
+   had; `jq --arg c "$(cat …)"` does that for free, while `jq --rawfile` keeps the
+   newline and quietly produces the wrong string.
+
+   Otherwise — no file, or nothing but whitespace in it — delete the `statusLine` key
+   entirely so Claude Code goes back to its own footer, and delete `.prev` if it is
+   there. An emptied one is a state the troubleshooting below tells users to create, and
+   it would outlive the thing that reads it.
 
    The restored object keeps `"type": "command"`, which is the only type a command
    status line has; if the user's original omitted it, that is the one difference from
@@ -113,13 +131,24 @@ is the easier one to get wrong.
    reinstall.
 4. **Leave `$CONFIG/msu-statusline.conf` alone and say so** — a reinstall keeps the
    user's settings, and it is one line to delete if they want it gone.
-5. **Show that it worked**, and that the restored command actually runs:
+5. **Show that it worked**, and that the restored command actually runs. `bash -c`, not
+   `sh -c`: the launcher ran it with bash, and on Debian and Ubuntu `/bin/sh` is dash,
+   which would fail a command that was working perfectly a minute ago. Feed it a session
+   JSON object for the same reason install does — a status line that reads one prints
+   nothing without it.
 
    ```bash
-   sh -c "$(jq -r '.statusLine.command // empty' "$CONFIG/settings.json")"
+   CONFIG=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
+   echo '{"model":{"display_name":"Opus"},"workspace":{"current_dir":"'"$PWD"'"}}' \
+     | bash -c "$(jq -r '.statusLine.command // empty' "$CONFIG/settings.json")"
    ```
 
-   Then tell the user the MSU line stays until they start a new session.
+   Expect the user's own status line and nothing else. **Empty output is not proof.** It
+   is what a deleted `statusLine` key gives — right, if that was step 2's branch — and
+   equally what a restored-but-broken command gives. Say which branch step 2 took.
+
+   Then tell the user two things: the MSU line stays until they start a new session, and
+   the status line that was being wrapped is now the whole of it again.
 
 ## When something looks wrong
 
@@ -135,8 +164,12 @@ is the easier one to get wrong.
   copy of the page: passing there and failing live is exactly this.
 - **Blank line, no warning at all.** The MSU line has nothing to say and nothing to
   complain about: the cache is cold and the first fetch has not landed. Run step 6 once,
-  which fetches in the foreground. If step 6 itself prints nothing, the launcher is not
-  being reached — check that `settings.json` names it and that the file is executable.
+  which fetches in the foreground. If step 6 itself prints nothing at all, the launcher
+  is not being reached — check that `.statusLine.command` names it.
+- **A wrapped status line renders, and the MSU line is simply not there.** The launcher
+  is running and the segment produced nothing, which is the same cold-cache case above
+  seen from a session that already had a status line — it looks like the install did
+  nothing at all. Run step 6.
 - **`⚠ MSU statusline: plugin not found`.** The launcher resolves the newest
   `$CONFIG/plugins/cache/*/msu-statusline/*/` and memoises the answer in
   `${TMPDIR:-/tmp}/msu-statusline-root`, re-resolving whenever what it points at is
