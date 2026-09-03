@@ -22,13 +22,18 @@ bash "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/msu-statusline.sh" --config
 
 That prints every key with the value **in force** — after the conf file has been read
 and every value checked. No list of keys is written down here on purpose: one would be
-a second source, and it would be a version behind the moment a segment is added. What
-each key governs is in the comment above it in the script's `# Defaults` block, which is
-the same single source; read it there when a request names a behaviour rather than a key.
+a second source, and it would be a version behind the moment a segment is added.
 
-Route it through the launcher, as above, rather than through the plugin directly. The
-launcher's path never changes; the plugin's carries a version number and moves on every
-update, so a command naming it is one `claude plugin update` from being wrong.
+Route the command through the launcher, as above, rather than through the plugin
+directly: the launcher's path never changes, while the plugin's carries a version number
+and moves on every update, so a command naming it is one `claude plugin update` from
+being wrong. That is about commands — the ones you run and the ones you hand the user.
+
+**Reading** is different. When a request names a behaviour rather than a key, what each
+one governs is in the comment above it in the `# Defaults` block of
+`${CLAUDE_PLUGIN_ROOT}/scripts/statusline.sh`, which is the same single source as
+`--config`. `${CLAUDE_PLUGIN_ROOT}` is resolved for you and always current, so open it
+there; the launcher has no such block.
 
 The distinction between what is written and what is in force is the whole reason to ask
 the script. A value the parser cannot use is replaced silently, and the render looks
@@ -41,8 +46,10 @@ to them as if it had taken effect. `--config` reports what actually did.
 
 1. Run `--config` for what is in force, and read the conf file for what was written.
    A key absent from the file is at its default; that is not a problem to fix. Where the
-   two disagree, the file holds a value the script rejected — worth telling the user
-   about, whether or not it is what they asked you to change.
+   two disagree, the file holds a value the script rejected. Tell the user about every
+   one, whether or not it is what they asked you to change — and change none of them
+   they did not ask for. Offer the correction and let them take it; some have no correct
+   answer to guess at, a `COLOR` the script does not know being one.
 2. Show them what is set now, and apply what they asked for. When the request names no
    number — "a bit shorter", "less often" — pick one, say it was your pick, and give
    them the current value to push back against. Do not go hunting for a value that makes
@@ -51,6 +58,12 @@ to them as if it had taken effect. `--config` reports what actually did.
    that will be ignored.
 3. Write the file back, keeping the user's own comments and key order, appending
    anything new. Values are plain: `NOTICE=off`, not `NOTICE="off"`.
+
+   If the change reaches `settings.json` — only `ICON_CYCLE` does — set the one field
+   and leave the rest of `statusLine` alone. Assigning a new object there would drop a
+   sibling the user had set, `padding` being the one that exists today, and keep the
+   file's mode while you are at it: `mktemp` then `mv` quietly turns 0644 into 0600 on
+   the file holding their permissions and hooks.
 4. Confirm twice, because the two answer different questions:
 
    ```bash
@@ -74,9 +87,18 @@ to them as if it had taken effect. `--config` reports what actually did.
 **`ICON_CYCLE` is the one key that can reach outside the conf file.** The colour is
 computed from the clock at each redraw, and Claude Code redraws on every session event,
 so at the default ten minutes nothing else is needed. Shorten it below a minute or so
-and an idle session will visibly hold one colour; only then add
-`statusLine.refreshInterval` to `settings.json`, set to the same number — and say what
-it costs, because each tick re-runs the whole command, wrapped status line included.
+and an idle session will visibly hold one colour; only then is
+`statusLine.refreshInterval` in `settings.json` worth adding, set to the same number.
+
+**`refreshInterval` is in seconds**, minimum 1 — the same unit as `ICON_CYCLE`, so the
+same number means the same thing. Say the unit when you write it; read as milliseconds
+it would re-run the status line thirty times a second, and nothing in `--config` or in
+the rendered line would show it.
+
+**Ask before adding it, rather than reporting it afterwards.** Every tick re-runs the
+whole status-line command — including a status line the user configured before this
+plugin existed and that this plugin only wraps. Spending someone else's command on an
+ornament is their call. Set `ICON_CYCLE` either way; it is only the timer that waits.
 
 Changes apply to the next render — there is nothing to restart and no cache to clear.
 A shorter polling interval takes effect immediately, because the interval is measured
