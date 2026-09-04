@@ -21,6 +21,7 @@ npx skills add . -l                                 # skills the skills CLI disc
 bash install.sh --target /tmp/probe                 # smoke-test the manual installer
 bash install.sh --plugin <plugin> --target /tmp/one # ...and the single-plugin path
 bash scripts/test-remote-installer.sh               # piped installer, local archive adapter
+bash plugins/<plugin>/tests/test.sh                 # a plugin's own executables, if it ships any
 bash scripts/check-endpoints.sh                     # no leaked endpoint or credential
 cd web && npm ci --ignore-scripts && npm run build  # export the landing page into web/out/
 ```
@@ -76,8 +77,9 @@ built**: the `SKILL.md` files under `plugins/*/skills/` are the only source, shi
 verbatim everywhere. The landing page under `web/` is a real build, but it sits
 downstream of those files — it reads them, and no channel reads it.
 
-Skills install automatically on all three; they differ only in what happens to the
-`maple-lookup` MCP server.
+Skills install automatically on all three; for a skill, the channels differ only in what
+happens to the `maple-lookup` MCP server. A plugin's `scripts/` is not a skill and is the
+one thing that does not travel — see the paragraph below the table.
 
 | Channel | `maple-lookup` MCP |
 |---|---|
@@ -86,6 +88,14 @@ Skills install automatically on all three; they differ only in what happens to t
 | `install.sh` via curl or checkout (Codex / Gemini / Kimi) | best effort — prints the Codex TOML snippet, runs `mcp add` for Gemini/Kimi when `$MSU_OPENAPI_KEY` is set |
 
 **Do not break this shape.** Per-platform copies or build artifacts fork the source.
+
+A plugin may also ship an executable the *host* runs rather than an agent — a status
+line, a hook. That is not a skill and does not go under `skills/`: both flat channels
+copy skill directories, so anything below one is carried to CLIs that have no concept
+of it, under a name that then has to be unique across the whole catalog. It lives in
+the plugin's own `scripts/`, which only the Claude Code channel reads, and the skill
+that installs it reaches it through `${CLAUDE_PLUGIN_ROOT}`. Its checks go in the
+plugin's `tests/test.sh`, which `guards` runs.
 
 **The skills CLI reads the catalog.** `vercel-labs/skills` (measured at 1.5.22) is not a
 blind recursive glob: when `.claude-plugin/marketplace.json` is present it scans exactly
@@ -108,6 +118,8 @@ plugins/<plugin>/.claude-plugin/         # plugin.json — name, version, userCo
 plugins/<plugin>/.mcp.json               # MCP servers this plugin owns, if any
 plugins/<plugin>/skills/<name>/SKILL.md  # the only source. name = dir name = kebab-case
 plugins/<plugin>/skills/<name>/references/  # files the skill loads on demand
+plugins/<plugin>/scripts/                # executables the host runs, not the agent
+plugins/<plugin>/tests/test.sh           # checks for those. bash, no network. CI runs it
 install.sh                 # local or curl installer for non-Claude CLIs; --plugin selects one
 Makefile                   # wrappers: make check, make dev. See Commands
 web/                       # the landing page: a Next.js App Router app, statically exported
