@@ -63,7 +63,8 @@ to them as if it had taken effect. `--config` reports what actually did.
    and leave the rest of `statusLine` alone. Assigning a new object there would drop a
    sibling the user had set, `padding` being the one that exists today, and keep the
    file's mode while you are at it: `mktemp` then `mv` quietly turns 0644 into 0600 on
-   the file holding their permissions and hooks.
+   the file holding their permissions and hooks. `cp -p` the original onto the temporary
+   file first and the mode comes with it; `msu-statusline-install` writes that idiom out.
 4. Confirm twice, because the two answer different questions:
 
    ```bash

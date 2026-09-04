@@ -21,6 +21,7 @@ Its plugins install independently:
 |---|---|---|
 | `msu` | Building on MapleStory Universe resources | yes — bundles the `maple-lookup` MCP server |
 | `game-tools` | Game production quality, on any engine or platform | no |
+| `msu-statusline` | The newest MSU Builder notice in the Claude Code status line | no |
 
 ## Installation
 

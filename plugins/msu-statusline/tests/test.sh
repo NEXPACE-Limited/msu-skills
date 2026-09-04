@@ -25,14 +25,19 @@ check() { # <name> <expected> <actual>
   fi
 }
 
+# The whole file has to load before any check below reaches the parser, and it loads
+# under whatever options the caller set. `shopt -u patsub_replacement` is unknown to the
+# bash 3.2 macOS ships, so without a guard it stops a `set -e` caller right there.
+check 'the library sources cleanly under set -e' \
+  'sourced' \
+  "$(bash -c 'set -e; MSU_STATUSLINE_LIB=1 . "$1"; echo sourced' _ "$here/../scripts/statusline.sh")"
+
 payload=$(sed 's/\\"/"/g' "$fixture")
 
-# Renders below read a cache file rather than the network; TMPDIR is where it lives.
-export TMPDIR="$CLAUDE_CONFIG_DIR/cache/"
-mkdir -p "$TMPDIR"
-CACHE=${TMPDIR}msu-statusline-notice
-# Config dirs of their own: the conf checks further down rewrite the one at
-# $CLAUDE_CONFIG_DIR, and a render reading that would assert against its leftovers.
+# Renders below read a cache file rather than the network, and it sits beside the conf
+# file — so a case's config dir is also where its cache goes, and no case can see
+# another's. Config dirs of their own for the same reason: the conf checks further down
+# rewrite the one at $CLAUDE_CONFIG_DIR.
 default_conf=$CLAUDE_CONFIG_DIR/render-default
 off_conf=$CLAUDE_CONFIG_DIR/render-off
 mkdir -p "$default_conf" "$off_conf"
@@ -120,10 +125,11 @@ check 'TIME=utc reads the board clock' \
 check 'a notice from another year keeps its year' \
   '2025-06-15 15:06' "$(TIME=utc THIS_YEAR= posted_at 1750000000 1788332554)"
 
-render_raw() { # <cache line> [KEY=value ...] — the bytes the terminal receives
-  local line=$1; shift
-  printf '%s\n' "$line" > "$CACHE"
-  env "$@" bash -c 'MSU_STATUSLINE_LIB=1 . "$1"; segment_notice 1788332554' _ \
+render_raw() { # <config dir> <cache line> [KEY=value ...] — the bytes the terminal gets
+  local dir=$1 line=$2; shift 2
+  printf '%s\n' "$line" > "$dir/msu-statusline.cache"
+  env CLAUDE_CONFIG_DIR="$dir" "$@" \
+    bash -c 'MSU_STATUSLINE_LIB=1 . "$1"; segment_notice 1788332554' _ \
     "$here/../scripts/statusline.sh"
 }
 
@@ -135,16 +141,16 @@ newest='3537195	[Notice] Sep 2 - Temporary Maintenance	1788332554'
 # Seoul. The default is the reader's clock, so this pins which of the two ships.
 check 'the rendered line leads with the posting time, on the reader clock' \
   '09-02 16:02 · ◆ MSU · [Notice] Sep 2 - Temporary Maintenance' \
-  "$(render "$(printf "$newest")" TZ=Asia/Seoul CLAUDE_CONFIG_DIR="$default_conf" TMPDIR="$TMPDIR")"
+  "$(render "$default_conf" "$(printf "$newest")" TZ=Asia/Seoul)"
 check 'TIME=utc agrees with the board instead' \
   '09-02 07:02 · ◆ MSU · [Notice] Sep 2 - Temporary Maintenance' \
-  "$(render "$(printf "$newest")" TZ=Asia/Seoul CLAUDE_CONFIG_DIR="$utc_conf" TMPDIR="$TMPDIR")"
+  "$(render "$utc_conf" "$(printf "$newest")" TZ=Asia/Seoul)"
 check 'TIME=off drops the stamp, not the line' \
   '◆ MSU · [Notice] Sep 2 - Temporary Maintenance' \
-  "$(render "$(printf "$newest")" CLAUDE_CONFIG_DIR="$off_conf" TMPDIR="$TMPDIR")"
+  "$(render "$off_conf" "$(printf "$newest")")"
 check 'a cache from before the time field still renders' \
   '◆ MSU · [Notice] Older cache' \
-  "$(render '3400000	[Notice] Older cache' CLAUDE_CONFIG_DIR="$default_conf" TMPDIR="$TMPDIR")"
+  "$(render "$default_conf" '3400000	[Notice] Older cache')"
 
 # Colour is named, never an escape code, so a conf file cannot push arbitrary bytes at
 # the terminal. An unrecognised name has to degrade to plain bold rather than to
@@ -158,8 +164,7 @@ colour_conf=$CLAUDE_CONFIG_DIR/render-colour
 mkdir -p "$colour_conf"
 label_sgr() { # $1 = COLOR value
   printf 'POLL_HOURS=9999\nCOLOR=%s\n' "$1" > "$colour_conf/msu-statusline.conf"
-  render_raw "$(printf '3537195\t[Notice] x\t1788332554')" \
-    CLAUDE_CONFIG_DIR="$colour_conf" TMPDIR="$TMPDIR" \
+  render_raw "$colour_conf" "$(printf '3537195\t[Notice] x\t1788332554')" \
     | sed $'s/\033/<ESC>/g' | grep -oE '<ESC>\[(1;3[0-7]|1)m' | head -1
 }
 # The icon leads the line and takes the mark's own colour where 24-bit is declared.
@@ -167,8 +172,8 @@ icon_conf=$CLAUDE_CONFIG_DIR/render-icon
 mkdir -p "$icon_conf"
 icon_line() { # $1 = ICON value
   printf 'POLL_HOURS=9999\nICON=%s\n' "$1" > "$icon_conf/msu-statusline.conf"
-  render "$(printf '3537195\t[Notice] x\t1788332554')" \
-    CLAUDE_CONFIG_DIR="$icon_conf" TMPDIR="$TMPDIR" TZ=UTC COLORTERM=truecolor
+  render "$icon_conf" "$(printf '3537195\t[Notice] x\t1788332554')" \
+    TZ=UTC COLORTERM=truecolor
 }
 check 'the icon sits between the time and the label' \
   '09-02 07:02 · ✦ MSU · [Notice] x' "$(icon_line '✦')"
@@ -179,13 +184,13 @@ check 'an empty icon drops it and the space with it' \
 check 'the icon takes the mark colour under truecolor' \
   '<ESC>[1;38;2;92;143;250m' \
   "$(printf 'POLL_HOURS=9999\nICON_CYCLE=0\n' > "$icon_conf/msu-statusline.conf"
-     render_raw "$(printf '3537195\t[Notice] x\t1788332554')" \
-       CLAUDE_CONFIG_DIR="$icon_conf" TMPDIR="$TMPDIR" COLORTERM=truecolor \
+     render_raw "$icon_conf" "$(printf '3537195\t[Notice] x\t1788332554')" \
+       COLORTERM=truecolor \
      | sed $'s/\033/<ESC>/g' | grep -o '<ESC>\[1;38;2;[0-9;]*m' | head -1)"
 check 'and the label colour where 24-bit is not declared' \
   '<ESC>[1;37m' \
-  "$(render_raw "$(printf '3537195\t[Notice] x\t1788332554')" \
-       CLAUDE_CONFIG_DIR="$icon_conf" TMPDIR="$TMPDIR" COLORTERM= \
+  "$(render_raw "$icon_conf" "$(printf '3537195\t[Notice] x\t1788332554')" \
+       COLORTERM= \
      | sed $'s/\033/<ESC>/g' | grep -oE '<ESC>\[(1;3[0-7]|1)m' | head -1)"
 
 # The cycle is a pure function of the clock, so it is checked against fixed epochs
@@ -229,20 +234,20 @@ gate=$CLAUDE_CONFIG_DIR/gate
 mkdir -p "$gate"
 gate_run() { # <conf lines> <cache age s> <stamp age s> <failures> <now offset s>
   local conf=$1 cache_age=$2 stamp_age=$3 failures=$4 offset=${5:-0}
-  rm -rf "$gate/cache"; mkdir -p "$gate/cache"
+  rm -rf "$gate"; mkdir -p "$gate"
   printf '%s\n' "$conf" > "$gate/msu-statusline.conf"
   local now; now=$(date +%s)
   if [ "$cache_age" != none ]; then
-    printf '1\tcached\t1788332554\n' > "$gate/cache/msu-statusline-notice"
-    touch -t "$(fmt_date $((now - cache_age)) '%Y%m%d%H%M.%S')" "$gate/cache/msu-statusline-notice"
+    printf '1\tcached\t1788332554\n' > "$gate/msu-statusline.cache"
+    touch -t "$(fmt_date $((now - cache_age)) '%Y%m%d%H%M.%S')" "$gate/msu-statusline.cache"
   fi
   if [ "$stamp_age" != none ]; then
-    : > "$gate/cache/msu-statusline-notice.attempted"
-    touch -t "$(fmt_date $((now - stamp_age)) '%Y%m%d%H%M.%S')" "$gate/cache/msu-statusline-notice.attempted"
+    : > "$gate/msu-statusline.cache.attempted"
+    touch -t "$(fmt_date $((now - stamp_age)) '%Y%m%d%H%M.%S')" "$gate/msu-statusline.cache.attempted"
   fi
-  [ "$failures" = none ] || printf '%s\n' "$failures" > "$gate/cache/msu-statusline-notice.failures"
+  [ "$failures" = none ] || printf '%s\n' "$failures" > "$gate/msu-statusline.cache.failures"
   rm -f "$gate/calls"
-  CLAUDE_CONFIG_DIR="$gate" TMPDIR="$gate/cache/" bash -c '
+  CLAUDE_CONFIG_DIR="$gate" bash -c '
     MSU_STATUSLINE_LIB=1 . "$1"
     calls=$2
     # A stub, so no gate check reaches the network. It must not read $2 itself: inside
@@ -270,13 +275,13 @@ check 'and that wait is capped at POLL_HOURS, never longer' \
 # Sessions on one machine share the cache; a lock another one is holding means this
 # render does not add a second request.
 locked() {
-  rm -rf "$gate/cache"; mkdir -p "$gate/cache/msu-statusline-notice.lock"
+  rm -rf "$gate"; mkdir -p "$gate/msu-statusline.cache.lock"
   printf 'POLL_HOURS=4\n' > "$gate/msu-statusline.conf"
-  printf '1\tcached\t1788332554\n' > "$gate/cache/msu-statusline-notice"
+  printf '1\tcached\t1788332554\n' > "$gate/msu-statusline.cache"
   touch -t "$(fmt_date $(( $(date +%s) - 20000 )) '%Y%m%d%H%M.%S')" \
-    "$gate/cache/msu-statusline-notice"
+    "$gate/msu-statusline.cache"
   rm -f "$gate/locked"
-  CLAUDE_CONFIG_DIR="$gate" TMPDIR="$gate/cache/" bash -c '
+  CLAUDE_CONFIG_DIR="$gate" bash -c '
     MSU_STATUSLINE_LIB=1 . "$1"
     calls=$2
     fetch_notice() { echo FETCHED >> "$calls"; return 1; }
@@ -286,11 +291,26 @@ locked() {
 }
 check 'a lock another session holds keeps this one from fetching' '0' "$(locked)"
 
+# A write that does not land is not a poll that succeeded. Clearing the stamp there
+# would tell every following render the cache is fresh while it holds nothing, and each
+# one would open a request of its own. $CACHE.new is a directory here, so the write
+# fails for any user, root included.
+wfail=$CLAUDE_CONFIG_DIR/writefail
+mkdir -p "$wfail/msu-statusline.cache.new"
+: > "$wfail/msu-statusline.cache.attempted"
+check 'a cache write that fails leaves the stamp behind for the backoff' \
+  'stamp kept' \
+  "$(CLAUDE_CONFIG_DIR="$wfail" bash -c '
+       MSU_STATUSLINE_LIB=1 . "$1"
+       fetch_notice() { printf "1\tx\t1788332554\n"; }
+       do_refresh 1 >/dev/null 2>&1
+       [ -f "$STAMP" ] && echo "stamp kept" || echo "stamp cleared"' _ \
+     "$here/../scripts/statusline.sh")"
+
 # ── the link, the truncation, and the off switch ─────────────────────────────────────
 check 'the title carries the notice URL as an OSC 8 link' \
   'https://msu.io/builder/notices/3537195' \
-  "$(render_raw "$(printf '3537195\t[Notice] x\t1788332554')" \
-       CLAUDE_CONFIG_DIR="$default_conf" TMPDIR="$TMPDIR" \
+  "$(render_raw "$default_conf" "$(printf '3537195\t[Notice] x\t1788332554')" \
      | tr $'\a' '\n' | grep -o 'https://.*' | head -1)"
 long_conf=$CLAUDE_CONFIG_DIR/render-long
 mkdir -p "$long_conf"
@@ -298,24 +318,24 @@ printf 'POLL_HOURS=9999\nTIME=off\nICON=\nMAX_WIDTH=12\n' > "$long_conf/msu-stat
 # MAX_WIDTH is the whole width including the marker: 11 characters plus the ellipsis.
 check 'a title past MAX_WIDTH is cut and marked' \
   'MSU · 0123456789a…' \
-  "$(LC_ALL=en_US.UTF-8 render "$(printf '1\t0123456789abcdef\t1788332554')" \
-       CLAUDE_CONFIG_DIR="$long_conf" TMPDIR="$TMPDIR")"
+  "$(render "$long_conf" "$(printf '1\t0123456789abcdef\t1788332554')" \
+       LC_ALL=en_US.UTF-8)"
 notice_off=$CLAUDE_CONFIG_DIR/render-notice-off
 mkdir -p "$notice_off"
 printf 'NOTICE=off\n' > "$notice_off/msu-statusline.conf"
 check 'NOTICE=off renders nothing at all' \
-  '' "$(render "$(printf '1\tx\t1788332554')" CLAUDE_CONFIG_DIR="$notice_off" TMPDIR="$TMPDIR")"
+  '' "$(render "$notice_off" "$(printf '1\tx\t1788332554')")"
 
 # ── the launcher ─────────────────────────────────────────────────────────────────────
 # Never exercised before, and it is what settings.json actually points at.
 lroot=$CLAUDE_CONFIG_DIR/launcher
-mkdir -p "$lroot/cache"
+mkdir -p "$lroot"
 launch() { # <prev command or empty>
   rm -rf "$lroot/conf"; mkdir -p "$lroot/conf"
   printf 'POLL_HOURS=9999\n' > "$lroot/conf/msu-statusline.conf"
-  printf '1\t[Notice] x\t1788332554\n' > "$lroot/cache/msu-statusline-notice"
+  printf '1\t[Notice] x\t1788332554\n' > "$lroot/conf/msu-statusline.cache"
   [ -z "$1" ] || printf '%s\n' "$1" > "$lroot/conf/msu-statusline.prev"
-  CLAUDE_CONFIG_DIR="$lroot/conf" TMPDIR="$lroot/cache/" \
+  CLAUDE_CONFIG_DIR="$lroot/conf" \
     MSU_STATUSLINE_ROOT="$here/.." bash "$here/../scripts/launcher.sh" </dev/null \
     | sed $'s/\033\[[0-9;]*m//g; s/\033]8;;[^\a]*\a//g; s/\033]8;;\a//g'
 }
@@ -338,7 +358,7 @@ unresolved() { # $1 = prev command or empty
   rm -rf "$lroot/lost"; mkdir -p "$lroot/lost"
   printf 'POLL_HOURS=9999\n' > "$lroot/lost/msu-statusline.conf"
   [ -z "$1" ] || printf '%s\n' "$1" > "$lroot/lost/msu-statusline.prev"
-  CLAUDE_CONFIG_DIR="$lroot/lost" TMPDIR="$lroot/lost/" MSU_STATUSLINE_ROOT= \
+  CLAUDE_CONFIG_DIR="$lroot/lost" MSU_STATUSLINE_ROOT= \
     bash "$here/../scripts/launcher.sh" </dev/null 2>&1 \
     | sed $'s/\033\[[0-9;]*m//g'
 }
@@ -348,9 +368,9 @@ unresolved() { # $1 = prev command or empty
 check 'a .prev with no trailing newline replays' \
   'PREVLINE' "$(rm -rf "$lroot/conf"; mkdir -p "$lroot/conf"
                 printf 'POLL_HOURS=9999\n' > "$lroot/conf/msu-statusline.conf"
-                printf '1\t[Notice] x\t1788332554\n' > "$lroot/cache/msu-statusline-notice"
+                printf '1\t[Notice] x\t1788332554\n' > "$lroot/conf/msu-statusline.cache"
                 printf 'echo PREVLINE' > "$lroot/conf/msu-statusline.prev"
-                CLAUDE_CONFIG_DIR="$lroot/conf" TMPDIR="$lroot/cache/" \
+                CLAUDE_CONFIG_DIR="$lroot/conf" \
                   MSU_STATUSLINE_ROOT="$here/.." bash "$here/../scripts/launcher.sh" </dev/null \
                 | head -1)"
 
@@ -360,13 +380,45 @@ check 'a .prev with no trailing newline replays' \
 check 'the launcher forwards --config' \
   'MAX_WIDTH=72' "$(rm -rf "$lroot/conf"; mkdir -p "$lroot/conf"
                     printf 'echo PREV\n' > "$lroot/conf/msu-statusline.prev"
-                    CLAUDE_CONFIG_DIR="$lroot/conf" TMPDIR="$lroot/cache/" \
+                    CLAUDE_CONFIG_DIR="$lroot/conf" \
                       MSU_STATUSLINE_ROOT="$here/.." bash "$here/../scripts/launcher.sh" --config \
                     | sed -n '/^MAX_WIDTH=/p')"
 check 'and answers even with no plugin, instead of waiting on stdin' \
   '⚠ MSU statusline: plugin not found' \
-  "$(CLAUDE_CONFIG_DIR="$lroot/conf" TMPDIR="$lroot/cache/" MSU_STATUSLINE_ROOT= \
+  "$(CLAUDE_CONFIG_DIR="$lroot/conf" MSU_STATUSLINE_ROOT= \
        bash "$here/../scripts/launcher.sh" --config 2>&1 | sed $'s/\033\[[0-9;]*m//g')"
+# The install skill redirects --config into the conf file it creates. On stdout with a
+# zero exit, that warning would become the user's configuration.
+check 'and says so on stderr, with a status the install can branch on' \
+  '1|' "$(out=$(CLAUDE_CONFIG_DIR="$lroot/conf" MSU_STATUSLINE_ROOT= \
+                  bash "$here/../scripts/launcher.sh" --config 2>/dev/null); printf '%s|%s' "$?" "$out")"
+
+# Which installed copy the launcher picks. `claude plugin update` leaves the old version
+# directory behind, so this is the difference between running the update and running
+# whatever was installed first.
+resolve=$CLAUDE_CONFIG_DIR/resolve
+mkdir -p "$resolve/conf"
+for v in z-market/msu-statusline/9.9.9 a-market/msu-statusline/0.0.1; do
+  mkdir -p "$resolve/conf/plugins/cache/$v/scripts"
+  printf '#!/usr/bin/env bash\nprintf %%s "%s"\n' "$v" \
+    > "$resolve/conf/plugins/cache/$v/scripts/statusline.sh"
+  chmod +x "$resolve/conf/plugins/cache/$v/scripts/statusline.sh"
+  sleep 1
+done
+check 'the copy installed most recently wins, whatever its version or marketplace' \
+  'a-market/msu-statusline/0.0.1' \
+  "$(CLAUDE_CONFIG_DIR="$resolve/conf" bash "$here/../scripts/launcher.sh" </dev/null)"
+# A path that is not there has to reach the warning, not `bash: no such file` and 127.
+check 'a MSU_STATUSLINE_ROOT that points nowhere warns instead of failing to exec' \
+  '⚠ MSU statusline: plugin not found' \
+  "$(CLAUDE_CONFIG_DIR="$resolve/conf" MSU_STATUSLINE_ROOT=/nonexistent/typo \
+       bash "$here/../scripts/launcher.sh" </dev/null 2>&1 | sed $'s/\033\[[0-9;]*m//g')"
+
+# A .prev holding this plugin's own command makes the launcher run itself, find .prev
+# non-empty, and run itself again — two processes per level, on every redraw. The
+# install skill will not write one; nothing stops a hand edit.
+check 'a .prev naming this plugin is refused rather than replayed' \
+  '1' "$(launch "bash '$CLAUDE_CONFIG_DIR/msu-statusline.sh'" | wc -l | tr -d ' ')"
 
 check 'an unresolvable plugin says so rather than going quiet' \
   '⚠ MSU statusline: plugin not found' "$(unresolved '')"
@@ -384,15 +436,15 @@ mkdir -p "$warn_conf"
 printf 'POLL_HOURS=4\nTIME=off\nICON=\n' > "$warn_conf/msu-statusline.conf"
 # Not render(), which writes the cache itself — half of these need it absent.
 warn_raw() { # $1 = "<count> <kind>", $2 = cached|empty
-  printf '%s\n' "$1" > "${TMPDIR}msu-statusline-notice.failures"
+  printf '%s\n' "$1" > "$warn_conf/msu-statusline.cache.failures"
   # A stamp of now, so the render's own gate never decides a fetch is due and no check
   # below reaches the board.
-  : > "${TMPDIR}msu-statusline-notice.attempted"
+  : > "$warn_conf/msu-statusline.cache.attempted"
   case $2 in
-    cached) printf '1\t[Notice] x\t1788332554\n' > "$CACHE" ;;
-    empty)  rm -f "$CACHE" ;;
+    cached) printf '1\t[Notice] x\t1788332554\n' > "$warn_conf/msu-statusline.cache" ;;
+    empty)  rm -f "$warn_conf/msu-statusline.cache" ;;
   esac
-  env CLAUDE_CONFIG_DIR="$warn_conf" TMPDIR="$TMPDIR" \
+  env CLAUDE_CONFIG_DIR="$warn_conf" \
     bash -c 'MSU_STATUSLINE_LIB=1 . "$1"; segment_notice 1788332554' _ \
     "$here/../scripts/statusline.sh"
 }
@@ -415,7 +467,7 @@ check 'and still stays quiet there below the ceiling' \
 check 'the warning links to the board when there is no notice to link to' \
   'https://msu.io/builder/notices' \
   "$(warn_raw '6 read' empty | tr $'\a' '\n' | grep -o 'https://.*' | head -1)"
-rm -f "${TMPDIR}msu-statusline-notice.failures" "${TMPDIR}msu-statusline-notice.attempted"
+rm -f "$warn_conf/msu-statusline.cache.failures" "$warn_conf/msu-statusline.cache.attempted"
 
 # ── which failure it was ─────────────────────────────────────────────────────────────
 # fetch_notice separates them, and only the parse failure means this plugin is broken.
@@ -445,6 +497,22 @@ check 'an unknown NOTICE value reports as on' 'on' "$(effective NOTICE)"
 check 'an unknown truecolor value reports as auto' 'auto' "$(effective ICON_TRUECOLOR)"
 check 'a key the script does not know is not reported at all' \
   '' "$(effective BOGUS)"
+# Digits alone are not a number $(( )) can take. 08 is an octal error that used to abort
+# the poll gate and freeze the notice silently, and 0 is out of range for the two that
+# index with it.
+octal=$CLAUDE_CONFIG_DIR/octal
+mkdir -p "$octal"
+printf 'POLL_HOURS=08\nMAX_WIDTH=0\nICON_CYCLE=030\n' > "$octal/msu-statusline.conf"
+octal_effective() {
+  env CLAUDE_CONFIG_DIR="$octal" bash "$here/../scripts/statusline.sh" --config \
+    | sed -n "s/^$1=//p"
+}
+check 'a leading zero is refused rather than read as octal' \
+  '4' "$(octal_effective POLL_HOURS)"
+check 'a zero width is refused, and would slice a negative length' \
+  '72' "$(octal_effective MAX_WIDTH)"
+check 'a leading-zero cycle is read in base ten, since 0 is a real value there' \
+  '30' "$(octal_effective ICON_CYCLE)"
 # One list, used by the conf loop and by --config alike, so the two cannot disagree.
 check 'every key the parser accepts is reported' \
   "$(sed -n "s/^KEYS='\(.*\)'/\1/p" "$here/../scripts/statusline.sh" | tr ' ' '\n' | sort | tr '\n' ' ')" \

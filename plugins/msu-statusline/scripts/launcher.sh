@@ -9,22 +9,26 @@ set -uo pipefail
 
 CONFIG_DIR=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
 PREV=$CONFIG_DIR/msu-statusline.prev
-MEMO=${TMPDIR:-/tmp}/msu-statusline-root
 
 root=${MSU_STATUSLINE_ROOT:-}
-if [ -z "$root" ] && [ -r "$MEMO" ]; then
-  read -r root < "$MEMO"
+if [ -n "$root" ]; then
+  # Checked like any other candidate, and never fallen back from: a typo here has to
+  # reach the warning below rather than exec a path that is not there and exit 127.
   [ -x "$root/scripts/statusline.sh" ] || root=
-fi
-if [ -z "$root" ]; then
-  # Highest version wins, so an update is picked up with no settings edit. The
-  # marketplace directory is globbed because a fork installs under its own name. This
-  # walks a directory tree and spawns three processes, so the answer is memoised — it
-  # changes only when the plugin is updated, and the memo is re-checked above.
-  root=$(ls -d "$CONFIG_DIR"/plugins/cache/*/msu-statusline/*/ 2>/dev/null \
-    | sort -V | tail -1)
-  root=${root%/}
-  [ -z "$root" ] || printf '%s\n' "$root" > "$MEMO"
+else
+  # The most recently installed copy wins, so an update is picked up with no settings
+  # edit. By mtime rather than by version, for two reasons: `claude plugin update` leaves
+  # the old version directory in place — MEASURED, an ordinary cache keeps every version
+  # it has fetched — and a version sort over whole paths compares the marketplace name
+  # first, so z-market/1.0.0 beats a-market/9.0.0. The marketplace directory is globbed
+  # because a fork installs under its own name. Every operation here is a builtin, which
+  # is why there is no memo file: resolving costs no process, and a memo would pin
+  # whichever version was installed the day it was written.
+  for dir in "$CONFIG_DIR"/plugins/cache/*/msu-statusline/*/; do
+    [ -x "$dir/scripts/statusline.sh" ] || continue
+    [ -z "$root" ] || [ "$dir" -nt "$root" ] || continue
+    root=${dir%/}
+  done
 fi
 # --config is passed straight through, with no replay and no stdin. It exists here so
 # there is one stable path a user can be handed: this file's location never changes,
@@ -33,8 +37,13 @@ fi
 # It returns unconditionally, including when the plugin cannot be found. Falling through
 # would reach the stdin read below, which blocks on a terminal — a diagnostic command
 # that hangs is worse than no diagnostic command.
+#
+# Not found is stderr and a non-zero exit, unlike the render path below where the same
+# warning is the line itself. The install skill redirects this into the conf file it
+# creates, so a warning on stdout with a zero exit would be saved as the user's
+# configuration.
 if [ "${1:-}" = --config ]; then
-  [ -n "$root" ] || { printf '%s[1;31m⚠ MSU statusline: plugin not found%s\n' $'\033' $'\033[0m'; exit 0; }
+  [ -n "$root" ] || { printf '%s[1;31m⚠ MSU statusline: plugin not found%s\n' $'\033' $'\033[0m' >&2; exit 1; }
   exec bash "$root/scripts/statusline.sh" --config
 fi
 
@@ -61,8 +70,16 @@ IFS= read -r -d '' input || :
 # Guarded, because the exec above is skipped when the plugin cannot be resolved — so
 # this is reachable with no .prev at all.
 if [ -s "$PREV" ]; then
-  prev=$(printf '%s' "$input" | bash -c "$(cat "$PREV")") || prev=
-  [ -z "$prev" ] || printf '%s\n' "$prev"
+  cmd=$(cat "$PREV")
+  # A .prev naming this plugin would make the launcher run itself, find .prev non-empty,
+  # and run itself again — unbounded recursion, two processes per level, on every single
+  # redraw. The install skill will not write one; this is the backstop for a hand edit,
+  # and for whatever an older install already left behind.
+  case $cmd in *msu-statusline*) cmd= ;; esac
+  if [ -n "$cmd" ]; then
+    prev=$(printf '%s' "$input" | bash -c "$cmd") || prev=
+    [ -z "$prev" ] || printf '%s\n' "$prev"
+  fi
 fi
 
 # An unresolvable root is reported, not swallowed. Exiting quietly here is the failure

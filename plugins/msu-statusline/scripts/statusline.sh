@@ -10,6 +10,14 @@
 # printing anything, which is how tests/test.sh reaches the parser.
 set -uo pipefail
 
+# bash 5.2 made an unquoted & in the replacement half of ${x//pattern/&} stand for the
+# text that matched, and turned that on by default — VERIFIED against 5.2.21, which is
+# what ubuntu-latest runs, where the &amp; decode below came out undecoded. Unknown
+# option on bash 3.2, which macOS still ships and where the behaviour never existed:
+# hence the redirect, and the `|| :`, without which sourcing this file under `set -e`
+# stops there.
+shopt -u patsub_replacement 2>/dev/null || :
+
 CONFIG_DIR=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
 CONF=$CONFIG_DIR/msu-statusline.conf
 
@@ -84,12 +92,24 @@ case $NOTICE in on | off) ;; *) NOTICE=on ;; esac
 case $TIME in local | utc | off) ;; *) TIME=local ;; esac
 case $COLOR in yellow | cyan | green | magenta | blue | red | white | none) ;; *) COLOR=none ;; esac
 case $ICON_TRUECOLOR in auto | on | off) ;; *) ICON_TRUECOLOR=auto ;; esac
-case $ICON_CYCLE in ''|*[!0-9]*) ICON_CYCLE=0 ;; esac
-case $POLL_HOURS in ''|*[!0-9]*) POLL_HOURS=4 ;; esac
-case $MAX_WIDTH in ''|*[!0-9]*) MAX_WIDTH=72 ;; esac
+# Digits are not enough for the two that reach $(( )). A leading zero is read as octal,
+# so POLL_HOURS=08 aborts the arithmetic every poll gate runs through and leaves the
+# notice frozen with nothing to say why; 0* rejects plain 0 in the same pattern, which
+# is out of range for both — a zero MAX_WIDTH asks for a negative slice, a zero
+# POLL_HOURS makes every render due. The length patterns reject a digit string long
+# enough to overflow the arithmetic. ICON_CYCLE takes 0 as "pin the first colour", so it
+# is normalised through 10# rather than rejected.
+case $ICON_CYCLE in ''|*[!0-9]*|??????*) ICON_CYCLE=0 ;; *) ICON_CYCLE=$((10#$ICON_CYCLE)) ;; esac
+case $POLL_HOURS in ''|0*|*[!0-9]*|?????*) POLL_HOURS=4 ;; esac
+case $MAX_WIDTH in ''|0*|*[!0-9]*|????*) MAX_WIDTH=72 ;; esac
 
 NOTICES_URL=https://msu.io/builder/notices
-CACHE=${TMPDIR:-/tmp}/msu-statusline-notice
+# Beside the conf file rather than in TMPDIR. On Linux TMPDIR is usually unset, and a
+# fixed name in a world-writable /tmp is every other local user's write target: a
+# symlink planted at $CACHE.new redirects this process's write into whatever it points
+# at, and the notice read back is their text rather than the board's. $CONFIG_DIR is the
+# user's own, and already holds this plugin's launcher, conf and .prev.
+CACHE=$CONFIG_DIR/msu-statusline.cache
 LOCK=$CACHE.lock
 STAMP=$CACHE.attempted
 # First retry after a failure, doubling on each further failure up to the poll interval
@@ -245,8 +265,14 @@ do_refresh() { # $1 = curl budget in seconds
   if out=$(fetch_notice "$1"); then
     # Written whole or not at all: a writer killed mid-print would otherwise leave a
     # half line that the read path has to treat as a notice.
-    printf '%s\n' "$out" > "$CACHE.new" && mv -f "$CACHE.new" "$CACHE"
-    rm -f "$STAMP" "$FAILURES"
+    #
+    # The stamp is cleared only once the write landed. A full disk that took the write
+    # down would otherwise look like a successful poll to every following render, and
+    # each one would open a fresh request; leaving the stamp holds the retry to the
+    # ordinary backoff.
+    if printf '%s\n' "$out" > "$CACHE.new" && mv -f "$CACHE.new" "$CACHE"; then
+      rm -f "$STAMP" "$FAILURES"
+    fi
   else
     # rc 2 is "answered, unreadable" — the board changed shape under the parser.
     [ "$?" -eq 2 ] && kind=read || kind=reach
@@ -365,9 +391,9 @@ EOF
     [ -n "$warn" ] || return 0
   else
   IFS=$'\t' read -r id title posted < "$CACHE" || return 0
-  # Re-validated on the way out, not only on the way in. On Linux with no TMPDIR the
-  # cache sits at a fixed name in a world-writable /tmp, so its contents are another
-  # process's input: the id goes into a URL and the title goes to the terminal.
+  # Re-validated on the way out, not only on the way in. The id goes into a URL and the
+  # title goes to the terminal, and what is on disk was written by an earlier version of
+  # this script — or by a hand that was in the directory for another reason.
   case $id in '' | *[!0-9]*) return 0 ;; esac
   [ -n "$title" ] || return 0
   title=${title//[[:cntrl:]]/}

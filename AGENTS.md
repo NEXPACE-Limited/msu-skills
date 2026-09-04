@@ -77,8 +77,9 @@ built**: the `SKILL.md` files under `plugins/*/skills/` are the only source, shi
 verbatim everywhere. The landing page under `web/` is a real build, but it sits
 downstream of those files — it reads them, and no channel reads it.
 
-Skills install automatically on all three; they differ only in what happens to the
-`maple-lookup` MCP server.
+Skills install automatically on all three; for a skill, the channels differ only in what
+happens to the `maple-lookup` MCP server. A plugin's `scripts/` is not a skill and is the
+one thing that does not travel — see the paragraph below the table.
 
 | Channel | `maple-lookup` MCP |
 |---|---|
