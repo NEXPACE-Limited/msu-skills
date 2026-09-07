@@ -56,6 +56,11 @@ check: ## Run the commands CI runs (CI adds a guards job on top)
 		rm -rf "$$probe"; \
 	done
 	bash scripts/test-remote-installer.sh
+	@for file in plugins/*/tests/test.sh; do \
+		[ -f "$$file" ] || continue; \
+		echo "── $$file"; \
+		bash "$$file" || exit 1; \
+	done
 	bash scripts/check-endpoints.sh
 	npm --prefix web ci --ignore-scripts
 	npm --prefix web run build

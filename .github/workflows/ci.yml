@@ -446,6 +446,20 @@ jobs:
             fi
             echo "$file carries no literal credential"
           done
+      - name: Every plugin test suite passes
+        # A plugin may ship an executable the host runs rather than the agent — a status
+        # line, a hook — and nothing else here would exercise it. Suites are discovered
+        # from the filesystem like every other check, run with bash, and must not reach
+        # the network: CI is not a reason for traffic to a third party.
+        run: |
+          shopt -s nullglob
+          count=0
+          for file in plugins/*/tests/test.sh; do
+            echo "── $file"
+            bash "$file"
+            count=$((count + 1))
+          done
+          echo "$count plugin test suite(s) ran"
       - name: No forbidden endpoint in tracked files
         # Credentials in a URL, raw IPv4 hosts, internal-only hosts, plaintext http.
         # The other half of the retired hub's check-endpoints.sh.
