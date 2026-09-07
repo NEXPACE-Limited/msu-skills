@@ -1,11 +1,11 @@
 ---
 name: msu-statusline-install
-description: "Claude Code only — a status line is a Claude Code concept and this skill does nothing on another CLI. Puts the newest MSU Builder notice in the Claude Code status line, or takes it back out. Use when the user asks to install, enable, set up, turn off, remove, or repair the MSU status line, wants MSU notices or announcements shown under the prompt or in the terminal, or reports that the MSU status line is blank, stale, or gone after an update. Wraps a status line that is already configured rather than replacing it."
+description: "Claude Code only — a status line is a Claude Code concept and this skill does nothing on another CLI. Puts the newest MSU Builder notice in the Claude Code status line, and repairs it. Use when the user asks to install, enable, set up, re-install or repair the MSU status line, wants MSU notices or announcements shown under the prompt or in the terminal, or reports that the MSU status line is blank, stale, or gone after an update. Wraps a status line that is already configured rather than replacing it. Taking it back out is `msu-statusline-uninstall`."
 ---
 
 # msu-statusline-install
 
-Wires the MSU status line into the user's own settings, and unwires it. Claude Code
+Wires the MSU status line into the user's own settings. Claude Code
 reads `statusLine` from `settings.json` rather than from plugin config, so a plugin
 cannot install one — this skill writes it on the user's behalf.
 
@@ -32,6 +32,7 @@ Everything below writes to `$CONFIG`, so assign it once in whatever shell you us
 
 ```bash
 CONFIG=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
+S=$CONFIG/settings.json
 ```
 
 Two things hold for every write to `settings.json` in either direction. **Keep its file
@@ -43,28 +44,51 @@ the mode by making the temporary file a copy of the original, which `cp -p` does
 ```bash
 S=$CONFIG/settings.json
 cp -p "$S" "$S.new" && jq '<the edit>' "$S" > "$S.new" && mv -f "$S.new" "$S" \
-  || rm -f "$S.new"
+  || { rm -f "$S.new"; exit 1; }
 ```
 
 `cp -p` first, then the redirect: `>` truncates the copy and leaves its mode alone, and
 `mv` over the original is atomic, so a `jq` that fails writes nothing. On a machine with
 no settings file the `cp` fails and there is no mode to keep — write the file directly
-there.
+there. A failed edit stops the install; cleanup must not turn its exit status into
+success. Check that `bash`, `jq` and `curl` are available before making changes.
 
 And **leave a `statusLine` sibling you did not put there alone**, `padding` being the one
 that exists today.
 
 1. **Read `$CONFIG/settings.json`.** Create `$CONFIG` if it is not there, and treat a
    missing or empty file as `{}` — a first install has neither, and the JSON below is
-   then the whole file rather than a patch. Edit the file as JSON, never as text: it holds the user's permissions and hooks, and a bad
+   then the whole file rather than a patch. Initialise a missing or empty file to `{}`
+   before running the `jq` edits; `jq` on empty input produces no document and exits
+   successfully. Stop on malformed JSON, a non-object root or `statusLine`, or a
+   non-string command, without replacing the file.
+   Edit the file as JSON, never as text: it holds the user's permissions and hooks, and a bad
    patch costs them more than this feature. Parsing and re-serialising reflows the
    file — every value survives, the formatting may not, and that is fine.
 2. **Preserve an existing status line.** If `.statusLine.command` is set and does
    **not** already mention `msu-statusline`, write it to `$CONFIG/msu-statusline.prev`
    — the decoded value of that JSON string, the shell command itself, because the
-   launcher runs it with `bash -c`. Write no trailing newline: removal puts this file
+   launcher runs it with `bash -c`. Add no trailing newline: removal puts this file
    straight back into a JSON string, and a stray `\n` there is a command that no longer
-   matches what the user had. If there is no existing command, write no file.
+   matches what the user had. If there is no existing command, remove any stale `.prev`
+   from an earlier install: replaying it would resurrect a line the user has removed.
+
+   ```bash
+   jq -e 'type == "object"
+     and (.statusLine == null or (.statusLine | type == "object"))
+     and (.statusLine.command == null or (.statusLine.command | type == "string"))' \
+     "$S" >/dev/null || exit 1
+   if jq -e '.statusLine.command // "" | contains("msu-statusline")' "$S" >/dev/null; then
+     : # Repair: keep the existing backup.
+   elif jq -e '.statusLine.command // "" | length > 0' "$S" >/dev/null; then
+     jq -j '.statusLine.command' "$S" > "$CONFIG/msu-statusline.prev" || exit 1
+   else
+     rm -f "$CONFIG/msu-statusline.prev" || exit 1
+   fi
+   ```
+
+   `-j`, not `-r`. Both decode the string; `-r` adds the newline this step exists to
+   avoid, and it is the spelling that comes to hand first.
 
    If `.prev` already exists and the current command is *not* ours, the user changed
    their status line since the last install: overwrite it, because the newer one is
@@ -75,12 +99,12 @@ that exists today.
    `.prev` makes the launcher run itself, find `.prev` non-empty, and run itself again —
    unbounded recursion, two processes per level, on every status-line redraw.
 
-   Match on `msu-statusline`, exactly as the removal below does, and not on
+   Match on `msu-statusline`, exactly as `msu-statusline-uninstall` does, and not on
    `msu-statusline.sh`: a command pointing straight into the plugin at
    `…/msu-statusline/<version>/scripts/launcher.sh` is this plugin's too, and the
    stricter spelling does not see it. The launcher refuses to replay a `.prev` naming
    itself, so a mismatch here costs the user's own status line rather than the machine —
-   but it costs it silently, which is why the two matches have to agree.
+   but it costs it silently, which is why the two skills have to match on the same thing.
 3. **Copy the launcher**: `${CLAUDE_PLUGIN_ROOT}/scripts/launcher.sh` →
    `$CONFIG/msu-statusline.sh`, then make it executable.
 4. **Point `settings.json` at it.** Set `.statusLine.type` and `.statusLine.command`
@@ -111,16 +135,23 @@ that exists today.
    transcribing them from anywhere:
 
    ```bash
-   bash "$CONFIG/msu-statusline.sh" --config > "$CONFIG/msu-statusline.conf.new" \
-     && mv "$CONFIG/msu-statusline.conf.new" "$CONFIG/msu-statusline.conf" \
-     || rm -f "$CONFIG/msu-statusline.conf.new"
+   if [ ! -e "$CONFIG/msu-statusline.conf" ]; then
+     bash "$CONFIG/msu-statusline.sh" --config > "$CONFIG/msu-statusline.conf.new" \
+       && mv "$CONFIG/msu-statusline.conf.new" "$CONFIG/msu-statusline.conf" \
+       || { rm -f "$CONFIG/msu-statusline.conf.new"; exit 1; }
+   fi
    ```
+
+   The guard is in the block, not only in the sentence above it. Every other step here
+   ships a block meant to be run as written, so one that skipped the check would take
+   the user's settings on the next reinstall — the exact thing the sentence forbids.
 
    Redirecting straight onto the real name would leave an empty conf behind if the
    command failed — and step 5's own "never overwrite one that exists" would then
    protect that empty file from every future install. `--config` fails with a non-zero
    status and nothing on stdout when the plugin cannot be resolved, which is exactly the
-   case this guards: no conf is written, and step 6 says what went wrong.
+   case this guards: no conf is written. Report the error and repair plugin resolution
+   before continuing to step 6; the launcher prints its diagnostic on stderr.
 
    With no conf to read, that prints exactly the defaults in `KEY=value` form, which is
    the format the file takes. Do not assemble the list by reading the script: the keys
@@ -131,104 +162,46 @@ that exists today.
    empty input it prints nothing and makes this step look like a failure.
 
    ```bash
-   echo '{"model":{"display_name":"Opus"},"workspace":{"current_dir":"'"$PWD"'"}}' \
+   jq -n --arg dir "$PWD" '{model:{display_name:"Opus"},workspace:{current_dir:$dir}}' \
      | bash "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/msu-statusline.sh"
    ```
 
-   Expect the MSU line, and above it the previous status line if step 2 saved one. It
-   waits for the board — up to three seconds, and it is the only render that ever does.
-   Every render after it reads the cache and returns in a few hundredths of a second,
-   and later polls are forked.
+   Expect the MSU line when `NOTICE=on` and a notice is cached, and above it the previous
+   status line if step 2 saved one. A fetch without a cache waits up to three seconds;
+   after a failure, the next eligible retry also waits until there is a cache. With a
+   cache, later polls run in the background. `jq --arg` keeps the sample JSON valid
+   even when the working directory contains quotes or backslashes.
 
    **`⚠ MSU statusline: plugin not found` means the launcher cannot see the plugin.** It
    resolves the newest `$CONFIG/plugins/cache/*/msu-statusline/*/`, which matches nothing
    when the plugin is a checkout rather than an installed copy. Point
-   `MSU_STATUSLINE_ROOT` at the plugin directory, or install the plugin properly. Nothing
-   at all, not even that warning, means the command in `settings.json` is not reaching
-   the launcher.
+   `MSU_STATUSLINE_ROOT` at the plugin directory in the environment that actually runs
+   the status line, or install the plugin properly. A shell-only override proves only
+   that shell's render; it does not configure future Claude Code sessions.
 
-Then tell the user it takes effect in new sessions, and — if step 2 saved one — that
-their previous status line now renders on the line above.
+   **An empty render alone does not prove a wiring failure.** `NOTICE=off`, or a cold
+   cache after a failed fetch, legitimately prints no MSU line. Check `--config`, the
+   cache and `.cache.failures` before claiming success or a broken launcher. Consult
+   the troubleshooting reference below if the expected line is missing.
 
-## Remove
+Then report what actually rendered. Settings reload automatically and appear at the
+next interaction with Claude Code; a new session is a fallback if the current one does
+not update, not a requirement. If step 2 saved a command, its output renders above MSU.
+This reload behaviour is documented in the
+[Claude Code status-line guide](https://code.claude.com/docs/en/statusline).
 
-Edit `settings.json` as JSON here too, never as text — this path *deletes* a key, which
-is the easier one to get wrong.
+## Removing it
 
-1. **Check the status line is still ours.** Match `.statusLine.command` against
-   `msu-statusline`, not `msu-statusline.sh`: a command pointing straight into the
-   plugin at `…/scripts/launcher.sh` is still this plugin's, and a stricter match would
-   declare it the user's own and leave it running with no way to remove it.
-
-   If it does **not** match, the user has changed their status line since installing.
-   Leave `settings.json` alone and say why, then skip to step 3 — restoring would
-   overwrite their newer choice.
-2. **Put back what was there.** If `$CONFIG/msu-statusline.prev` holds a command —
-   anything other than whitespace — restore it as `.statusLine.command` and delete the
-   file. Strip any trailing newline, or the restored command is not the one the user
-   had; `jq --arg c "$(cat …)"` does that for free, while `jq --rawfile` keeps the
-   newline and quietly produces the wrong string.
-
-   Otherwise — no file, or nothing but whitespace in it — there is nothing to put back.
-   Delete `.statusLine.type` and `.statusLine.command`, and `.statusLine.refreshInterval`
-   with them — a timer with no command left to re-run does nothing, and
-   `msu-statusline-config` is what usually put it there. Then delete `statusLine` itself
-   only if nothing else is left inside it. The surgical form for the same reason step 4
-   of the install gives: a `padding` the user set is theirs, and deleting the object
-   whole takes it with no word said. Delete `.prev` too if it is there — an emptied one
-   is a state the troubleshooting below tells users to create, and it would outlive the
-   thing that reads it.
-
-   **Say what this costs them.** An emptied `.prev` means the status line they had
-   before installing was never recorded, so removal leaves them with none at all rather
-   than with the one they started from. That is the right outcome and a surprising one;
-   offer to put a command back if they can name it.
-
-   The restored object keeps `"type": "command"`, which is the only type a command
-   status line has; if the user's original omitted it, that is the one difference from
-   the file as it was.
-3. **Delete `$CONFIG/msu-statusline.sh`**, and `$CONFIG/msu-statusline.prev` if it is
-   still there — step 2 has usually done that already, but the skip in step 1 has not.
-   Delete this copy whether or not it was the one being run: a command pointing into the
-   plugin means the launcher here was already an orphan. Delete
-   `$CONFIG/msu-statusline.cache` and anything beside it — `.cache.lock`,
-   `.cache.attempted`, `.cache.failures` — in the same breath: nothing reads them once
-   the launcher is gone, and a reinstall rebuilds all of them on the first render.
-4. **Leave `$CONFIG/msu-statusline.conf` alone and say so** — a reinstall keeps the
-   user's settings, and it is one line to delete if they want it gone.
-5. **Show that it worked**, and that the restored command actually runs. `bash -c`, not
-   `sh -c`: the launcher ran it with bash, and on Debian and Ubuntu `/bin/sh` is dash,
-   which would fail a command that was working perfectly a minute ago. Feed it a session
-   JSON object for the same reason install does — a status line that reads one prints
-   nothing without it.
-
-   ```bash
-   CONFIG=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
-   echo '{"model":{"display_name":"Opus"},"workspace":{"current_dir":"'"$PWD"'"}}' \
-     | bash -c "$(jq -r '.statusLine.command // empty' "$CONFIG/settings.json")"
-   ```
-
-   Expect the user's own status line and nothing else.
-
-   **On the delete branch that command proves nothing** — `// empty` reduces it to
-   `bash -c ""`, which cannot fail and would print nothing against a file you never
-   touched. Ask for the command instead of for the object: a `padding` the user set
-   keeps `statusLine` in the file quite legitimately, so its presence answers nothing.
-
-   ```bash
-   jq '.statusLine.command' "$CONFIG/settings.json"    # expect null
-   ```
-
-   Then tell the user the MSU line stays until they start a new session; that the status
-   line being wrapped is now the whole of it again, or that there is none if step 2 took
-   the delete branch; and that this unwired the status line rather than uninstalling the
-   plugin, which is still there.
+Taking the line back out — restoring the status line that was there before, deleting
+what the steps above wrote, and uninstalling the plugin — is
+`msu-statusline-uninstall`. The order it insists on is real: uninstalling the plugin
+first takes that skill away with it.
 
 ## When something looks wrong
 
 A symptom and what it means — a blank line, a stale notice, a red warning, a link that
 will not open — is in
 [`references/troubleshooting.md`](references/troubleshooting.md). Read it when the
-request is a symptom rather than an install or a removal.
+request is a symptom rather than an install.
 
 Segments and how often the board is polled belong to `msu-statusline-config`.

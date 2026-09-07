@@ -206,13 +206,14 @@ Official MCP setup docs:
 | `game-tools` | [`game-feel`](plugins/game-tools/skills/game-feel/) | Input and movement feel — coyote time, jump buffering, variable jump, gravity shaping, corner correction, acceleration, action buffering, hurtboxes — audited and proposed, applied on confirmation |
 | `game-tools` | [`game-tutorial`](plugins/game-tools/skills/game-tutorial/) | First-time-player onboarding: what to teach, when, and how to verify it |
 | `game-tools` | [`i18n-setup`](plugins/game-tools/skills/i18n-setup/) | Localization: string extraction, locale catalogs, fallback, plurals, glyphs, safe layouts |
-| `msu-statusline` | [`msu-statusline-install`](plugins/msu-statusline/skills/msu-statusline-install/) | Puts the newest MSU Builder notice under your prompt as a clickable link, wrapping any status line you already use — and takes it back out |
+| `msu-statusline` | [`msu-statusline-install`](plugins/msu-statusline/skills/msu-statusline-install/) | Puts the newest MSU Builder notice under your prompt as a clickable link, wrapping any status line you already use |
 | `msu-statusline` | [`msu-statusline-config`](plugins/msu-statusline/skills/msu-statusline-config/) | Turns status-line segments on and off and sets the polling interval, label, and title width |
+| `msu-statusline` | [`msu-statusline-uninstall`](plugins/msu-statusline/skills/msu-statusline-uninstall/) | Takes the line back out, restores the status line you had before it, and uninstalls the plugin when that is what you meant |
 
 Any row above installs on its own with
-`npx skills add NEXPACE-Limited/msu-skills --skill <name>`. The two `msu-statusline`
+`npx skills add NEXPACE-Limited/msu-skills --skill <name>`. The `msu-statusline`
 rows are the exception worth knowing: a status line is a Claude Code concept, so those
-two skills install on every channel but only do anything on the Claude Code one.
+skills install on every channel but only do anything on the Claude Code one.
 
 ## MCP Requirement
 

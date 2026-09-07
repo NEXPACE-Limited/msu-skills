@@ -519,5 +519,7 @@ check 'every key the parser accepts is reported' \
   "$(env CLAUDE_CONFIG_DIR="$cfg" bash "$here/../scripts/statusline.sh" --config \
      | cut -d= -f1 | sort | tr '\n' ' ')"
 
+bash "$here/skill-snippets.sh" || fail=1
+
 [ "$fail" -eq 0 ] && printf '\nall checks passed\n'
 exit "$fail"
