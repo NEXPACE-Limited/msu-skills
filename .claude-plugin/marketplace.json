@@ -32,6 +32,19 @@
       "repository": "https://github.com/NEXPACE-Limited/msu-skills",
       "category": "development",
       "tags": ["game", "gamedev", "game-design", "game-polish", "playtest", "qa", "balance", "game-feel", "ux", "accessibility", "i18n", "engine-agnostic", "nexpace"]
+    },
+    {
+      "name": "msu-statusline",
+      "source": "./plugins/msu-statusline",
+      "displayName": "MSU Statusline",
+      "description": "A Claude Code status line for MapleStory Universe builders. It reads the MSU Builder notice board and keeps the newest notice under the prompt as a clickable link, so an announcement about maintenance, an API change, or a deadline arrives without leaving the terminal. Segments are toggled individually and it wraps an existing status line rather than replacing it. No credential required.",
+      "author": {
+        "name": "NEXPACE"
+      },
+      "homepage": "https://github.com/NEXPACE-Limited/msu-skills",
+      "repository": "https://github.com/NEXPACE-Limited/msu-skills",
+      "category": "productivity",
+      "tags": ["maplestory-universe", "msu", "nexpace", "statusline", "status-line", "notices", "claude-code", "terminal"]
     }
   ]
 }
